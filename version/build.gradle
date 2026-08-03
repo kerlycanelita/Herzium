@@ -1,0 +1,216 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+def targetMinecraft = project.minecraft_version.toString()
+def minecraft121 = targetMinecraft.startsWith('1.21')
+def classicInputVersions = [
+        '1.21', '1.21.1', '1.21.2', '1.21.3', '1.21.4',
+        '1.21.5', '1.21.6', '1.21.7', '1.21.8'
+] as Set
+def classicInput = classicInputVersions.contains(targetMinecraft)
+def publicSelectedSlot = ['1.21', '1.21.1', '1.21.2', '1.21.3', '1.21.4'].contains(targetMinecraft)
+def modernButton = ['1.21.9', '1.21.10'].contains(targetMinecraft)
+def noFramerateTracker = ['1.21', '1.21.1'].contains(targetMinecraft)
+def basicFramerateTracker = ['1.21.2', '1.21.3', '1.21.4'].contains(targetMinecraft)
+def javaRelease = minecraft121 ? 21 : 25
+
+version = project.mod_version
+group = project.maven_group
+
+layout.buildDirectory = layout.projectDirectory.dir("${targetMinecraft}/build")
+
+base {
+    archivesName = "herzium-${targetMinecraft}"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        'herzium' {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+def generatedClientSources = layout.buildDirectory.dir('generated/sources/herzium/client')
+
+tasks.register('generateHerziumClientSources', Sync) {
+    from('../src/client/java') {
+        if (minecraft121) {
+            exclude '**/FramerateLimiterMixin.java'
+            exclude '**/FramerateLimitTrackerMixin.java'
+            exclude '**/GlDeviceMixin.java'
+            exclude '**/MinecraftMixin.java'
+        }
+        if (classicInput) {
+            exclude '**/AnimatedPurpleButton.java'
+            exclude '**/ImmediateHotbarInput.java'
+            exclude '**/ItemInHandRendererMixin.java'
+            exclude '**/KeyboardHandlerMixin.java'
+            exclude '**/LoadingOverlayMixin.java'
+            exclude '**/MouseHandlerMixin.java'
+        }
+        if (modernButton) {
+            exclude '**/AnimatedPurpleButton.java'
+        }
+        if (minecraft121) {
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                String transformed = line
+                        .replace('GuiGraphicsExtractor', 'GuiGraphics')
+                        .replace('extractContents', 'renderContents')
+                        .replace('extractDefaultLabel', 'renderDefaultLabel')
+                        .replace('extractBackground', 'renderBackground')
+                        .replace('extractRenderState', 'render')
+                        .replace('extractPanorama', 'renderPanorama')
+                        .replace('extractCrosshair', 'renderCrosshair')
+                        .replace('extractItemHotbar', 'renderItemHotbar')
+                        .replace('graphics.centeredText(', 'graphics.drawCenteredString(')
+                        .replace('graphics.text(', 'graphics.drawString(')
+                if (targetMinecraft == '1.21' || targetMinecraft == '1.21.1') {
+                    transformed = transformed.replace('.getDeltaTracker()', '.getTimer()')
+                }
+                if (modernButton) {
+                    transformed = transformed.replace('.screen.init(', '.screen.resize(this.minecraft,')
+                }
+                transformed = transformed
+                        .replace('require = 4', 'require = 0')
+                        .replace('require = 2', 'require = 0')
+                return transformed
+            }
+        }
+    }
+
+    if (minecraft121) {
+        from('src/client/common121') {
+            if (!noFramerateTracker) {
+                exclude '**/FramerateLimiterMixin.java'
+            }
+        }
+    }
+    if (classicInput) {
+        from('src/client/classic') {
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                publicSelectedSlot
+                        ? line.replace('player.getInventory().setSelectedSlot(slot);', 'player.getInventory().selected = slot;')
+                        : line
+            }
+        }
+    }
+    if (modernButton) {
+        from('src/client/modern-button')
+    }
+    if (basicFramerateTracker) {
+        from('src/client/tracker-basic')
+    }
+    if (minecraft121 && !noFramerateTracker && !basicFramerateTracker) {
+        from('src/client/tracker-modern121')
+    }
+
+    into(generatedClientSources)
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['../src/main/java']
+        resources.srcDirs = ['../src/main/resources']
+    }
+    client {
+        java.srcDirs = [generatedClientSources]
+        resources.srcDirs = ['../src/client/resources']
+    }
+}
+
+repositories {
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${targetMinecraft}"
+    if (minecraft121) {
+        mappings loom.officialMojangMappings()
+    }
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modCompileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") {
+        transitive = false
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', targetMinecraft
+    inputs.property 'java_version', javaRelease
+    inputs.property 'modmenu_version', project.modmenu_version
+
+    filesMatching('fabric.mod.json') {
+        expand(
+                'version': project.version,
+                'minecraft_version': targetMinecraft,
+                'java_version': javaRelease,
+                'modmenu_version': project.modmenu_version
+        )
+    }
+}
+
+tasks.named('processClientResources') {
+    filesMatching('herzium.client.mixins.json') {
+        filteringCharset = 'UTF-8'
+        filter { String line ->
+            if (minecraft121 && line.contains('"GlDeviceMixin"')) {
+                return null
+            }
+            if (noFramerateTracker && line.contains('"FramerateLimitTrackerMixin"')) {
+                return null
+            }
+            if (minecraft121 && !noFramerateTracker && line.contains('"FramerateLimiterMixin"')) {
+                return null
+            }
+            return minecraft121
+                    ? line.replace('"compatibilityLevel": "JAVA_25"', '"compatibilityLevel": "JAVA_21"')
+                    : line
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaRelease
+}
+
+tasks.named('compileClientJava') {
+    dependsOn tasks.named('generateHerziumClientSources')
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaRelease)
+    }
+    withSourcesJar()
+}
+
+tasks.named('sourcesJar') {
+    dependsOn tasks.named('generateHerziumClientSources')
+}
+
+jar {
+    from('../LICENSE') {
+        rename { 'LICENSE_herzium' }
+    }
+
+    manifest {
+        attributes(
+                'Implementation-Title': 'Herzium',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'zymekoh',
+                'Minecraft-Version': targetMinecraft
+        )
+    }
+}

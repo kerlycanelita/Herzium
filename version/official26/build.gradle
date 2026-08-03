@@ -1,0 +1,146 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+def targetMinecraft = project.minecraft_version.toString()
+def minecraft262 = targetMinecraft == '26.2'
+
+version = project.mod_version
+group = project.maven_group
+
+layout.buildDirectory = layout.projectDirectory.dir("../${targetMinecraft}/build")
+
+base {
+    archivesName = "herzium-${targetMinecraft}"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        'herzium' {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+def generatedClientSources = layout.buildDirectory.dir('generated/sources/herzium/client')
+
+tasks.register('generateHerzium26ClientSources', Sync) {
+    from('../../src/client/java') {
+        if (minecraft262) {
+            exclude '**/GlDeviceMixin.java'
+            exclude '**/WindowMixin.java'
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                if (line.contains('minecraft.getWindow().updateVsync(false);')) {
+                    return null
+                }
+                return line
+                        .replace('this.minecraft.getOverlay()', 'this.minecraft.gui.overlay()')
+                        .replace('minecraft.getOverlay()', 'minecraft.gui.overlay()')
+                        .replace('this.minecraft.setOverlay(', 'this.minecraft.gui.setOverlay(')
+                        .replace('minecraft.setOverlay(', 'minecraft.gui.setOverlay(')
+                        .replace('this.minecraft.setScreen(', 'this.minecraft.gui.setScreen(')
+                        .replace('minecraft.setScreen(', 'minecraft.gui.setScreen(')
+                        .replace('this.minecraft.screen', 'this.minecraft.gui.screen()')
+                        .replace('minecraft.screen', 'minecraft.gui.screen()')
+            }
+        }
+    }
+    if (minecraft262) {
+        from('src/client/26.2')
+    }
+    into(generatedClientSources)
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['../../src/main/java']
+        resources.srcDirs = ['../../src/main/resources']
+    }
+    client {
+        java.srcDirs = [minecraft262 ? generatedClientSources : '../../src/client/java']
+        resources.srcDirs = ['../../src/client/resources']
+    }
+}
+
+repositories {
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${targetMinecraft}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+    if (minecraft262) {
+        compileOnly 'net.fabricmc.fabric-api:fabric-api:0.155.2+26.2'
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', targetMinecraft
+    inputs.property 'java_version', 25
+    inputs.property 'modmenu_version', project.modmenu_version
+
+    filesMatching('fabric.mod.json') {
+        expand(
+                'version': project.version,
+                'minecraft_version': targetMinecraft,
+                'java_version': 25,
+                'modmenu_version': project.modmenu_version
+        )
+    }
+}
+
+tasks.named('processClientResources') {
+    if (minecraft262) {
+        filesMatching('herzium.client.mixins.json') {
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                line.contains('"GlDeviceMixin"') ? null : line
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+tasks.named('compileClientJava') {
+    dependsOn tasks.named('generateHerzium26ClientSources')
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withSourcesJar()
+}
+
+tasks.named('sourcesJar') {
+    dependsOn tasks.named('generateHerzium26ClientSources')
+}
+
+jar {
+    from('../../LICENSE') {
+        rename { 'LICENSE_herzium' }
+    }
+
+    manifest {
+        attributes(
+                'Implementation-Title': 'Herzium',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'zymekoh',
+                'Minecraft-Version': targetMinecraft
+        )
+    }
+}

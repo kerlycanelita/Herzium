@@ -1,0 +1,27 @@
+{
+  "required": true,
+  "package": "dev.zymekoh.herzium.mixin",
+  "plugin": "dev.zymekoh.herzium.mixin.HerziumMixinPlugin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "FramerateLimiterMixin",
+    "FramerateLimitTrackerMixin",
+    "GlDeviceMixin",
+    "GuiMixin",
+    "InactiveWindowFpsMixin",
+    "ItemInHandRendererMixin",
+    "KeyboardHandlerMixin",
+    "LoadingOverlayMixin",
+    "MinecraftMixin",
+    "MouseHandlerMixin",
+    "TitleScreenMixin",
+    "WindowMixin",
+    "compat.ExordiumBufferInstanceMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

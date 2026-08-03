@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "herzium",
+  "version": "${version}",
+  "name": "Herzium",
+  "description": "Removes VSync and FPS limits, reduces mouse and hotbar latency, and adds safe high-refresh visual improvements.",
+  "authors": [
+    "zymekoh"
+  ],
+  "icon": "assets/herzium/icon.png",
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.zymekoh.herzium.HerziumClient"
+    ],
+    "modmenu": [
+      "dev.zymekoh.herzium.compat.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "herzium.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "${minecraft_version}",
+    "java": ">=${java_version}"
+  },
+  "breaks": {
+    "dynamic_fps": "*"
+  },
+  "suggests": {
+    "modmenu": ">=${modmenu_version}",
+    "kohsium": "*"
+  }
+}

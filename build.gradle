@@ -1,0 +1,91 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "herzium" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+repositories {
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+    def modVersion = project.version
+    def minecraftVersion = project.minecraft_version
+    def javaVersion = project.java_version
+    def modMenuVersion = project.modmenu_version
+    inputs.property "version", modVersion
+    inputs.property "minecraft_version", minecraftVersion
+    inputs.property "java_version", javaVersion
+    inputs.property "modmenu_version", modMenuVersion
+
+    filesMatching("fabric.mod.json") {
+        expand(
+                "version": modVersion,
+                "minecraft_version": minecraftVersion,
+                "java_version": javaVersion,
+                "modmenu_version": modMenuVersion
+        )
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "LICENSE_herzium" }
+    }
+
+    manifest {
+        attributes(
+                'Implementation-Title': 'Herzium',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'zymekoh'
+        )
+    }
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            from components.java
+        }
+    }
+}
