@@ -39,6 +39,12 @@ tasks.register('generateHerzium26ClientSources', Sync) {
                     return null
                 }
                 return line
+                        // Mojang renamed the first-person hand submission entry point in 26.2.
+                        // Keep the shared mixin source on the 26.1.x name and adapt only this build.
+                        .replace('renderHandsWithItems', 'submitHandsWithItems')
+                        // The 26.1 HUD implementation moved from Gui into Hud in 26.2.
+                        .replace('import net.minecraft.client.gui.Gui;', 'import net.minecraft.client.gui.Hud;')
+                        .replace('Gui.class', 'Hud.class')
                         .replace('this.minecraft.getOverlay()', 'this.minecraft.gui.overlay()')
                         .replace('minecraft.getOverlay()', 'minecraft.gui.overlay()')
                         .replace('this.minecraft.setOverlay(', 'this.minecraft.gui.setOverlay(')

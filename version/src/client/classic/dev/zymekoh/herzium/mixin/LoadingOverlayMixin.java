@@ -1,17 +1,15 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.Window;
+import dev.zymekoh.herzium.gui.StartupPixelFont;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.LoadingOverlay;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ReloadInstance;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,12 +23,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = LoadingOverlay.class, priority = 2000)
 abstract class LoadingOverlayMixin {
     @Unique
-    private static final List<Component> HERZIUM_TIPS = List.of(
-            Component.literal("No VSync. No waiting. Just frames."),
-            Component.literal("Herzium keeps your HUD moving at your refresh rate."),
-            Component.literal("Loading pixels at an unreasonable speed..."),
-            Component.literal("Fast hands, smooth HUD, vanilla mechanics."),
-            Component.literal("Resource packs still require real work. Magic has limits."));
+    private static final List<String> HERZIUM_TIPS = List.of(
+            "No VSync. No waiting. Just frames.",
+            "Herzium keeps your HUD moving at your refresh rate.",
+            "Loading pixels at an unreasonable speed...",
+            "Fast hands, smooth HUD, vanilla mechanics.",
+            "Resource packs still require real work. Magic has limits.");
 
     @Shadow
     @Final
@@ -87,15 +85,10 @@ abstract class LoadingOverlayMixin {
         }
 
         graphics.fillGradient(0, 0, width, height, 0xFF08030F, 0xFF210735);
-        Font font = this.minecraft.font;
-        graphics.drawCenteredString(font, Component.literal("HERZIUM"), centerX, 12, 0xFFF6ECFF);
+        StartupPixelFont.drawCentered(graphics, "HERZIUM", centerX, 12, 2, 0xFFF6ECFF);
         if (height >= 150) {
-            graphics.drawCenteredString(
-                    font,
-                    Component.literal("Loading at full speed"),
-                    centerX,
-                    25,
-                    0xFFC5A6DF);
+            StartupPixelFont.drawCentered(
+                    graphics, "Loading at full speed", centerX, 26, 1, 0xFFC5A6DF);
         }
 
         float progress = Mth.clamp(this.reload.getActualProgress(), 0.0F, 1.0F);
@@ -106,13 +99,13 @@ abstract class LoadingOverlayMixin {
         graphics.fill(barX, barY, barX + barWidth, barY + 5, 0xA02C1740);
         graphics.fill(barX + 1, barY + 1, barX + 1 + filled, barY + 4, 0xFFE29BFF);
 
-        Component tip = HERZIUM_TIPS.get(this.herzium$tipIndex);
-        List<FormattedCharSequence> lines = font.split(tip, Math.max(24, width - 28));
+        String tip = HERZIUM_TIPS.get(this.herzium$tipIndex);
+        List<String> lines = StartupPixelFont.wrap(tip, Math.max(24, width - 28), 1);
         int visibleLines = Math.min(height < 150 ? 1 : 2, lines.size());
-        int tipY = Math.max(36, barY - 14 - visibleLines * 10);
+        int tipY = Math.max(36, barY - 11 - visibleLines * 7);
         for (int line = 0; line < visibleLines; line++) {
-            FormattedCharSequence text = lines.get(line);
-            graphics.drawString(font, text, centerX - font.width(text) / 2, tipY + line * 10, 0xFFDCC5EB);
+            StartupPixelFont.drawCentered(
+                    graphics, lines.get(line), centerX, tipY + line * 7, 1, 0xFFDCC5EB);
         }
 
         this.herzium$drawSpiral(graphics, centerX, (36 + tipY) / 2, Math.min(38, Math.max(8, height / 7)), now);

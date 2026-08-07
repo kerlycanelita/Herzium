@@ -1,17 +1,15 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.Window;
+import dev.zymekoh.herzium.gui.StartupPixelFont;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.LoadingOverlay;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.resources.ReloadInstance;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,27 +32,25 @@ abstract class LoadingOverlayMixin {
     private static final long HERZIUM_TIP_FADE_MS = 240L;
 
     @Unique
-    private static final Component HERZIUM_TITLE =
-            Component.literal("HERZIUM");
+    private static final String HERZIUM_TITLE = "HERZIUM";
 
     @Unique
-    private static final Component HERZIUM_SUBTITLE =
-            Component.literal("Loading at full speed");
+    private static final String HERZIUM_SUBTITLE = "Loading at full speed";
 
     @Unique
-    private static final List<Component> HERZIUM_TIPS = List.of(
-            Component.literal("No VSync. No waiting. Just frames."),
-            Component.literal("Herzium keeps your HUD moving at your refresh rate."),
-            Component.literal("Loading pixels at an unreasonable speed..."),
-            Component.literal("Your FPS cap has left the game."),
-            Component.literal("Tip: your display refresh rate matters too."),
-            Component.literal("Fast hands, smooth HUD, vanilla mechanics."),
-            Component.literal("Warming up the purple engine..."),
-            Component.literal("Mining the loading screen. Almost there."),
-            Component.literal("Herzium never invents player positions."),
-            Component.literal("Resource packs still require real work. Magic has limits."),
-            Component.literal("High refresh rates deserve high-frequency visuals."),
-            Component.literal("Removing decorative delays one millisecond at a time."));
+    private static final List<String> HERZIUM_TIPS = List.of(
+            "No VSync. No waiting. Just frames.",
+            "Herzium keeps your HUD moving at your refresh rate.",
+            "Loading pixels at an unreasonable speed...",
+            "Your FPS cap has left the game.",
+            "Tip: your display refresh rate matters too.",
+            "Fast hands, smooth HUD, vanilla mechanics.",
+            "Warming up the purple engine...",
+            "Mining the loading screen. Almost there.",
+            "Herzium never invents player positions.",
+            "Resource packs still require real work. Magic has limits.",
+            "High refresh rates deserve high-frequency visuals.",
+            "Removing decorative delays one millisecond at a time.");
 
     @Shadow
     @Final
@@ -84,7 +80,7 @@ abstract class LoadingOverlayMixin {
     private int herzium$cachedTipIndex = -1;
 
     @Unique
-    private List<FormattedCharSequence> herzium$cachedTipLines = List.of();
+    private List<String> herzium$cachedTipLines = List.of();
 
     @Unique
     private boolean herzium$finishHandled;
@@ -164,11 +160,10 @@ abstract class LoadingOverlayMixin {
         graphics.fillGradient(0, 0, width, height, 0xFF08030F, 0xFF210735);
         graphics.fillGradient(0, 0, width, Math.max(1, height / 3), 0x661A0730, 0x001A0730);
 
-        Font font = this.minecraft.font;
         int titleY = Math.max(6, Math.min(16, height / 12));
-        graphics.centeredText(font, HERZIUM_TITLE, centerX, titleY, 0xFFF6ECFF);
+        StartupPixelFont.drawCentered(graphics, HERZIUM_TITLE, centerX, titleY, 2, 0xFFF6ECFF);
         if (height >= 150) {
-            graphics.centeredText(font, HERZIUM_SUBTITLE, centerX, titleY + 13, 0xFFC5A6DF);
+            StartupPixelFont.drawCentered(graphics, HERZIUM_SUBTITLE, centerX, titleY + 14, 1, 0xFFC5A6DF);
         }
 
         int maxBarWidth = Math.max(1, width - 32);
@@ -178,18 +173,17 @@ abstract class LoadingOverlayMixin {
         int barX = centerX - barWidth / 2;
         int barY = Math.max(34, height - 18);
 
-        Component tip = HERZIUM_TIPS.get(this.herzium$tipIndex);
+        String tip = HERZIUM_TIPS.get(this.herzium$tipIndex);
         int tipWidth = Math.max(24, width - 28);
-        List<FormattedCharSequence> tipLines = this.herzium$tipLines(font, tip, tipWidth);
+        List<String> tipLines = this.herzium$tipLines(tip, tipWidth);
         int maxTipLines = height < 150 ? 1 : 2;
         int visibleTipLines = Math.min(maxTipLines, tipLines.size());
-        int tipY = Math.max(titleY + 13, barY - 14 - visibleTipLines * 10);
+        int tipY = Math.max(titleY + 14, barY - 11 - visibleTipLines * 7);
         int tipAlpha = this.herzium$tipAlpha(now);
         int tipColor = herzium$argb(tipAlpha, 218, 197, 235);
 
         for (int line = 0; line < visibleTipLines; line++) {
-            FormattedCharSequence text = tipLines.get(line);
-            graphics.text(font, text, centerX - font.width(text) / 2, tipY + line * 10, tipColor);
+            StartupPixelFont.drawCentered(graphics, tipLines.get(line), centerX, tipY + line * 7, 1, tipColor);
         }
 
         int spiralTop = height >= 150 ? titleY + 29 : titleY + 13;
@@ -207,8 +201,13 @@ abstract class LoadingOverlayMixin {
         graphics.fill(barX + 1, barY + 1, barX + 1 + progressWidth, barY + 2, 0xFFFFFFFF);
 
         if (height >= 170) {
-            Component percentage = Component.literal(Math.round(progress * 100.0F) + "%");
-            graphics.centeredText(font, percentage, centerX, barY - 11, 0xFFCDB7DE);
+            StartupPixelFont.drawCentered(
+                    graphics,
+                    Math.round(progress * 100.0F) + "%",
+                    centerX,
+                    barY - 8,
+                    1,
+                    0xFFCDB7DE);
         }
 
         ci.cancel();
@@ -239,11 +238,11 @@ abstract class LoadingOverlayMixin {
     }
 
     @Unique
-    private List<FormattedCharSequence> herzium$tipLines(Font font, Component tip, int width) {
+    private List<String> herzium$tipLines(String tip, int width) {
         if (this.herzium$cachedTipWidth != width || this.herzium$cachedTipIndex != this.herzium$tipIndex) {
             this.herzium$cachedTipWidth = width;
             this.herzium$cachedTipIndex = this.herzium$tipIndex;
-            this.herzium$cachedTipLines = font.split(tip, width);
+            this.herzium$cachedTipLines = StartupPixelFont.wrap(tip, width, 1);
         }
         return this.herzium$cachedTipLines;
     }
