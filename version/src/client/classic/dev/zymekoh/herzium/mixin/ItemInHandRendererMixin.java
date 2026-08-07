@@ -23,6 +23,9 @@ abstract class ItemInHandRendererMixin {
     private long herzium$seenHotbarRevision;
 
     @Unique
+    private long herzium$renderedHotbarRevision;
+
+    @Unique
     private boolean herzium$suppressSelectionDip;
 
     @Unique
@@ -35,19 +38,10 @@ abstract class ItemInHandRendererMixin {
     private ItemStack mainHandItem;
 
     @Shadow
-    private ItemStack offHandItem;
-
-    @Shadow
     private float mainHandHeight;
 
     @Shadow
     private float oMainHandHeight;
-
-    @Shadow
-    private float offHandHeight;
-
-    @Shadow
-    private float oOffHandHeight;
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void herzium$prepareImmediateSelectionVisual(CallbackInfo ci) {
@@ -100,18 +94,16 @@ abstract class ItemInHandRendererMixin {
             LocalPlayer player,
             int packedLight,
             CallbackInfo ci) {
-        ItemStack currentMainHand = player.getMainHandItem();
-        if (!ItemStack.matches(this.mainHandItem, currentMainHand)) {
-            this.mainHandItem = currentMainHand;
-            this.mainHandHeight = 1.0F;
-            this.oMainHandHeight = 1.0F;
-        }
+        long revision = ImmediateHotbarVisualState.revision();
+        if (revision != this.herzium$renderedHotbarRevision) {
+            this.herzium$renderedHotbarRevision = revision;
 
-        ItemStack currentOffHand = player.getOffhandItem();
-        if (!ItemStack.matches(this.offHandItem, currentOffHand)) {
-            this.offHandItem = currentOffHand;
-            this.offHandHeight = 1.0F;
-            this.oOffHandHeight = 1.0F;
+            ItemStack currentMainHand = player.getMainHandItem();
+            if (!ItemStack.matches(this.mainHandItem, currentMainHand)) {
+                this.mainHandItem = currentMainHand;
+                this.mainHandHeight = 1.0F;
+                this.oMainHandHeight = 1.0F;
+            }
         }
     }
 

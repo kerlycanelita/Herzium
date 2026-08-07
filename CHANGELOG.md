@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.5
+
+- Made immediate hotbar hand replacement zero-duration and render-only.
+- Added zero-duration first-person visual updates after Vanilla mouse-wheel slot changes.
+- Preserved Vanilla packet, cooldown, action, spectator, screen, and creative-hotbar behavior.
+- Made the visual revision counter atomic and avoided redundant updates when a slot does not change.
+- Made the startup warning persistently appear only until it is acknowledged once.
+- Scoped the 1.21.11/26.x item-swap mapping adaptation to the hand renderer, preventing HUD mixin crashes.
+
 ## 1.8.4
 
 - Added builds for Minecraft 1.21 through 1.21.11 and 26.1 through 26.2.

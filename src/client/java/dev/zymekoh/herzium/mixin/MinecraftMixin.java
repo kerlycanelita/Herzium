@@ -2,6 +2,7 @@ package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
+import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -47,6 +48,11 @@ abstract class MinecraftMixin {
                     value = "INVOKE",
                     target = "Ljava/lang/Runnable;run()V"))
     private void herzium$showPerformanceWarning(Runnable showInitialScreen) {
+        if (HerziumConfig.get().startupWarningAcknowledged()) {
+            showInitialScreen.run();
+            return;
+        }
+
         Minecraft minecraft = (Minecraft) (Object) this;
         minecraft.setScreen(new HerziumWarningScreen(showInitialScreen));
     }

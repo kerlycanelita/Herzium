@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Removes the tick-sized latency before a newly selected item becomes visible.
@@ -31,6 +30,9 @@ abstract class ItemInHandRendererMixin {
     private long herzium$seenHotbarRevision;
 
     @Unique
+    private long herzium$renderedHotbarRevision;
+
+    @Unique
     private boolean herzium$suppressSelectionDip;
 
     @Unique
@@ -43,19 +45,10 @@ abstract class ItemInHandRendererMixin {
     private ItemStack mainHandItem;
 
     @Shadow
-    private ItemStack offHandItem;
-
-    @Shadow
     private float mainHandHeight;
 
     @Shadow
     private float oMainHandHeight;
-
-    @Shadow
-    private float offHandHeight;
-
-    @Shadow
-    private float oOffHandHeight;
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void herzium$prepareImmediateSelectionVisual(CallbackInfo ci) {
@@ -108,27 +101,19 @@ abstract class ItemInHandRendererMixin {
             LocalPlayer player,
             int packedLight,
             CallbackInfo ci) {
-        ItemStack currentMainHand = player.getMainHandItem();
-        if (!ItemStack.matches(this.mainHandItem, currentMainHand)) {
-            this.mainHandItem = currentMainHand;
-            this.mainHandHeight = 1.0F;
-            this.oMainHandHeight = 1.0F;
-        }
+        long revision = ImmediateHotbarVisualState.revision();
+        if (revision != this.herzium$renderedHotbarRevision) {
+            this.herzium$renderedHotbarRevision = revision;
 
-        ItemStack currentOffHand = player.getOffhandItem();
-        if (!ItemStack.matches(this.offHandItem, currentOffHand)) {
-            this.offHandItem = currentOffHand;
-            this.offHandHeight = 1.0F;
-            this.oOffHandHeight = 1.0F;
+            ItemStack currentMainHand = player.getMainHandItem();
+            if (!ItemStack.matches(this.mainHandItem, currentMainHand)) {
+                this.mainHandItem = currentMainHand;
+                // Render-only zero-duration replacement. Both interpolation
+                // endpoints move together so no second Vanilla dip is drawn.
+                this.mainHandHeight = 1.0F;
+                this.oMainHandHeight = 1.0F;
+            }
         }
-    }
-
-    @Inject(method = "shouldInstantlyReplaceVisibleItem", at = @At("HEAD"), cancellable = true)
-    private void herzium$replaceVisibleItemWithoutDip(
-            ItemStack renderedItem,
-            ItemStack currentItem,
-            CallbackInfoReturnable<Boolean> cir) {
-        cir.setReturnValue(true);
     }
 
     @ModifyConstant(method = "tick", constant = @Constant(floatValue = 0.4F), require = 4)

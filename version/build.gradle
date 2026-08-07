@@ -96,9 +96,12 @@ tasks.register('generateHerziumClientSources', Sync) {
         from('src/client/classic') {
             filteringCharset = 'UTF-8'
             filter { String line ->
-                publicSelectedSlot
-                        ? line.replace('player.getInventory().setSelectedSlot(slot);', 'player.getInventory().selected = slot;')
-                        : line
+                if (!publicSelectedSlot) {
+                    return line
+                }
+                return line
+                        .replace('player.getInventory().getSelectedSlot()', 'player.getInventory().selected')
+                        .replace('player.getInventory().setSelectedSlot(slot);', 'player.getInventory().selected = slot;')
             }
         }
     }
@@ -110,6 +113,15 @@ tasks.register('generateHerziumClientSources', Sync) {
     }
     if (minecraft121 && !noFramerateTracker && !basicFramerateTracker) {
         from('src/client/tracker-modern121')
+    }
+    if (targetMinecraft == '1.21.11') {
+        filesMatching('**/ItemInHandRendererMixin.java') {
+            // Only the hand renderer switched to the dedicated item-swap scale.
+            // HUD attack indicators still use getAttackStrengthScale.
+            filter { String line ->
+                line.replace('getAttackStrengthScale', 'getItemSwapScale')
+            }
+        }
     }
 
     into(generatedClientSources)

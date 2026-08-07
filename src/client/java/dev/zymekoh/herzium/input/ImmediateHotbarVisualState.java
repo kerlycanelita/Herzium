@@ -1,5 +1,7 @@
 package dev.zymekoh.herzium.input;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Publishes immediate hotbar changes to the first-person renderer without
  * touching gameplay state. Input callbacks and rendering run on the client,
@@ -7,16 +9,16 @@ package dev.zymekoh.herzium.input;
  * backend dispatches from a different thread.
  */
 public final class ImmediateHotbarVisualState {
-    private static volatile long revision;
+    private static final AtomicLong REVISION = new AtomicLong();
 
     private ImmediateHotbarVisualState() {
     }
 
     public static void markSelectionChanged() {
-        revision++;
+        REVISION.incrementAndGet();
     }
 
     public static long revision() {
-        return revision;
+        return REVISION.get();
     }
 }

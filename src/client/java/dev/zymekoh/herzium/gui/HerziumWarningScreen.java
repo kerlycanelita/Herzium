@@ -1,5 +1,6 @@
 package dev.zymekoh.herzium.gui;
 
+import dev.zymekoh.herzium.config.HerziumConfig;
 import java.util.List;
 import java.util.Random;
 import net.minecraft.ChatFormatting;
@@ -143,6 +144,7 @@ public final class HerziumWarningScreen extends Screen {
         }
 
         this.completed = true;
+        HerziumConfig.get().acknowledgeStartupWarning();
         this.continuation.run();
     }
 

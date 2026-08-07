@@ -33,31 +33,41 @@ tasks.register('generateHerzium26ClientSources', Sync) {
         if (minecraft262) {
             exclude '**/GlDeviceMixin.java'
             exclude '**/WindowMixin.java'
-            filteringCharset = 'UTF-8'
-            filter { String line ->
-                if (line.contains('minecraft.getWindow().updateVsync(false);')) {
-                    return null
-                }
-                return line
-                        // Mojang renamed the first-person hand submission entry point in 26.2.
-                        // Keep the shared mixin source on the 26.1.x name and adapt only this build.
-                        .replace('renderHandsWithItems', 'submitHandsWithItems')
-                        // The 26.1 HUD implementation moved from Gui into Hud in 26.2.
-                        .replace('import net.minecraft.client.gui.Gui;', 'import net.minecraft.client.gui.Hud;')
-                        .replace('Gui.class', 'Hud.class')
-                        .replace('this.minecraft.getOverlay()', 'this.minecraft.gui.overlay()')
-                        .replace('minecraft.getOverlay()', 'minecraft.gui.overlay()')
-                        .replace('this.minecraft.setOverlay(', 'this.minecraft.gui.setOverlay(')
-                        .replace('minecraft.setOverlay(', 'minecraft.gui.setOverlay(')
-                        .replace('this.minecraft.setScreen(', 'this.minecraft.gui.setScreen(')
-                        .replace('minecraft.setScreen(', 'minecraft.gui.setScreen(')
-                        .replace('this.minecraft.screen', 'this.minecraft.gui.screen()')
-                        .replace('minecraft.screen', 'minecraft.gui.screen()')
+        }
+        filteringCharset = 'UTF-8'
+        filter { String line ->
+            String transformed = line
+            if (!minecraft262) {
+                return transformed
             }
+            if (transformed.contains('minecraft.getWindow().updateVsync(false);')) {
+                return null
+            }
+            return transformed
+                    // Mojang renamed the first-person hand submission entry point in 26.2.
+                    .replace('renderHandsWithItems', 'submitHandsWithItems')
+                    // The 26.1 HUD implementation moved from Gui into Hud in 26.2.
+                    .replace('import net.minecraft.client.gui.Gui;', 'import net.minecraft.client.gui.Hud;')
+                    .replace('Gui.class', 'Hud.class')
+                    .replace('this.minecraft.getOverlay()', 'this.minecraft.gui.overlay()')
+                    .replace('minecraft.getOverlay()', 'minecraft.gui.overlay()')
+                    .replace('this.minecraft.setOverlay(', 'this.minecraft.gui.setOverlay(')
+                    .replace('minecraft.setOverlay(', 'minecraft.gui.setOverlay(')
+                    .replace('this.minecraft.setScreen(', 'this.minecraft.gui.setScreen(')
+                    .replace('minecraft.setScreen(', 'minecraft.gui.setScreen(')
+                    .replace('this.minecraft.screen', 'this.minecraft.gui.screen()')
+                    .replace('minecraft.screen', 'minecraft.gui.screen()')
         }
     }
     if (minecraft262) {
         from('src/client/26.2')
+    }
+    filesMatching('**/ItemInHandRendererMixin.java') {
+        // ItemInHandRenderer uses the 26.x item-swap scale, while Hud still
+        // reads attack strength. Scope this rename to the hand mixin only.
+        filter { String line ->
+            line.replace('getAttackStrengthScale', 'getItemSwapScale')
+        }
     }
     into(generatedClientSources)
 }
@@ -68,7 +78,7 @@ sourceSets {
         resources.srcDirs = ['../../src/main/resources']
     }
     client {
-        java.srcDirs = [minecraft262 ? generatedClientSources : '../../src/client/java']
+        java.srcDirs = [generatedClientSources]
         resources.srcDirs = ['../../src/client/resources']
     }
 }

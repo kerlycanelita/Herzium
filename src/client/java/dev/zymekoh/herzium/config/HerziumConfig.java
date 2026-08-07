@@ -22,6 +22,7 @@ public final class HerziumConfig {
     private static volatile CompletableFuture<HerziumConfig> pendingLoad;
 
     private boolean immediateHotbarSelection = true;
+    private boolean startupWarningAcknowledged;
 
     public static HerziumConfig get() {
         HerziumConfig current = instance;
@@ -95,6 +96,19 @@ public final class HerziumConfig {
 
     public void setImmediateHotbarSelection(boolean immediateHotbarSelection) {
         this.immediateHotbarSelection = immediateHotbarSelection;
+        this.save();
+    }
+
+    public boolean startupWarningAcknowledged() {
+        return this.startupWarningAcknowledged;
+    }
+
+    public void acknowledgeStartupWarning() {
+        if (this.startupWarningAcknowledged) {
+            return;
+        }
+
+        this.startupWarningAcknowledged = true;
         this.save();
     }
 

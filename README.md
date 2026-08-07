@@ -16,7 +16,7 @@ and world entry. When Minecraft loses focus, Herzium limits rendering to 10 FPS.
 
 ## KoHsium cooperation
 
-Herzium 1.8.4 and KoHsium 0.10.0 use an explicit ownership split when both are
+Herzium 1.8.5 and KoHsium 0.10.0 use an explicit ownership split when both are
 installed. Herzium remains the sole writer of VSync, the FPS limit and immediate
 hotbar behavior. KoHsium owns its editable Raw Input, Smooth Camera and late-input
 controls; Herzium stops rewriting those two vanilla input values while KoHsium is present.
@@ -65,7 +65,8 @@ The configuration screen only controls the optional immediate hotbar behavior.
   instead of waiting up to one 20 TPS client tick. Multiple presses resolve in
   event order, so the last received press wins. The option is enabled by
   default and can be disabled to restore Vanilla's tick timing. Mouse-wheel
-  hotbar selection was already immediate in Vanilla and is left intact.
+  hotbar selection remains entirely Vanilla; Herzium only publishes its
+  completed slot change to the first-person renderer for the next frame.
 - Creative hotbar save/load shortcuts and spectator controls retain their
   vanilla path.
 - `Attack` and `Use/Place` remain entirely on Vanilla's 20 TPS input path,
@@ -89,7 +90,8 @@ The configuration screen only controls the optional immediate hotbar behavior.
 - After the initial resource load, a responsive English or Spanish advisory
   explains the possible instability, FPS drops, frame-time spikes, hardware
   usage, heat, and power cost of uncapped operation. It must be acknowledged
-  before the normal title, onboarding, or Quick Play flow continues.
+  once before the normal title, onboarding, or Quick Play flow continues, and
+  the acknowledgement is then persisted in `config/herzium.json`.
 - The advisory includes fast right-moving purple particles. Particles near the
   mouse become more opaque, and compact logical resolutions receive a
   scrollable text area plus vertically stacked buttons.
@@ -104,8 +106,9 @@ shrinks with high GUI scales while keeping transparent backgrounds,
 high-contrast text, and every control inside the panel.
 
 The `Immediate hotbar 1-9 selection` option controls Herzium's event-time slot
-selection. It is enabled by default. Turning it off leaves every hotbar click
-queued for Vanilla's next client tick; it does not alter mouse-wheel selection.
+selection and zero-duration first-person visual replacement. It is enabled by
+default. Turning it off leaves every hotbar click and hand transition on their
+Vanilla path; it never alters mouse-wheel selection itself.
 This is Herzium's only configuration option and it is enabled by default. Its
 state is stored in `config/herzium.json`.
 
@@ -117,9 +120,10 @@ state is stored in `config/herzium.json`.
 - The crosshair and hotbar attack-strength indicators interpolate only toward
   vanilla combat's `0.5` partial-tick sample. They never display a stronger
   value than the one used by the attack calculation.
-- When the selected item changes, the hand adopts the new model on the next
-  frame instead of waiting for vanilla's lowering animation. Remaining visual
-  transitions use a faster equip step.
+- When a number key, remapped hotbar button, or mouse-wheel scroll changes the
+  selected item, the hand adopts the new model on the next frame with a
+  zero-duration visual replacement. Remaining unrelated visual transitions use
+  a faster equip step.
 - Eating, bows, crossbows, held item use, gameplay cooldowns, and server tick
   rates are not accelerated or falsified.
 - Players, hitboxes, raycasts, packet contents, block textures, and entity
@@ -164,7 +168,7 @@ On Linux or macOS:
 ```
 
 The root build targets Minecraft 26.1.2 and generates
-`build/libs/herzium-1.8.4.jar`. Do not use the file ending in `-sources.jar`.
+`build/libs/herzium-1.8.5.jar`. Do not use the file ending in `-sources.jar`.
 
 ### All supported Minecraft versions
 
@@ -177,7 +181,7 @@ with:
 ```
 
 This produces one release JAR per target at
-`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.4.jar`
+`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.5.jar`
 for 1.21, every 1.21.x release through 1.21.11, and 26.1 through 26.2.
 
 ## Warning
