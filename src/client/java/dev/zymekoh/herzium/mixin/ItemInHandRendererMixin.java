@@ -2,11 +2,13 @@ package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.zymekoh.herzium.input.ImmediateHotbarVisualState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,6 +29,9 @@ abstract class ItemInHandRendererMixin {
     private static final float HERZIUM_FAST_EQUIP_STEP = 0.8F;
 
     @Unique
+    private static final int HERZIUM_SELECTION_GUARD_TICKS = 40;
+
+    @Unique
     private long herzium$seenHotbarRevision;
 
     @Unique
@@ -40,6 +45,13 @@ abstract class ItemInHandRendererMixin {
 
     @Unique
     private int herzium$selectionResetGraceTicks;
+
+    @Unique
+    private int herzium$selectionGuardTicks;
+
+    @Shadow
+    @Final
+    private Minecraft minecraft;
 
     @Shadow
     private ItemStack mainHandItem;
@@ -61,6 +73,7 @@ abstract class ItemInHandRendererMixin {
         this.herzium$suppressSelectionDip = true;
         this.herzium$sawSelectionCooldownReset = false;
         this.herzium$selectionResetGraceTicks = 2;
+        this.herzium$selectionGuardTicks = HERZIUM_SELECTION_GUARD_TICKS;
     }
 
     @Redirect(
@@ -93,6 +106,30 @@ abstract class ItemInHandRendererMixin {
         return vanillaStrength;
     }
 
+    /**
+     * Vanilla updates the hand height after the event-time replacement. Keep
+     * the renderer synchronized until its own item-swap scale has recovered,
+     * otherwise the old Vanilla dip can be drawn a second time. This only
+     * writes first-person render fields; inventory and networking are untouched.
+     */
+    @Inject(method = "tick", at = @At("RETURN"))
+    private void herzium$finishImmediateSelectionVisual(CallbackInfo ci) {
+        if (!this.herzium$suppressSelectionDip) {
+            return;
+        }
+
+        LocalPlayer player = this.minecraft.player;
+        if (player != null && !player.isHandsBusy()) {
+            this.mainHandItem = player.getMainHandItem();
+            this.mainHandHeight = 1.0F;
+            this.oMainHandHeight = 1.0F;
+        }
+
+        if (--this.herzium$selectionGuardTicks <= 0) {
+            this.herzium$suppressSelectionDip = false;
+        }
+    }
+
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
     private void herzium$showChangedItemsOnNextFrame(
             float partialTick,
@@ -106,7 +143,7 @@ abstract class ItemInHandRendererMixin {
             this.herzium$renderedHotbarRevision = revision;
 
             ItemStack currentMainHand = player.getMainHandItem();
-            if (!ItemStack.matches(this.mainHandItem, currentMainHand)) {
+            if (this.mainHandItem != currentMainHand) {
                 this.mainHandItem = currentMainHand;
                 // Render-only zero-duration replacement. Both interpolation
                 // endpoints move together so no second Vanilla dip is drawn.

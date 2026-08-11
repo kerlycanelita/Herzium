@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.6
+
+- Fixed the immediate hotbar item being followed by a second Vanilla equip animation.
+- Kept the first-person renderer synchronized until Vanilla's item-swap visual state recovers.
+- Matched selected hotbar stacks by identity so equal-looking stacks cannot trigger a delayed Vanilla replacement.
+- Applied the render-only fix to every supported Minecraft version from 1.21 through 26.2.
+- No packets, inventory rules, attacks, item use, cooldowns, reach, or server-side behavior are changed.
+
 ## 1.8.5
 
 - Made immediate hotbar hand replacement zero-duration and render-only.

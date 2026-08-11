@@ -16,7 +16,7 @@ and world entry. When Minecraft loses focus, Herzium limits rendering to 10 FPS.
 
 ## KoHsium cooperation
 
-Herzium 1.8.5 and KoHsium 0.10.0 use an explicit ownership split when both are
+Herzium 1.8.6 and KoHsium 0.10.0 use an explicit ownership split when both are
 installed. Herzium remains the sole writer of VSync, the FPS limit and immediate
 hotbar behavior. KoHsium owns its editable Raw Input, Smooth Camera and late-input
 controls; Herzium stops rewriting those two vanilla input values while KoHsium is present.
@@ -168,7 +168,7 @@ On Linux or macOS:
 ```
 
 The root build targets Minecraft 26.1.2 and generates
-`build/libs/herzium-1.8.5.jar`. Do not use the file ending in `-sources.jar`.
+`build/libs/herzium-1.8.6.jar`. Do not use the file ending in `-sources.jar`.
 
 ### All supported Minecraft versions
 
@@ -181,7 +181,7 @@ with:
 ```
 
 This produces one release JAR per target at
-`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.5.jar`
+`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.6.jar`
 for 1.21, every 1.21.x release through 1.21.11, and 26.1 through 26.2.
 
 ## Warning

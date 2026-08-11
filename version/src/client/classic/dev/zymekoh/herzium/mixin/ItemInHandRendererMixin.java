@@ -2,11 +2,13 @@ package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.zymekoh.herzium.input.ImmediateHotbarVisualState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,6 +21,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Removes the visible one-tick item replacement delay on Minecraft 1.21-1.21.8. */
 @Mixin(value = ItemInHandRenderer.class, priority = 2000)
 abstract class ItemInHandRendererMixin {
+    @Unique
+    private static final int HERZIUM_SELECTION_GUARD_TICKS = 40;
+
     @Unique
     private long herzium$seenHotbarRevision;
 
@@ -33,6 +38,13 @@ abstract class ItemInHandRendererMixin {
 
     @Unique
     private int herzium$selectionResetGraceTicks;
+
+    @Unique
+    private int herzium$selectionGuardTicks;
+
+    @Shadow
+    @Final
+    private Minecraft minecraft;
 
     @Shadow
     private ItemStack mainHandItem;
@@ -54,6 +66,7 @@ abstract class ItemInHandRendererMixin {
         this.herzium$suppressSelectionDip = true;
         this.herzium$sawSelectionCooldownReset = false;
         this.herzium$selectionResetGraceTicks = 2;
+        this.herzium$selectionGuardTicks = HERZIUM_SELECTION_GUARD_TICKS;
     }
 
     @Redirect(
@@ -86,6 +99,25 @@ abstract class ItemInHandRendererMixin {
         return vanillaStrength;
     }
 
+    /** Keeps Vanilla from redrawing its equip dip after the immediate frame. */
+    @Inject(method = "tick", at = @At("RETURN"))
+    private void herzium$finishImmediateSelectionVisual(CallbackInfo ci) {
+        if (!this.herzium$suppressSelectionDip) {
+            return;
+        }
+
+        LocalPlayer player = this.minecraft.player;
+        if (player != null && !player.isHandsBusy()) {
+            this.mainHandItem = player.getMainHandItem();
+            this.mainHandHeight = 1.0F;
+            this.oMainHandHeight = 1.0F;
+        }
+
+        if (--this.herzium$selectionGuardTicks <= 0) {
+            this.herzium$suppressSelectionDip = false;
+        }
+    }
+
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
     private void herzium$showChangedItemsOnNextFrame(
             float partialTick,
@@ -99,7 +131,7 @@ abstract class ItemInHandRendererMixin {
             this.herzium$renderedHotbarRevision = revision;
 
             ItemStack currentMainHand = player.getMainHandItem();
-            if (!ItemStack.matches(this.mainHandItem, currentMainHand)) {
+            if (this.mainHandItem != currentMainHand) {
                 this.mainHandItem = currentMainHand;
                 this.mainHandHeight = 1.0F;
                 this.oMainHandHeight = 1.0F;
