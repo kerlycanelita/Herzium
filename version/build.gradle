@@ -114,16 +114,6 @@ tasks.register('generateHerziumClientSources', Sync) {
     if (minecraft121 && !noFramerateTracker && !basicFramerateTracker) {
         from('src/client/tracker-modern121')
     }
-    if (targetMinecraft == '1.21.11') {
-        filesMatching('**/ItemInHandRendererMixin.java') {
-            // Only the hand renderer switched to the dedicated item-swap scale.
-            // HUD attack indicators still use getAttackStrengthScale.
-            filter { String line ->
-                line.replace('getAttackStrengthScale', 'getItemSwapScale')
-            }
-        }
-    }
-
     into(generatedClientSources)
 }
 

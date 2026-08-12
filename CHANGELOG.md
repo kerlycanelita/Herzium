@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.7
+
+- Restored the direct per-frame hand synchronization that made 1.8.4 feel faster.
+- Removed hotbar and offhand item-swap equip transitions completely while preserving swing, use, attack, cooldown, inventory and networking behavior.
+- Removed the 1.8.5/1.8.6 visual revision counter and 40-tick recovery guard that could redraw or delay the Vanilla equip dip.
+- Kept the immediate hotbar input path from 1.8.4: remapped keyboard and mouse-button slots are applied in event order, while wheel selection remains Vanilla.
+- Adapted the shared renderer to the `renderHandsWithItems`/`submitHandsWithItems` rename in Minecraft 26.2 without relying on version-specific cooldown methods.
+- Applied the render-only behavior to every supported Minecraft version from 1.21 through 26.2.
+
 ## 1.8.6
 
 - Fixed the immediate hotbar item being followed by a second Vanilla equip animation.

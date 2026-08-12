@@ -16,7 +16,7 @@ and world entry. When Minecraft loses focus, Herzium limits rendering to 10 FPS.
 
 ## KoHsium cooperation
 
-Herzium 1.8.6 and KoHsium 0.10.0 use an explicit ownership split when both are
+Herzium 1.8.7 and KoHsium 0.10.0 use an explicit ownership split when both are
 installed. Herzium remains the sole writer of VSync, the FPS limit and immediate
 hotbar behavior. KoHsium owns its editable Raw Input, Smooth Camera and late-input
 controls; Herzium stops rewriting those two vanilla input values while KoHsium is present.
@@ -65,8 +65,8 @@ The configuration screen only controls the optional immediate hotbar behavior.
   instead of waiting up to one 20 TPS client tick. Multiple presses resolve in
   event order, so the last received press wins. The option is enabled by
   default and can be disabled to restore Vanilla's tick timing. Mouse-wheel
-  hotbar selection remains entirely Vanilla; Herzium only publishes its
-  completed slot change to the first-person renderer for the next frame.
+  hotbar selection remains entirely Vanilla; the first-person renderer reads
+  Vanilla's completed selection directly on the next rendered frame.
 - Creative hotbar save/load shortcuts and spectator controls retain their
   vanilla path.
 - `Attack` and `Use/Place` remain entirely on Vanilla's 20 TPS input path,
@@ -106,9 +106,10 @@ shrinks with high GUI scales while keeping transparent backgrounds,
 high-contrast text, and every control inside the panel.
 
 The `Immediate hotbar 1-9 selection` option controls Herzium's event-time slot
-selection and zero-duration first-person visual replacement. It is enabled by
-default. Turning it off leaves every hotbar click and hand transition on their
-Vanilla path; it never alters mouse-wheel selection itself.
+selection and is enabled by default. Turning it off restores Vanilla tick timing
+for number-key and remapped-button selection; it never alters mouse-wheel input.
+Zero-duration hotbar and offhand model replacement is part of the visual core
+and remains active independently of this input option.
 This is Herzium's only configuration option and it is enabled by default. Its
 state is stored in `config/herzium.json`.
 
@@ -120,10 +121,9 @@ state is stored in `config/herzium.json`.
 - The crosshair and hotbar attack-strength indicators interpolate only toward
   vanilla combat's `0.5` partial-tick sample. They never display a stronger
   value than the one used by the attack calculation.
-- When a number key, remapped hotbar button, or mouse-wheel scroll changes the
-  selected item, the hand adopts the new model on the next frame with a
-  zero-duration visual replacement. Remaining unrelated visual transitions use
-  a faster equip step.
+- When the hotbar, mouse wheel, inventory, or server-authorized equipment state
+  changes an item, both first-person hands adopt the current models on the next
+  frame with no equip dip. Swing and held-item use animations remain Vanilla.
 - Eating, bows, crossbows, held item use, gameplay cooldowns, and server tick
   rates are not accelerated or falsified.
 - Players, hitboxes, raycasts, packet contents, block textures, and entity
@@ -168,7 +168,7 @@ On Linux or macOS:
 ```
 
 The root build targets Minecraft 26.1.2 and generates
-`build/libs/herzium-1.8.6.jar`. Do not use the file ending in `-sources.jar`.
+`build/libs/herzium-1.8.7.jar`. Do not use the file ending in `-sources.jar`.
 
 ### All supported Minecraft versions
 
@@ -181,7 +181,7 @@ with:
 ```
 
 This produces one release JAR per target at
-`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.6.jar`
+`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.7.jar`
 for 1.21, every 1.21.x release through 1.21.11, and 26.1 through 26.2.
 
 ## Warning

@@ -62,13 +62,6 @@ tasks.register('generateHerzium26ClientSources', Sync) {
     if (minecraft262) {
         from('src/client/26.2')
     }
-    filesMatching('**/ItemInHandRendererMixin.java') {
-        // ItemInHandRenderer uses the 26.x item-swap scale, while Hud still
-        // reads attack strength. Scope this rename to the hand mixin only.
-        filter { String line ->
-            line.replace('getAttackStrengthScale', 'getItemSwapScale')
-        }
-    }
     into(generatedClientSources)
 }
 
