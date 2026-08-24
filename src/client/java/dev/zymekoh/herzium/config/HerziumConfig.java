@@ -13,6 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import net.fabricmc.loader.api.FabricLoader;
 
 /**
@@ -36,6 +38,23 @@ public final class HerziumConfig {
             FabricLoader.getInstance().getConfigDir().resolve("herzium.json");
     private static volatile HerziumConfig instance;
     private static volatile CompletableFuture<HerziumConfig> pendingLoad;
+
+    /**
+     * One thread, so writes stay in the order they were requested and never
+     * happen while the render thread is waiting on them. Toggling an option in
+     * the config screen used to block the frame on file creation, a serialise,
+     * a write and an atomic move.
+     *
+     * <p>Daemon, so a pending write cannot hold the game open on quit. That is
+     * safe here because {@link #save()} writes to a temporary file and only
+     * then moves it into place: a write cut short by the JVM exiting leaves the
+     * previous config intact and at worst an orphan {@code .tmp} beside it.</p>
+     */
+    private static final ExecutorService SAVE_EXECUTOR = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "Herzium config writer");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     private boolean startupWarningAcknowledged;
     private boolean containerFocus = true;
@@ -168,7 +187,12 @@ public final class HerziumConfig {
         this.save();
     }
 
-    public synchronized void save() {
+    /** Queues a write; returns immediately so the caller's frame is not held. */
+    public void save() {
+        SAVE_EXECUTOR.execute(this::writeToDisk);
+    }
+
+    private synchronized void writeToDisk() {
         Path temporaryPath = CONFIG_PATH.resolveSibling(CONFIG_PATH.getFileName() + ".tmp");
 
         try {
