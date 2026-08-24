@@ -433,7 +433,6 @@ public final class HerziumConfigScreen extends Screen {
         addMissingMixinIssue(lines, snapshot, "MouseHandlerMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "ItemInHandRendererMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "ContainerFocusRendererMixin", textWidth);
-        addMissingMixinIssue(lines, snapshot, "ContainerFocusBackgroundMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "MinecraftMixin", textWidth);
         if (exordiumPresent && !snapshot.mixinApplied("ExordiumBufferInstanceMixin")) {
             addIssue(lines, "herzium.config.issue.exordium", textWidth);

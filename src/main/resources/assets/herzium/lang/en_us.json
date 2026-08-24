@@ -67,7 +67,7 @@
   "herzium.state.on": "ON",
   "herzium.state.off": "OFF",
   "herzium.option.container_focus": "Container focus",
-  "herzium.option.container_focus.description": "While a container screen is open, skip the live 3D world behind it and paint a flat background instead. The GUI keeps updating every frame. Turn this off to keep seeing the world around you, or to take screenshots of it with an inventory open.",
+  "herzium.option.container_focus.description": "Stop drawing the 3D world behind an open container. Costs nothing to leave off, and off is plain vanilla. Turning it on frees the frames spent on the world, but leaves a black backdrop behind the screen.",
   "herzium.option.instant_equip": "Instant equip",
   "herzium.option.instant_equip.description": "Ordinary items appear in hand with no equip dip. Weapons and shields keep Vanilla's transition. Turning this off also stops the hand from previewing the hotbar slot.",
   "herzium.option.hotbar_preview": "Priority Hotbar",

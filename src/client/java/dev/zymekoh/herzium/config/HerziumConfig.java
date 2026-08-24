@@ -27,10 +27,11 @@ import net.fabricmc.loader.api.FabricLoader;
  * needs a restart is barely better when the thing you are debugging is a
  * conflict with another mod.</p>
  *
- * <p>New flags must default to {@code true} <em>in the field initialiser</em>.
- * Gson leaves absent keys at their Java default, so a {@code herzium.json}
- * written by an older version keeps every feature enabled instead of silently
- * turning it off.</p>
+ * <p>Flags that only affect Herzium's own behaviour default to {@code true}
+ * <em>in the field initialiser</em>. Gson leaves absent keys at their Java
+ * default, so a {@code herzium.json} written by an older version keeps those
+ * features enabled instead of silently turning them off. A flag that changes
+ * what vanilla looks like is the exception and defaults to {@code false}.</p>
  */
 public final class HerziumConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -57,7 +58,10 @@ public final class HerziumConfig {
     });
 
     private boolean startupWarningAcknowledged;
-    private boolean containerFocus = true;
+    // The only flag that does not default to true. Turning it on replaces the
+    // world behind an open container with a flat black backdrop, and how an
+    // inventory looks is not Herzium's call to make for the player.
+    private boolean containerFocus;
     private boolean instantEquip = true;
     private boolean hotbarPreview = true;
 

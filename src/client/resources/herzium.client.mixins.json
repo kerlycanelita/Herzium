@@ -4,7 +4,6 @@
   "plugin": "dev.zymekoh.herzium.mixin.HerziumMixinPlugin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "ContainerFocusBackgroundMixin",
     "ContainerFocusRendererMixin",
     "FramerateLimiterMixin",
     "FramerateLimitTrackerMixin",

@@ -67,7 +67,7 @@
   "herzium.state.on": "SÍ",
   "herzium.state.off": "NO",
   "herzium.option.container_focus": "Enfoque de contenedor",
-  "herzium.option.container_focus.description": "Con un contenedor abierto, omite el mundo 3D en vivo que queda detrás y pinta un fondo plano. La GUI se sigue actualizando en cada frame. Desactívalo si quieres seguir viendo el mundo alrededor o hacerle capturas con el inventario abierto.",
+  "herzium.option.container_focus.description": "Deja de dibujar el mundo 3D detrás de un contenedor abierto. Desactivado no cuesta nada y es Vanilla puro. Activarlo libera los frames que se van en el mundo, pero deja un fondo negro detrás de la pantalla.",
   "herzium.option.instant_equip": "Equipado instantáneo",
   "herzium.option.instant_equip.description": "Los ítems ordinarios aparecen en la mano sin la bajada de equipado. Las armas y los escudos conservan la transición de Vanilla. Desactivarlo también hace que la mano deje de previsualizar la ranura del hotbar.",
   "herzium.option.hotbar_preview": "Prioridad de hotbar",
