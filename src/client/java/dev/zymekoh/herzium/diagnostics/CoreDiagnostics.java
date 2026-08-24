@@ -89,10 +89,12 @@ public final class CoreDiagnostics {
      *                  Passed as an int on purpose: this class must not import
      *                  Minecraft classes, so the Mixin plugin can use it before
      *                  the client classes exist.
+     * @return {@code true} when this call started a new session, so callers can
+     *         drop whatever else was cached for the previous one.
      */
-    public static void observeSession(int sessionId) {
+    public static boolean observeSession(int sessionId) {
         if (sessionId == 0 || sessionId == currentSessionId) {
-            return;
+            return false;
         }
 
         currentSessionId = sessionId;
@@ -105,6 +107,7 @@ public final class CoreDiagnostics {
         COMBAT_EQUIP_FRAMES_PRESERVED.set(0L);
         lastPreviewSlot = -1;
         lastInputSource = null;
+        return true;
     }
 
     public static void recordMixinApplied(String mixinClassName) {

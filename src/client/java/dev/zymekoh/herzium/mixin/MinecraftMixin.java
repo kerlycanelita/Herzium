@@ -10,6 +10,7 @@ import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
+import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.LevelLoadTracker;
 import org.spongepowered.asm.mixin.Mixin;
@@ -55,8 +56,13 @@ abstract class MinecraftMixin {
         // Identity hash rather than the level itself: the diagnostics ledger
         // must not hold a reference to a ClientLevel, and must not import
         // Minecraft classes at all.
-        CoreDiagnostics.observeSession(
+        boolean newSession = CoreDiagnostics.observeSession(
                 minecraft.level == null ? 0 : System.identityHashCode(minecraft.level));
+        if (newSession) {
+            // Entering a level is when the server's tag sync lands, so it is the
+            // moment anything derived from item tags stops being trustworthy.
+            CombatItemClassifier.invalidate();
+        }
         // Runs on every frame, including frames without a level, so a preview
         // left behind by a disconnect cannot retain the player it captured.
         ImmediateHotbarInput.releaseStalePreview(minecraft);
