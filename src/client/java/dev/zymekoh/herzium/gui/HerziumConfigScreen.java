@@ -32,6 +32,7 @@ public final class HerziumConfigScreen extends Screen {
             Component.translatable("herzium.config.section.options");
     private static final long DIAGNOSTIC_REFRESH_MS = 250L;
     private static final int OPTION_COUNT = 3;
+    private static final int MAX_ROW_HEIGHT = 48;
 
     private final Screen parent;
     private final HerziumTheme.ParticleField particles = new HerziumTheme.ParticleField();
@@ -114,7 +115,12 @@ public final class HerziumConfigScreen extends Screen {
             this.optionsY = bodyY;
             this.optionsWidth = bodyWidth;
             int minimumInfoHeight = Math.max(1, Math.min(44, bodyHeight / 3));
-            int preferred = Math.max(1, Math.round(bodyHeight * 0.62F));
+            // Never taller than the three rows actually need. Rows stop growing
+            // at MAX_ROW_HEIGHT, so asking for a fixed fraction of the body left
+            // dead space under the last row on tall windows; that space is worth
+            // more to the diagnostics pane, which always has more to show.
+            int neededHeight = 4 * 2 + 12 + MAX_ROW_HEIGHT * OPTION_COUNT + 3 * (OPTION_COUNT - 1);
+            int preferred = Math.min(neededHeight, Math.max(1, Math.round(bodyHeight * 0.62F)));
             this.optionsHeight = Mth.clamp(
                     preferred,
                     1,
@@ -143,7 +149,7 @@ public final class HerziumConfigScreen extends Screen {
                 3,
                 this.optionsHeight - this.optionsInset * 2 - this.optionsHeadingHeight
                         - this.rowGap * (OPTION_COUNT - 1));
-        this.rowHeight = Mth.clamp(rowsArea / OPTION_COUNT, 1, 48);
+        this.rowHeight = Mth.clamp(rowsArea / OPTION_COUNT, 1, MAX_ROW_HEIGHT);
 
         int rowWidth = Math.max(1, this.optionsWidth - this.optionsInset * 2);
         // A shorter toggle in the stacked layout buys back the nine pixels a

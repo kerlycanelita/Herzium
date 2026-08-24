@@ -89,10 +89,10 @@ Estado posible: `abierto` · `corregido` · `aceptado` (decisión consciente de 
 
 | ID | Estado | Archivo | Resumen |
 | --- | --- | --- | --- |
-| H-01 | abierto | `input/ImmediateHotbarInput.java:29,171` | Fuga de memoria: retiene `LocalPlayer` → `ClientLevel` |
-| H-02 | abierto | `mixin/MinecraftMixin.java:86-107` | Reescribe `options.txt` del usuario en cada frame |
-| H-03 | abierto | `mixin/MinecraftMixin.java:54-67` | `@Redirect` sin `ordinal` sobre `Runnable.run()` |
-| H-04 | abierto | `mixin/ContainerFocus{Background,Renderer}Mixin.java` | Los dos mixins se asumen mutuamente sin comprobarlo |
+| H-01 | corregido `d6c81f8` | `input/ImmediateHotbarInput.java:29,171` | Fuga de memoria: retiene `LocalPlayer` → `ClientLevel` |
+| H-02 | corregido `135e964` | `mixin/MinecraftMixin.java:86-107` | Reescribe `options.txt` del usuario en cada frame |
+| H-03 | corregido `6897614`, `da695d0` | `mixin/MinecraftMixin.java:54-67` | `@Redirect` sin `ordinal` sobre `Runnable.run()` |
+| H-04 | corregido `9f1e966` | `mixin/ContainerFocus{Background,Renderer}Mixin.java` | Los dos mixins se asumen mutuamente sin comprobarlo |
 
 **H-01 — Fuga de memoria en la preview de hotbar.**
 `PREVIEW` es un `AtomicReference<PreviewState>` estático y `PreviewState` guarda
@@ -144,15 +144,15 @@ impacto jugable presentado como optimización.
 
 | ID | Estado | Archivo | Resumen |
 | --- | --- | --- | --- |
-| M-01 | abierto | `config/HerziumConfig.java` · `gui/HerziumConfigScreen.java` | Cero opciones configurables; el panel es solo lectura |
-| M-02 | abierto | `build.gradle:32-34` · `version/official26/build.gradle:88-90` | `implementation` en vez de `modImplementation` |
-| M-03 | abierto | `version/build.gradle:63-92` · `version/official26/build.gradle:38-61` | Backports por sustitución de texto plano |
-| M-04 | abierto | `version/build-all.ps1:298` | Ruta del JDK escrita a mano |
-| M-05 | abierto | `assets/herzium/lang/*.json` · `mixin/LoadingOverlayMixin.java:41-53` | 22 claves muertas; pantalla de carga en inglés fijo |
-| M-06 | abierto | `mixin/LoadingOverlayMixin.java:105-144` | Reimplementa el ciclo de cierre de vanilla |
-| M-07 | abierto | `mixin/GuiMixin.java:18-43` | `@Redirect` no componible + clamp del indicador de ataque |
-| M-08 | abierto | `fabric.mod.json:29` | Dependencia de Minecraft de coincidencia exacta |
-| M-09 | abierto | `README.md` · `checksums.txt` · `evidence/…/README.md` | Documentación de release contradictoria |
+| M-01 | corregido `2736bc4`, `5c01c8a` | `config/HerziumConfig.java` · `gui/HerziumConfigScreen.java` | Cero opciones configurables; el panel es solo lectura |
+| M-02 | obsoleto `fa14f76` | `build.gradle:32-34` · `version/official26/build.gradle:88-90` | `implementation` en vez de `modImplementation` |
+| M-03 | abierto (fuera de alcance) | `version/build.gradle:63-92` · `version/official26/build.gradle:38-61` | Backports por sustitución de texto plano |
+| M-04 | abierto (fuera de alcance) | `version/build-all.ps1:298` | Ruta del JDK escrita a mano |
+| M-05 | corregido `1d505db` | `assets/herzium/lang/*.json` · `mixin/LoadingOverlayMixin.java:41-53` | 22 claves muertas; pantalla de carga en inglés fijo |
+| M-06 | corregido `d03f129` | `mixin/LoadingOverlayMixin.java:105-144` | Reimplementa el ciclo de cierre de vanilla |
+| M-07 | corregido `04ccdcc` | `mixin/GuiMixin.java:18-43` | `@Redirect` no componible + clamp del indicador de ataque |
+| M-08 | corregido `7ab9544` | `fabric.mod.json:29` | Dependencia de Minecraft de coincidencia exacta |
+| M-09 | corregido `2e12ea9` | `README.md` · `checksums.txt` · `evidence/…/README.md` | Documentación de release contradictoria |
 
 **M-01.** `HerziumConfig` tiene un solo campo: `startupWarningAcknowledged`. La pantalla
 de Mod Menu, pese a sus ~800 líneas, es un panel de diagnóstico de solo lectura. Todo
@@ -168,6 +168,24 @@ remapearse de intermediary a nombres. `version/build.gradle` **sí lo hace bien*
 entre tres builds que producen el mismo mod.
 *Fix sugerido:* copiar el bloque `dependencies` de `version/build.gradle` a los otros dos.
 
+> **`obsoleto` (2026-08-23, `fa14f76`).** El fix propuesto no es aplicable: el proyecto
+> raíz aplica el plugin **`net.fabricmc.fabric-loom`**, que no crea ninguna configuración
+> `mod*`. Comprobado enumerando las configuraciones del proyecto con Gradle sobre Java 21
+> y sobre Java 25: solo existen `modCompileClasspath`, `modCompileClasspathMapped` y
+> `productionRuntimeMods`. La matriz usa el plugin **`fabric-loom`**, que sí las crea.
+> Cambiar el id no es un cambio local: con `fabric-loom` el build raíz falla primero con
+> *«Minecraft 26.1.2 requires Java 25 but Gradle is using 21»* y después con
+> *«Configuration 'mappings' has no dependencies»*, una dependencia que este build nunca
+> ha declarado. Se aplicó lo que sí captura la intención —Mod Menu pasa a `compileOnly`
+> y deja de ser transitivo— y se dejó `fabric-loader` en `implementation`: sus clases no
+> son intermediary y no necesitan remapeo. El hallazgo se cierra como incorrecto en su
+> premisa, no como arreglado.
+>
+> Efecto colateral: Mod Menu deja de estar en el classpath de ejecución de `runClient`.
+> Para poder abrir la pantalla de configuración en el entorno de desarrollo hay que dejar
+> el jar en `run/mods/` (está ahí desde la verificación de 2026-08-23; `run/` está
+> ignorado por git).
+
 **M-03.** La tarea `Sync` adapta la API entre versiones con `filter { line.replace(…) }`
 línea a línea (`GuiGraphicsExtractor→GuiGraphics`, `extractRenderState→render`,
 `renderHandsWithItems→submitHandsWithItems`…). Sustituye igual dentro de comentarios,
@@ -178,10 +196,20 @@ en las fuentes actuales.
 existe en `version/src/client/<variant>`) y añadir un `doLast` que falle si una regla de
 `replace` no encontró coincidencias.
 
+> **Fuera de alcance (2026-08-23).** `version/` no se toca en esta ronda. Ver
+> «Deuda con la matriz multiversión» al final del documento.
+
 **M-04.** `-Dorg.gradle.java.home=C:\Program Files\Java\jdk-25.0.2` ata la compilación de
 los 4 targets 26.x a una instalación concreta de una máquina concreta.
 *Fix sugerido:* leer `$env:JAVA_HOME_25` con la ruta actual como fallback, o dejar que
 resuelva el toolchain de Gradle (ya declarado, `JavaLanguageVersion.of(25)`).
+
+> **Fuera de alcance (2026-08-23).** `version/` no se toca en esta ronda. Nota de apoyo:
+> el requisito es real y no arbitrario. El plugin `fabric-loom` exige que el **daemon de
+> Gradle** corra en Java 25 para 26.x, no solo el toolchain de compilación; se reprodujo
+> al intentar aplicar M-02 en el build raíz. Un `JAVA_HOME_25` con fallback resuelve el
+> caso de esta máquina; lo portable en Gradle 9 es `gradle/gradle-daemon-jvm.properties`
+> con `toolchainVersion=25`.
 
 **M-05.** Las tres lenguas tienen paridad perfecta pero 22 claves no las usa nadie.
 Catorce son `herzium.loading.title`, `herzium.loading.subtitle` y `herzium.loading.tip.0…11`:
@@ -227,18 +255,18 @@ sacar la versión del README de `gradle.properties`.
 
 | ID | Estado | Archivo | Resumen |
 | --- | --- | --- | --- |
-| L-01 | abierto | `mixin/ContainerFocusRendererMixin.java:32` | `herzium$containerOpen()` es el único auxiliar sin `@Unique` |
-| L-02 | abierto | `config/HerziumConfig.java:111` · `gui/HerziumWarningScreen.java:147` | `save()` bloquea el hilo de render |
-| L-03 | abierto | `fabric.mod.json` | Sin bloque `contact` (homepage/sources/issues) |
-| L-04 | abierto | `mixin/ItemInHandRendererMixin.java:43-71` | Anula por completo la lógica de `ItemInHandRenderer.tick()` |
-| L-05 | abierto | `diagnostics/CoreDiagnostics.java:52-58` | Contadores estáticos sin reinicio al cambiar de mundo |
-| L-06 | abierto | `input/ImmediateHotbarInput.java:93-107` | Preview colgada hasta 2 s con una pantalla abierta |
+| L-01 | corregido `69b1c71` | `mixin/ContainerFocusRendererMixin.java:32` | `herzium$containerOpen()` es el único auxiliar sin `@Unique` |
+| L-02 | corregido `022dd47` | `config/HerziumConfig.java:111` · `gui/HerziumWarningScreen.java:147` | `save()` bloquea el hilo de render |
+| L-03 | corregido `1c8c15c` | `fabric.mod.json` | Sin bloque `contact` (homepage/sources/issues) |
+| L-04 | corregido `e31f269` | `mixin/ItemInHandRendererMixin.java:43-71` | Anula por completo la lógica de `ItemInHandRenderer.tick()` |
+| L-05 | corregido `9ded140` | `diagnostics/CoreDiagnostics.java:52-58` | Contadores estáticos sin reinicio al cambiar de mundo |
+| L-06 | corregido `bd513e0` | `input/ImmediateHotbarInput.java:93-107` | Preview colgada hasta 2 s con una pantalla abierta |
 
 ### Organización del repositorio
 
 | ID | Estado | Resumen |
 | --- | --- | --- |
-| ORG-01 | abierto | 11 rutas basura + material de release mezclado en la raíz |
+| ORG-01 | corregido `5888ffe` | 11 rutas basura + material de release mezclado en la raíz |
 
 Rutas basura confirmadas (verificadas vacías o temporales):
 
@@ -311,8 +339,106 @@ se actualice a la velocidad real del equipo, **sin tocar nada que el servidor va
 
 ---
 
+## Deuda con la matriz multiversión
+
+Escrito el 2026-08-23, tras aplicar en `src/` los hallazgos de esta auditoría. **Nada de
+esto está arreglado**: se documenta para que la próxima persona que toque `version/` sepa
+qué quedó desalineado y por qué.
+
+El motivo de fondo es M-03. `version/build.gradle` no tiene fuentes propias: copia
+`../src/client/java` y adapta la API con sustituciones de texto plano. Cualquier cambio en
+`src/` llega a las dieciséis variantes sin que nadie lo revise, y solo falla cuando falla.
+
+### 1. Fallo funcional silencioso: `ContainerFocusState` (H-04)
+
+`ContainerFocusBackgroundMixin` ahora exige que `ContainerFocusRendererMixin` haya
+confirmado la omisión del nivel **en ese mismo frame**, a través de
+`render/ContainerFocusState`.
+
+- Las variantes **1.21.x** excluyen `ContainerFocusRendererMixin.java` y usan el overlay
+  `version/src/client/common121/…/ContainerFocusRendererMixin.java`, que **no llama a**
+  `ContainerFocusState.beginFrame(...)`.
+- `ContainerFocusBackgroundMixin` **no** está excluido en esas variantes.
+- Resultado: en 1.21.x el flag nunca sale de `false` y **el fondo de container focus deja
+  de pintarse**. Compila, arranca, y simplemente no hace nada.
+
+*Qué hay que hacer:* portar el handshake al overlay de `common121`, o excluir también
+`ContainerFocusBackgroundMixin` en esas variantes.
+
+### 2. Correcciones que no llegan a las variantes con overlay propio
+
+`MinecraftMixin.java` está excluido para 1.21.x en favor de
+`version/src/client/common121/…/MinecraftMixin.java`. Ese overlay conserva la versión
+anterior, así que **H-01, H-02, H-03 y L-05 no están aplicados en las doce variantes
+1.21.x**: sigue el `@Redirect` sin `ordinal`, sigue la reescritura de `options.txt` en cada
+frame, sigue la fuga de `LocalPlayer` y siguen los contadores sin reinicio.
+
+Los métodos nuevos existen y son alcanzables desde ahí
+(`ImmediateHotbarInput.releaseStalePreview`, `CoreDiagnostics.observeSession`); nadie los
+llama. Compila; el arreglo simplemente no está.
+
+Lo mismo con `AnimatedPurpleButton.java`, excluido en `classic` y `modern-button`: esos
+overlays conservan sus copias privadas de `fillRounded` / `drawOutline` / `argb` y por
+tanto **no** usan `HerziumTheme`.
+
+### 3. Reglas de `replace` que hay que revisar
+
+| Archivo | Regla | Situación |
+| --- | --- | --- |
+| `version/build.gradle:89-90` | `require = 4` → `0`, `require = 2` → `0` | **Ya estaban muertas** antes de esta ronda (lo dice M-03) y lo siguen estando. Además ahora son insuficientes: los hallazgos de esta ronda introdujeron `require = 1` en `MinecraftMixin` (H-03), `LoadingOverlayMixin` (M-06) y `GuiMixin` (M-07), y `require = 1` **no** se reescribe a 0. En una variante donde el objetivo no exista, eso es un fallo duro de mixin en vez de una degradación. |
+| `version/build.gradle:71` | `extractRenderState` → `render` | Sigue siendo necesaria y ahora también afecta a `HerziumTheme` y a las dos pantallas rediseñadas. Revisar que el nuevo `ParticleField.render(...)` no se vea afectado por sustituciones parciales de nombre. |
+| `version/build.gradle:75-76` | `graphics.centeredText(` / `graphics.text(` | `HerziumTheme` no usa ninguna de las dos (solo `fill` y `fillGradient`), así que la clase nueva pasa limpia. Sin cambios. |
+| `version/official26/build.gradle:53-60` | `minecraft.getOverlay()`, `minecraft.screen`, `minecraft.setScreen(` | Cubren el código nuevo de `ImmediateHotbarInput.releaseStalePreview` (L-06) y el `setScreen` de H-03. **Verificar**, no dar por hecho. |
+| `version/official26/build.gradle` | — | **No hay regla para `LoadingOverlay`.** M-06 introduce `@Shadow private long fadeOutStart` y un `@At` con el descriptor literal `Lnet/minecraft/client/gui/screens/LoadingOverlay;isReadyToFadeOut()Z`. Si en 26.2 esa clase se movió o se renombró —el propio archivo ya renombra `Gui` a `Hud`—, la variante 26.2 **no arranca**. Es el riesgo más concreto de esta lista. |
+
+### 4. Overlays a revisar uno por uno
+
+```
+version/src/client/common121/…/MinecraftMixin.java              ← puntos 1 y 2
+version/src/client/common121/…/ContainerFocusRendererMixin.java ← punto 1
+version/src/client/common121/…/FramerateLimiterMixin.java
+version/src/client/classic/…/ItemInHandRendererMixin.java       ← L-04 no aplicado
+version/src/client/classic/…/MouseHandlerMixin.java
+version/src/client/modern-button/…                              ← AnimatedPurpleButton
+version/src/client/public-selected/…/HotbarVisualMixin.java
+version/official26/src/client/26.2/…/WindowMixin.java
+```
+
+### 5. Lo que sí es seguro
+
+- `herzium.client.mixins.json` **no cambia**: esta ronda no añade ni quita ninguna clase
+  de mixin, así que el `"required": true` no se rompe en ninguna variante.
+- Los tres `lang/*.json` se comparten y solo ganan y pierden claves de forma simétrica.
+  Ninguna variante los referencia de otra manera.
+- M-08 construye el rango de Minecraft en el `build.gradle` **raíz**, no en
+  `fabric.mod.json`, precisamente para no tocar la matriz. Las dieciséis variantes
+  conservan su comportamiento actual.
+
+---
+
+## Verificación de esta ronda (2026-08-23)
+
+Ejecutado con el cliente de desarrollo en 26.1.2:
+
+| Comprobado | Resultado |
+| --- | --- |
+| `.\gradlew.bat build` | Correcto. `herziumChecksums` genera `docs/checksums.txt`. |
+| Arranque completo del cliente | Sin errores de mixin. Con `"required": true` y `defaultRequire: 1`, arrancar **es** la prueba de que todos los inyectores encontraron su objetivo: H-03 (`ordinal = 0`, `require = 1`), M-06 (`isReadyToFadeOut`), M-07 (los dos `@ModifyExpressionValue`) y H-04. |
+| Pantalla de carga (M-06) | La recarga inicial termina y el overlay se cierra; no se queda colgado. |
+| Advertencia inicial (H-03) | Se muestra; al pulsar Continuar la cadena de Vanilla se reanuda y aparece la pantalla de título. **Sin** el mensaje de fallback, es decir, `original.call(...)` diferido funciona de verdad. |
+| `herzium.json` (M-01, L-02) | Se escribe con los cuatro campos y los tres nuevos por defecto en `true`. |
+| Mod Menu (L-03) | Muestra los botones Website e Issues y el enlace Source. |
+| Pantalla de configuración (fase E) | Los tres conmutadores se dibujan con etiqueta, estado y descripción. El panel de diagnóstico no reporta **ningún** mixin como `not_applied`. |
+
+**Pendiente de comprobación manual en partida:** abrir un cofre, cambiar de ranura con 1-9,
+cambiar de ranura con la rueda, equipar una espada y equipar un bloque. Requiere entrar a un
+mundo y no se automatizó.
+
+---
+
 ## Registro de cambios de este documento
 
 | Fecha | Cambio |
 | --- | --- |
 | 2026-08-24 | Auditoría inicial de 1.9.3 / 26.1.2. 19 hallazgos + 8 aciertos + ORG-01. |
+| 2026-08-23 | Ronda de corrección sobre 26.1.2. Corregidos ORG-01, H-01..H-04, M-01, M-05..M-09 y L-01..L-06; M-02 marcado `obsoleto` con la reproducción del fallo; M-03 y M-04 fuera de alcance. Rediseño de la pantalla de configuración y extracción de `gui/HerziumTheme`. Añadidas las secciones «Deuda con la matriz multiversión» y «Verificación de esta ronda». |
