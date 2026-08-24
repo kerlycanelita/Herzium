@@ -148,7 +148,13 @@ public final class ImmediateHotbarInput {
         if (state == null) {
             return;
         }
+        // A screen or overlay stops Vanilla from processing keybinds, so
+        // onVanillaHotbarTick never runs to confirm and drop the preview. Left
+        // alone it would stay on the HUD behind the screen for up to the
+        // fail-safe deadline and then pop back.
         if (minecraft.player != state.player()
+                || minecraft.screen != null
+                || minecraft.getOverlay() != null
                 || System.nanoTime() - state.startedNanos() > FAIL_SAFE_PREVIEW_NANOS) {
             clearPreview(state);
         }
