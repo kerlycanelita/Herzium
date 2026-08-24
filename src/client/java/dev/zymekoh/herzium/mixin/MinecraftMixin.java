@@ -1,5 +1,7 @@
 package dev.zymekoh.herzium.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
@@ -13,7 +15,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = Minecraft.class, priority = 2000)
@@ -59,23 +60,40 @@ abstract class MinecraftMixin {
     }
 
     /**
-     * Place the advisory after the initial resource reload, but before
+     * Places the advisory after the initial resource reload, but before
      * onboarding, the title screen, or Quick Play. Continuing invokes the
      * untouched vanilla screen chain exactly once.
+     *
+     * <p>{@code ordinal = 0} pins the injection to the first matching call.
+     * Without it Mixin binds every {@code Runnable.run()} in the method: today
+     * there is exactly one, but if Mojang adds a second or moves this one into
+     * a lambda, the advisory would swallow the wrong runnable and start-up
+     * would hang with no visible error. {@code require = 1} turns that same
+     * signature change into a loud mixin failure instead.</p>
+     *
+     * <p>{@link WrapOperation} rather than {@code @Redirect} because a redirect
+     * is exclusive: it would break any other mod touching the initial screen
+     * chain (onboarding, Quick Play, profile launchers). Wrapping leaves the
+     * call site shareable, and deferring {@code original.call(...)} into the
+     * screen's continuation keeps the rest of the chain intact.</p>
      */
-    @Redirect(
+    @WrapOperation(
             method = "onGameLoadFinished",
             at = @At(
                     value = "INVOKE",
-                    target = "Ljava/lang/Runnable;run()V"))
-    private void herzium$showPerformanceWarning(Runnable showInitialScreen) {
+                    target = "Ljava/lang/Runnable;run()V",
+                    ordinal = 0),
+            require = 1)
+    private void herzium$showPerformanceWarning(
+            Runnable showInitialScreen,
+            Operation<Void> original) {
         if (HerziumConfig.get().startupWarningAcknowledged()) {
-            showInitialScreen.run();
+            original.call(showInitialScreen);
             return;
         }
 
         Minecraft minecraft = (Minecraft) (Object) this;
-        minecraft.setScreen(new HerziumWarningScreen(showInitialScreen));
+        minecraft.setScreen(new HerziumWarningScreen(() -> original.call(showInitialScreen)));
     }
 
     /**
