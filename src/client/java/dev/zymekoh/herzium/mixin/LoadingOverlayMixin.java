@@ -1,6 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
-import com.mojang.blaze3d.platform.Window;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import dev.zymekoh.herzium.gui.StartupPixelFont;
 import java.util.List;
 import java.util.Optional;
@@ -71,8 +71,7 @@ abstract class LoadingOverlayMixin {
     private ReloadInstance reload;
 
     @Shadow
-    @Final
-    private Consumer<Optional<Throwable>> onFinish;
+    private long fadeOutStart;
 
     @Unique
     private int herzium$tipIndex;
@@ -92,9 +91,6 @@ abstract class LoadingOverlayMixin {
     @Unique
     private List<String> herzium$cachedTipLines = List.of();
 
-    @Unique
-    private boolean herzium$finishHandled;
-
     @Inject(method = "<init>", at = @At("TAIL"))
     private void herzium$initializeLoadingScreen(
             Minecraft minecraft,
@@ -109,48 +105,29 @@ abstract class LoadingOverlayMixin {
     }
 
     /**
-     * Vanilla keeps this overlay for a two-second fade after the reload is
-     * complete. Herzium closes it on the same tick, after all checks succeed.
+     * Skips the decorative wait before the fade-out may begin.
+     *
+     * <p>Vanilla's {@code tick()} runs untouched: it still calls
+     * {@code checkExceptions()}, still forwards success or failure to
+     * {@code onFinish}, still stamps {@code fadeOutStart} and still re-lays out
+     * the screen the callback installed, now that the real fonts are loaded.
+     * Herzium only reports the fade-in gate as already satisfied, so the
+     * sequence starts on the tick the reload finishes instead of 1000 ms
+     * later.</p>
+     *
+     * <p>This replaces an outright cancel of {@code tick()} that reimplemented
+     * the whole close sequence by hand. That version worked, but any step
+     * Mojang added to the method would have been dropped silently, with neither
+     * a compile error nor a mixin error to show for it.</p>
      */
-    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
-    private void herzium$finishAsSoonAsResourcesAreReady(CallbackInfo ci) {
-        if (this.herzium$finishHandled) {
-            if (this.minecraft.getOverlay() == (Object) this) {
-                this.minecraft.setOverlay(null);
-            }
-            ci.cancel();
-            return;
-        }
-
-        if (!this.reload.isDone()) {
-            return;
-        }
-
-        try {
-            this.reload.checkExceptions();
-            this.onFinish.accept(Optional.empty());
-        } catch (Throwable throwable) {
-            this.onFinish.accept(Optional.of(throwable));
-        }
-        this.herzium$finishHandled = true;
-
-        // Match vanilla's post-reload lifecycle: callbacks may replace the
-        // current screen, and that screen must be laid out with the newly
-        // loaded fonts/resources before the overlay is removed.
-        if (this.minecraft.screen != null) {
-            Window window = this.minecraft.getWindow();
-            this.minecraft.screen.init(
-                    window.getGuiScaledWidth(),
-                    window.getGuiScaledHeight());
-        }
-
-        // Do not erase a replacement overlay installed by an error handler or
-        // another mod while the reload callback was running.
-        if (this.minecraft.getOverlay() == (Object) this) {
-            this.minecraft.setOverlay(null);
-        }
-
-        ci.cancel();
+    @ModifyExpressionValue(
+            method = "tick",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/screens/LoadingOverlay;isReadyToFadeOut()Z"),
+            require = 1)
+    private boolean herzium$skipFadeInWait(boolean vanillaReady) {
+        return true;
     }
 
     @Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true)
@@ -218,6 +195,17 @@ abstract class LoadingOverlayMixin {
                     barY - 8,
                     1,
                     0xFFCDB7DE);
+        }
+
+        // Vanilla removes the overlay from this same method, but only once its
+        // two-second fade-out has elapsed -- and that code never runs because
+        // the frame below is cancelled. Once tick() has stamped fadeOutStart,
+        // every check vanilla makes before closing has already passed, so the
+        // overlay goes now instead. The identity guard keeps a replacement
+        // overlay installed by an error handler or another mod from being
+        // erased.
+        if (this.fadeOutStart > -1L && this.minecraft.getOverlay() == (Object) this) {
+            this.minecraft.setOverlay(null);
         }
 
         ci.cancel();
