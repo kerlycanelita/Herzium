@@ -41,7 +41,6 @@ def generatedClientSources = layout.buildDirectory.dir('generated/sources/herziu
 tasks.register('generateHerziumClientSources', Sync) {
     from('../src/client/java') {
         if (minecraft121) {
-            exclude '**/ContainerFocusRendererMixin.java'
             exclude '**/FramerateLimiterMixin.java'
             exclude '**/FramerateLimitTrackerMixin.java'
             exclude '**/GlDeviceMixin.java'

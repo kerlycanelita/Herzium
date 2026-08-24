@@ -124,16 +124,16 @@ permanently active. The configuration screen reports their live diagnostic state
 
 Installing the compatible Mod Menu release for the selected Minecraft version
 adds a configuration button for Herzium.
-Its interface uses a translucent dark-purple panel with animated lighting
-transitions when buttons are hovered or focused. Its compact vertical layout
-shrinks with high GUI scales while keeping transparent backgrounds,
-high-contrast text, and every control inside the panel.
+Its interface uses a restrained translucent dark-purple panel, compact animated
+switches, clear option descriptions, and a scrollable system overview. At normal
+GUI scales it uses two balanced columns; at high GUI scales it stacks them while
+keeping every control inside the panel.
 
 `Priority Hotbar` is displayed as an always-active core feature rather than a
 toggle. Keyboard, remapped-button, and mouse-wheel selection stay on Vanilla's
 unchanged input and packet paths. The diagnostics panel reports which mixins were
 applied, which runtime hooks have actually executed, config health, active features,
-container-focus frames, operating details, compatibility warnings, and hardware risks.
+operating details, compatibility warnings, and hardware risks.
 The one-time startup-warning acknowledgement is stored in `config/herzium.json`.
 
 ## High-refresh improvements
@@ -141,9 +141,9 @@ The one-time startup-warning acknowledgement is stored in `config/herzium.json`.
 - The HUD is not capped at 240 FPS: it renders at the game's full frame rate.
   When the game delivers 240 FPS, the HUD, hotbar, TAB list, and inventories
   update at 240 Hz; if the game runs faster, they can exceed that rate too.
-- Inventories and containers keep extracting and drawing their GUI every active-window
-  frame. While one is open, Herzium omits the expensive live 3D world behind it;
-  client ticks, slot interaction, menu packets, and server synchronization remain Vanilla.
+- Inventories and containers remain on the active uncapped rendering cadence.
+  Their world background is left completely to Vanilla or another installed
+  visual mod; Herzium does not replace it with a black or custom backdrop.
 - The crosshair and hotbar attack-strength indicators interpolate only toward
   vanilla combat's `0.5` partial-tick sample. They never display a stronger
   value than the one used by the attack calculation.

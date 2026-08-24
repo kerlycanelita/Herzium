@@ -30,8 +30,7 @@ import net.fabricmc.loader.api.FabricLoader;
  * <p>Flags that only affect Herzium's own behaviour default to {@code true}
  * <em>in the field initialiser</em>. Gson leaves absent keys at their Java
  * default, so a {@code herzium.json} written by an older version keeps those
- * features enabled instead of silently turning them off. A flag that changes
- * what vanilla looks like is the exception and defaults to {@code false}.</p>
+ * features enabled instead of silently turning them off.</p>
  */
 public final class HerziumConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -58,10 +57,6 @@ public final class HerziumConfig {
     });
 
     private boolean startupWarningAcknowledged;
-    // The only flag that does not default to true. Turning it on replaces the
-    // world behind an open container with a flat black backdrop, and how an
-    // inventory looks is not Herzium's call to make for the player.
-    private boolean containerFocus;
     private boolean instantEquip = true;
     private boolean hotbarPreview = true;
 
@@ -140,11 +135,6 @@ public final class HerziumConfig {
         return this.startupWarningAcknowledged;
     }
 
-    /** Read by {@code ContainerFocusRendererMixin} on every extracted frame. */
-    public boolean containerFocus() {
-        return this.containerFocus;
-    }
-
     /** Read by {@code ItemInHandRendererMixin} on every rendered frame. */
     public boolean instantEquip() {
         return this.instantEquip;
@@ -153,15 +143,6 @@ public final class HerziumConfig {
     /** Read by {@link dev.zymekoh.herzium.input.ImmediateHotbarInput} per input. */
     public boolean hotbarPreview() {
         return this.hotbarPreview;
-    }
-
-    public void setContainerFocus(boolean enabled) {
-        if (this.containerFocus == enabled) {
-            return;
-        }
-
-        this.containerFocus = enabled;
-        this.save();
     }
 
     public void setInstantEquip(boolean enabled) {

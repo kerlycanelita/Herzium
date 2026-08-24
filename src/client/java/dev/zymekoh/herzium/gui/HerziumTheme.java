@@ -19,29 +19,46 @@ public final class HerziumTheme {
     public static final int BACKDROP_TOP = 0x4A2A0B4E;
     public static final int BACKDROP_BOTTOM = 0x5E140628;
     /** Top-level panel. Translucent enough for the particle field to show through. */
-    public static final int PANEL_TOP = 0x8C280E45;
-    public static final int PANEL_BOTTOM = 0x9C160726;
-    /** Inset surfaces: sub-panes and option rows. */
-    public static final int PANE_TOP = 0x5E24103C;
-    public static final int PANE_BOTTOM = 0x72150724;
-    public static final int CARD_TOP = 0x6A2C1247;
-    public static final int CARD_BOTTOM = 0x7E190829;
-    public static final int PANE_OUTLINE = 0x78814AA8;
-    public static final int CARD_OUTLINE = 0x8E8E4CBE;
-    public static final int DIVIDER = 0x6D9A4CC6;
+    public static final int PANEL_TOP = 0xE81C1129;
+    public static final int PANEL_BOTTOM = 0xF0120A1B;
+    /**
+     * Inset surfaces. Barely lighter than the panel on purpose: regions are
+     * separated by a hairline and by space, not by stacking bordered boxes
+     * inside bordered boxes.
+     */
+    public static final int PANE_TOP = 0x3A2A1840;
+    public static final int PANE_BOTTOM = 0x481B0F29;
+    public static final int CARD_TOP = 0x3C2E1A46;
+    public static final int CARD_BOTTOM = 0x481E1130;
+    public static final int PANE_OUTLINE = 0x3E8E6BB4;
+    public static final int CARD_OUTLINE = 0x00000000;
+    /** Hairline used to separate regions and rows. */
+    public static final int HAIRLINE = 0x2E9878C4;
+    public static final int DIVIDER = 0x8CA974F0;
+    public static final int ACCENT = 0xFFA974F0;
 
-    public static final int TEXT_TITLE = 0xFFF6EAFF;
-    public static final int TEXT_PRIMARY = 0xFFEDDFF7;
-    public static final int TEXT_BODY = 0xFFD9CBE4;
-    public static final int TEXT_MUTED = 0xFFA79BB2;
-    public static final int TEXT_HEADING = 0xFFEBC9FF;
-    public static final int TEXT_ACCENT = 0xFFD2A5F0;
-    public static final int TEXT_GOOD = 0xFF9BE8B1;
-    public static final int TEXT_WARN = 0xFFFFD18A;
-    public static final int TEXT_BAD = 0xFFFF9D9D;
+    public static final int TEXT_TITLE = 0xFFF4EEFB;
+    public static final int TEXT_PRIMARY = 0xFFE6DCF2;
+    public static final int TEXT_BODY = 0xFFC6B8D8;
+    public static final int TEXT_MUTED = 0xFF9E93AE;
+    public static final int TEXT_HEADING = 0xFF9E93AE;
+    public static final int TEXT_ACCENT = 0xFFC9A6F2;
+    /**
+     * Status colours. Desaturated against the previous neon set: on a page with
+     * a dozen state rows, saturated green and red read as alarm, not as
+     * information. Only the small dot is tinted; the words stay body colour.
+     */
+    public static final int TEXT_GOOD = 0xFF67C98A;
+    public static final int TEXT_WARN = 0xFFDCA85C;
+    public static final int TEXT_BAD = 0xFFDE6E72;
+    public static final int TEXT_OFF = 0xFF6E6580;
 
-    public static final int SCROLL_TRACK = 0x5A3C1C4E;
-    public static final int SCROLL_THUMB = 0xD6CE75F4;
+    public static final int SCROLL_TRACK = 0x3A31204A;
+    public static final int SCROLL_THUMB = 0x9EA974F0;
+
+    public static final int TOGGLE_TRACK_OFF = 0xFF2A1E38;
+    public static final int TOGGLE_TRACK_ON = 0xFF7B41C4;
+    public static final int TOGGLE_KNOB = 0xFFF1E8FA;
 
     private HerziumTheme() {
     }
@@ -100,6 +117,20 @@ public final class HerziumTheme {
         graphics.fill(x, y + height - 1, x + width, y + height, color);
         graphics.fill(x, y + 1, x + 1, y + height - 1, color);
         graphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
+    }
+
+    /** A one-pixel separator. Replaces a bordered box wherever one will do. */
+    public static void hairline(GuiGraphicsExtractor graphics, int x, int y, int width) {
+        if (width <= 0) {
+            return;
+        }
+
+        graphics.fill(x, y, x + width, y + 1, HAIRLINE);
+    }
+
+    /** The small tinted square that carries a status row's colour. */
+    public static void statusDot(GuiGraphicsExtractor graphics, int x, int y, int color) {
+        graphics.fill(x, y, x + 3, y + 3, color);
     }
 
     /** Draws a pane's scrollbar, or nothing when there is nothing to scroll. */

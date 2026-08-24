@@ -17,12 +17,12 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 
 /**
- * Mod Menu screen: Herzium's three feature toggles, and the diagnostics panel
+ * Mod Menu screen: Herzium's visual feature toggles and the diagnostics panel
  * that lets the mod be checked without reading a log.
  *
  * <p>The left pane is deliberately not scrollable. Minecraft widgets are not
  * clipped by a scissor, so scrolling a pane that contains buttons would draw
- * them outside the panel. The three rows are laid out to fit the space instead,
+ * them outside the panel. The rows are laid out to fit the space instead,
  * shedding description lines before they shed the controls themselves; only the
  * diagnostics pane, which is pure text, scrolls.</p>
  */
@@ -30,9 +30,14 @@ public final class HerziumConfigScreen extends Screen {
     private static final Component TITLE = Component.translatable("herzium.config.title");
     private static final Component OPTIONS_HEADING =
             Component.translatable("herzium.config.section.options");
+    private static final Component STATUS_HEADING =
+            Component.translatable("herzium.config.section.overview");
+    private static final Component SUBTITLE =
+            Component.translatable("herzium.config.subtitle");
     private static final long DIAGNOSTIC_REFRESH_MS = 250L;
-    private static final int OPTION_COUNT = 3;
-    private static final int MAX_ROW_HEIGHT = 48;
+    private static final int OPTION_COUNT = 2;
+    private static final int MAX_ROW_HEIGHT = 62;
+    private static final int MAX_DESCRIPTION_LINES = 3;
 
     private final Screen parent;
     private final HerziumTheme.ParticleField particles = new HerziumTheme.ParticleField();
@@ -56,11 +61,11 @@ public final class HerziumConfigScreen extends Screen {
     private int rowGap;
     private int buttonWidth;
     private int buttonHeight;
-    private int descriptionLineLimit;
     private int infoX;
     private int infoY;
     private int infoWidth;
     private int infoHeight;
+    private int infoHeaderHeight;
     private int logicalInfoHeight;
     private int maxScroll;
     private int scrollOffset;
@@ -96,8 +101,8 @@ public final class HerziumConfigScreen extends Screen {
         this.panelHeight = Mth.clamp(preferredHeight, minPanelHeight, maxPanelHeight);
         this.panelX = (this.width - this.panelWidth) / 2;
         this.panelY = (this.height - this.panelHeight) / 2;
-        this.headerHeight = this.panelHeight < 230 ? 30 : 38;
-        this.footerHeight = this.panelHeight < 230 ? 28 : 38;
+        this.headerHeight = this.panelHeight < 230 ? 34 : 48;
+        this.footerHeight = this.panelHeight < 230 ? 30 : 42;
 
         int contentPadding = this.panelWidth < 420 ? 7 : this.panelWidth < 620 ? 10 : 14;
         int bodyX = this.panelX + contentPadding;
@@ -105,9 +110,13 @@ public final class HerziumConfigScreen extends Screen {
         int bodyWidth = Math.max(1, this.panelWidth - contentPadding * 2);
         int bodyBottom = this.panelY + this.panelHeight - this.footerHeight;
         int bodyHeight = Math.max(1, bodyBottom - bodyY);
-        int paneGap = this.panelWidth < 420 ? 5 : 9;
+        int paneGap = this.panelWidth < 420 ? 6 : 12;
 
-        this.compactLayout = bodyWidth < 460 || bodyHeight < 150;
+        // Two columns wherever they fit. The stacked fallback puts the status
+        // list under the options, which pushes it into a short strip that has
+        // to be scrolled a line at a time; as a side column it gets the panel's
+        // full height instead. Only a genuinely tiny window falls back.
+        this.compactLayout = bodyWidth < 250 || bodyHeight < 130;
         if (this.compactLayout) {
             // Stacked. The options pane takes what it needs and no more, and
             // never so much that the diagnostics pane disappears entirely.
@@ -115,11 +124,11 @@ public final class HerziumConfigScreen extends Screen {
             this.optionsY = bodyY;
             this.optionsWidth = bodyWidth;
             int minimumInfoHeight = Math.max(1, Math.min(44, bodyHeight / 3));
-            // Never taller than the three rows actually need. Rows stop growing
+            // Never taller than the rows actually need. Rows stop growing
             // at MAX_ROW_HEIGHT, so asking for a fixed fraction of the body left
             // dead space under the last row on tall windows; that space is worth
             // more to the diagnostics pane, which always has more to show.
-            int neededHeight = 4 * 2 + 12 + MAX_ROW_HEIGHT * OPTION_COUNT + 3 * (OPTION_COUNT - 1);
+            int neededHeight = 8 * 2 + 24 + MAX_ROW_HEIGHT * OPTION_COUNT + 8 * (OPTION_COUNT - 1);
             int preferred = Math.min(neededHeight, Math.max(1, Math.round(bodyHeight * 0.62F)));
             this.optionsHeight = Mth.clamp(
                     preferred,
@@ -133,7 +142,16 @@ public final class HerziumConfigScreen extends Screen {
         } else {
             this.optionsX = bodyX;
             this.optionsY = bodyY;
-            this.optionsWidth = Mth.clamp(Math.round(bodyWidth * 0.40F), 178, 320);
+            // The status column is the one that has to hold aligned rows of
+            // label plus value, so it gets a guaranteed share: options never
+            // grow past what would leave it less than 40% of the body.
+            int optionsUpperBound = Math.max(
+                    1,
+                    bodyWidth - paneGap - Math.max(1, Math.round(bodyWidth * 0.40F)));
+            this.optionsWidth = Mth.clamp(
+                    Math.round(bodyWidth * 0.46F),
+                    1,
+                    Math.max(1, Math.min(330, optionsUpperBound)));
             this.optionsHeight = bodyHeight;
             this.infoX = this.optionsX + this.optionsWidth + paneGap;
             this.infoY = bodyY;
@@ -141,9 +159,10 @@ public final class HerziumConfigScreen extends Screen {
             this.infoHeight = bodyHeight;
         }
 
-        this.optionsInset = this.compactLayout ? 4 : 7;
-        this.optionsHeadingHeight = this.optionsHeight >= 96 ? 12 : 0;
-        this.rowGap = this.compactLayout ? 3 : 5;
+        this.optionsInset = this.compactLayout ? 6 : this.optionsWidth < 210 ? 7 : 10;
+        this.optionsHeadingHeight = this.optionsHeight >= 74 ? 24 : 0;
+        this.infoHeaderHeight = this.infoHeight >= 54 ? 28 : 0;
+        this.rowGap = this.compactLayout ? 5 : 8;
 
         int rowsArea = Math.max(
                 3,
@@ -152,37 +171,27 @@ public final class HerziumConfigScreen extends Screen {
         this.rowHeight = Mth.clamp(rowsArea / OPTION_COUNT, 1, MAX_ROW_HEIGHT);
 
         int rowWidth = Math.max(1, this.optionsWidth - this.optionsInset * 2);
-        // A shorter toggle in the stacked layout buys back the nine pixels a
-        // description line needs. At 320x240 that is the difference between
-        // three labelled controls and three bare ones.
-        this.buttonHeight = Mth.clamp(this.rowHeight - 4, 6, this.compactLayout ? 13 : 16);
-        this.buttonWidth = Mth.clamp(rowWidth / 3, 26, 62);
-        // Whatever is left under the label line becomes description; when the
-        // row is too short for even one line, the control still stands.
-        this.descriptionLineLimit =
-                Mth.clamp((this.rowHeight - this.labelLineHeight() - 3) / 9, 0, 3);
-
+        // A shorter toggle in the stacked fallback buys back the nine pixels a
+        // description line needs.
+        this.buttonHeight = Mth.clamp(this.rowHeight - 4, 8, this.compactLayout ? 16 : 18);
+        this.buttonWidth = Mth.clamp(rowWidth / 4, 32, 50);
         this.buildOptionRows(rowWidth);
-    }
-
-    private int labelLineHeight() {
-        return Math.max(11, this.buttonHeight + 2);
     }
 
     private void buildOptionRows(int rowWidth) {
         int rowX = this.optionsX + this.optionsInset;
         int firstRowY = this.optionsY + this.optionsInset + this.optionsHeadingHeight;
-        int labelWidth = Math.max(1, rowWidth - this.optionsInset * 2 - this.buttonWidth - 5);
+        // The padding inside a row scales with the row, so a narrow side column
+        // spends its pixels on the label instead of on empty margins.
+        int rowInset = Mth.clamp(rowWidth / 16, 4, 10);
+        int labelWidth = Math.max(1, rowWidth - rowInset * 2 - this.buttonWidth - 5);
+        int descriptionWidth = Math.max(24, rowWidth - rowInset * 2);
 
         this.optionRows[0] = new OptionRow(
-                "herzium.option.container_focus",
-                () -> HerziumConfig.get().containerFocus(),
-                enabled -> HerziumConfig.get().setContainerFocus(enabled));
-        this.optionRows[1] = new OptionRow(
                 "herzium.option.instant_equip",
                 () -> HerziumConfig.get().instantEquip(),
                 enabled -> HerziumConfig.get().setInstantEquip(enabled));
-        this.optionRows[2] = new OptionRow(
+        this.optionRows[1] = new OptionRow(
                 "herzium.option.hotbar_preview",
                 () -> HerziumConfig.get().hotbarPreview(),
                 enabled -> HerziumConfig.get().setHotbarPreview(enabled));
@@ -193,13 +202,28 @@ public final class HerziumConfigScreen extends Screen {
             row.y = firstRowY + index * (this.rowHeight + this.rowGap);
             row.width = rowWidth;
             row.height = this.rowHeight;
-            row.textX = rowX + this.optionsInset;
+            row.textX = rowX + rowInset;
             row.textWidth = labelWidth;
-            row.buttonX = rowX + rowWidth - this.optionsInset - this.buttonWidth;
-            row.buttonY = row.y + Math.max(1, (this.labelLineHeight() - this.buttonHeight) / 2);
+            row.buttonX = rowX + rowWidth - rowInset - this.buttonWidth;
+
+            // A name that does not fit beside the toggle wraps to a second line
+            // rather than being cut. The description then starts below whichever
+            // of the two -- label block or toggle -- is taller.
+            row.labelLines = this.font.split(
+                    Component.translatable(row.translationKey),
+                    Math.max(24, labelWidth));
+            int labelLineCount = Mth.clamp(row.labelLines.size(), 1, 2);
+            row.labelBlockHeight = Math.max(this.buttonHeight + 4, labelLineCount * 10 + 2);
+            row.buttonY = row.y + Math.max(1, (row.labelBlockHeight - this.buttonHeight) / 2);
             row.descriptionLines = this.font.split(
                     Component.translatable(row.translationKey + ".description"),
-                    Math.max(24, rowWidth - this.optionsInset * 2));
+                    descriptionWidth);
+            // Whatever is left under the label block becomes description; when
+            // the row is too short for even one line, the control still stands.
+            row.descriptionLimit = Mth.clamp(
+                    (this.rowHeight - row.labelBlockHeight - 3) / 9,
+                    0,
+                    MAX_DESCRIPTION_LINES);
         }
     }
 
@@ -219,7 +243,8 @@ public final class HerziumConfigScreen extends Screen {
                         // The diagnostics pane reports these options, so it has
                         // to be rebuilt now rather than up to 250 ms later.
                         this.refreshDiagnostics(true);
-                    });
+                    },
+                    true);
             // The stacked layout on a small window can end up with no room for
             // the description under the label; the tooltip keeps it reachable.
             toggle.setTooltip(Tooltip.create(
@@ -233,12 +258,12 @@ public final class HerziumConfigScreen extends Screen {
     }
 
     private void addDoneButton() {
-        int doneWidth = Math.min(180, Math.max(1, this.panelWidth - 12));
+        int doneWidth = Math.min(142, Math.max(1, this.panelWidth - 12));
         int doneHeight = Math.min(this.panelHeight < 205 ? 20 : 24, Math.max(1, this.footerHeight - 4));
         int doneY = this.panelY + this.panelHeight - this.footerHeight
                 + Math.max(2, (this.footerHeight - doneHeight) / 2);
         this.addRenderableWidget(new AnimatedPurpleButton(
-                this.panelX + (this.panelWidth - doneWidth) / 2,
+                this.panelX + this.panelWidth - doneWidth - Math.min(14, Math.max(6, this.panelWidth / 30)),
                 doneY,
                 doneWidth,
                 doneHeight,
@@ -261,7 +286,7 @@ public final class HerziumConfigScreen extends Screen {
         CoreDiagnostics.Snapshot snapshot = this.diagnostics;
         HerziumConfig config = HerziumConfig.get();
         List<InfoLine> lines = new ArrayList<>();
-        int textWidth = Math.max(24, this.infoWidth - 16);
+        int textWidth = Math.max(24, this.infoWidth - 26);
         this.detectedIssueCount = 0;
 
         addHeading(lines, "herzium.config.section.active", textWidth, false);
@@ -346,13 +371,11 @@ public final class HerziumConfigScreen extends Screen {
             inputPipelineColor = HerziumTheme.TEXT_GOOD;
         }
         addStatus(lines, "herzium.config.status.input_pipeline", inputPipeline, inputPipelineColor, textWidth);
-        addMixinStatus(
+        addStatus(
                 lines,
                 "herzium.config.status.inventory_render",
-                "ContainerFocusRendererMixin",
-                snapshot.containerOptimizationHookObserved(),
-                config.containerFocus(),
-                snapshot,
+                Component.translatable("herzium.config.state.vanilla_backdrop"),
+                HerziumTheme.TEXT_GOOD,
                 textWidth);
 
         boolean exordiumPresent = FabricLoader.getInstance().isModLoaded("exordium");
@@ -384,7 +407,6 @@ public final class HerziumConfigScreen extends Screen {
                 lines,
                 Component.translatable(
                         "herzium.config.status.render_counters",
-                        snapshot.containerFramesOptimized(),
                         snapshot.instantEquipFrames(),
                         snapshot.combatEquipFramesPreserved()),
                 HerziumTheme.TEXT_BODY,
@@ -432,7 +454,6 @@ public final class HerziumConfigScreen extends Screen {
         addMissingMixinIssue(lines, snapshot, "KeyMappingMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "MouseHandlerMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "ItemInHandRendererMixin", textWidth);
-        addMissingMixinIssue(lines, snapshot, "ContainerFocusRendererMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "MinecraftMixin", textWidth);
         if (exordiumPresent && !snapshot.mixinApplied("ExordiumBufferInstanceMixin")) {
             addIssue(lines, "herzium.config.issue.exordium", textWidth);
@@ -465,7 +486,9 @@ public final class HerziumConfigScreen extends Screen {
         for (InfoLine line : this.infoLines) {
             this.logicalInfoHeight += line.height();
         }
-        this.maxScroll = Math.max(0, this.logicalInfoHeight - Math.max(1, this.infoHeight - 12));
+        this.maxScroll = Math.max(
+                0,
+                this.logicalInfoHeight - Math.max(1, this.infoHeight - this.infoHeaderHeight - 12));
         this.scrollOffset = Mth.clamp(this.scrollOffset, 0, this.maxScroll);
     }
 
@@ -538,14 +561,19 @@ public final class HerziumConfigScreen extends Screen {
             Component state,
             int color,
             int textWidth) {
-        addWrapped(
-                lines,
+        List<FormattedCharSequence> wrapped = this.font.split(
                 Component.translatable(
                         "herzium.config.status.entry",
                         Component.translatable(labelKey),
                         state),
-                color,
-                textWidth);
+                Math.max(24, textWidth - 9));
+        for (int index = 0; index < wrapped.size(); index++) {
+            lines.add(new InfoLine(
+                    wrapped.get(index),
+                    HerziumTheme.TEXT_BODY,
+                    10,
+                    index == 0 ? color : 0));
+        }
     }
 
     private void addParagraph(List<InfoLine> lines, String translationKey, int textWidth) {
@@ -604,15 +632,24 @@ public final class HerziumConfigScreen extends Screen {
                 this.panelY + 1,
                 this.panelWidth - 2,
                 this.panelHeight - 2,
-                HerziumTheme.pulsingBorder(now, 150, 50));
+                HerziumTheme.PANE_OUTLINE);
 
-        int titleY = this.panelY + Math.max(6, (this.headerHeight - 9) / 2);
-        graphics.centeredText(
+        int titleX = this.panelX + Math.min(18, Math.max(8, this.panelWidth / 26));
+        int titleY = this.panelY + (this.headerHeight >= 42 ? 10 : Math.max(6, (this.headerHeight - 9) / 2));
+        graphics.text(
                 this.font,
                 TITLE,
-                this.panelX + this.panelWidth / 2,
+                titleX,
                 titleY,
                 HerziumTheme.TEXT_TITLE);
+        if (this.headerHeight >= 42 && this.panelWidth >= 250) {
+            graphics.text(
+                    this.font,
+                    SUBTITLE,
+                    titleX,
+                    titleY + 12,
+                    HerziumTheme.TEXT_MUTED);
+        }
         int dividerY = this.panelY + this.headerHeight - 1;
         graphics.fill(
                 this.panelX + 8,
@@ -644,8 +681,13 @@ public final class HerziumConfigScreen extends Screen {
                     this.font,
                     OPTIONS_HEADING,
                     this.optionsX + this.optionsInset + 1,
-                    this.optionsY + this.optionsInset,
+                    this.optionsY + this.optionsInset + 1,
                     HerziumTheme.TEXT_HEADING);
+            HerziumTheme.hairline(
+                    graphics,
+                    this.optionsX + this.optionsInset,
+                    this.optionsY + this.optionsHeadingHeight - 2,
+                    this.optionsWidth - this.optionsInset * 2);
         }
 
         int paneBottom = this.optionsY + this.optionsHeight;
@@ -663,26 +705,27 @@ public final class HerziumConfigScreen extends Screen {
                     row.height,
                     HerziumTheme.CARD_TOP,
                     HerziumTheme.CARD_BOTTOM);
-            HerziumTheme.drawOutline(
-                    graphics,
+            graphics.fill(
                     row.x,
-                    row.y,
-                    row.width,
-                    row.height,
-                    HerziumTheme.CARD_OUTLINE);
+                    row.y + 5,
+                    row.x + 2,
+                    row.y + Math.max(6, row.height - 5),
+                    enabled ? HerziumTheme.ACCENT : HerziumTheme.TEXT_OFF);
 
-            graphics.text(
-                    this.font,
-                    this.font.split(
-                            Component.translatable(row.translationKey),
-                            Math.max(24, row.textWidth)).getFirst(),
-                    row.textX,
-                    row.y + Math.max(2, (this.labelLineHeight() - 9) / 2),
-                    enabled ? HerziumTheme.TEXT_PRIMARY : HerziumTheme.TEXT_MUTED);
+            int labelCount = Math.min(2, row.labelLines.size());
+            int labelTop = row.y + Math.max(2, (row.labelBlockHeight - labelCount * 10) / 2);
+            for (int line = 0; line < labelCount; line++) {
+                graphics.text(
+                        this.font,
+                        row.labelLines.get(line),
+                        row.textX,
+                        labelTop + line * 10,
+                        enabled ? HerziumTheme.TEXT_PRIMARY : HerziumTheme.TEXT_MUTED);
+            }
 
-            int descriptionY = row.y + this.labelLineHeight();
+            int descriptionY = row.y + row.labelBlockHeight;
             int rowBottom = row.y + row.height;
-            int drawn = Math.min(this.descriptionLineLimit, row.descriptionLines.size());
+            int drawn = Math.min(row.descriptionLimit, row.descriptionLines.size());
             for (int line = 0; line < drawn; line++) {
                 int lineY = descriptionY + line * 9;
                 if (lineY + 9 > rowBottom || lineY + 9 > paneBottom) {
@@ -715,8 +758,22 @@ public final class HerziumConfigScreen extends Screen {
                 this.infoHeight,
                 HerziumTheme.PANE_OUTLINE);
 
+        if (this.infoHeaderHeight > 0) {
+            graphics.text(
+                    this.font,
+                    STATUS_HEADING,
+                    this.infoX + 10,
+                    this.infoY + 8,
+                    HerziumTheme.TEXT_HEADING);
+            HerziumTheme.hairline(
+                    graphics,
+                    this.infoX + 9,
+                    this.infoY + this.infoHeaderHeight - 3,
+                    this.infoWidth - 18);
+        }
+
         int clipLeft = this.infoX + 1;
-        int clipTop = this.infoY + 1;
+        int clipTop = this.infoY + this.infoHeaderHeight;
         int clipRight = this.infoX + this.infoWidth - 1;
         int clipBottom = this.infoY + this.infoHeight - 1;
         if (clipRight <= clipLeft || clipBottom <= clipTop) {
@@ -724,11 +781,16 @@ public final class HerziumConfigScreen extends Screen {
         }
 
         graphics.enableScissor(clipLeft, clipTop, clipRight, clipBottom);
-        int textX = this.infoX + 8;
-        int textY = this.infoY + 6 - this.scrollOffset;
+        int textX = this.infoX + 10;
+        int textY = this.infoY + this.infoHeaderHeight + 6 - this.scrollOffset;
         for (InfoLine line : this.infoLines) {
-            if (line.text() != null && textY > this.infoY - 10 && textY < this.infoY + this.infoHeight) {
-                graphics.text(this.font, line.text(), textX, textY, line.color());
+            if (line.text() != null && textY > clipTop - 10 && textY < this.infoY + this.infoHeight) {
+                int lineX = textX;
+                if (line.dotColor() != 0) {
+                    HerziumTheme.statusDot(graphics, textX, textY + 3, line.dotColor());
+                    lineX += 9;
+                }
+                graphics.text(this.font, line.text(), lineX, textY, line.color());
             }
             textY += line.height();
         }
@@ -770,14 +832,20 @@ public final class HerziumConfigScreen extends Screen {
         return this.parent != null && this.parent.isPauseScreen();
     }
 
-    private record InfoLine(FormattedCharSequence text, int color, int height) {
+    private record InfoLine(FormattedCharSequence text, int color, int height, int dotColor) {
+        private InfoLine(FormattedCharSequence text, int color, int height) {
+            this(text, color, height, 0);
+        }
     }
 
     private static final class OptionRow {
         private final String translationKey;
         private final BooleanSupplier getter;
         private final Consumer<Boolean> setter;
+        private List<FormattedCharSequence> labelLines = List.of();
         private List<FormattedCharSequence> descriptionLines = List.of();
+        private int labelBlockHeight;
+        private int descriptionLimit;
         private int x;
         private int y;
         private int width;

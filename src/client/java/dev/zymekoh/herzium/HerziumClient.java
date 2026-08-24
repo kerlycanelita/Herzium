@@ -11,8 +11,8 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized: fast loading, always-on render-only hotbar priority, container focus, "
-                        + "and active-window uncapped rendering are active.");
+                "Herzium initialized: fast loading, render-only hotbar priority, conditional instant equip, "
+                        + "and active-window uncapped rendering are active. Inventory backgrounds remain Vanilla-owned.");
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");

@@ -12,7 +12,9 @@ import net.minecraft.util.Mth;
 final class AnimatedPurpleButton extends AbstractButton {
     private final Consumer<AnimatedPurpleButton> action;
     private final BooleanSupplier selected;
+    private final boolean toggleStyle;
     private float hoverProgress;
+    private float selectionProgress = Float.NaN;
     private long lastFrameTime = System.nanoTime() / 1_000_000L;
 
     AnimatedPurpleButton(
@@ -23,9 +25,22 @@ final class AnimatedPurpleButton extends AbstractButton {
             Component message,
             BooleanSupplier selected,
             Consumer<AnimatedPurpleButton> action) {
+        this(x, y, width, height, message, selected, action, false);
+    }
+
+    AnimatedPurpleButton(
+            int x,
+            int y,
+            int width,
+            int height,
+            Component message,
+            BooleanSupplier selected,
+            Consumer<AnimatedPurpleButton> action,
+            boolean toggleStyle) {
         super(x, y, width, height, message);
         this.selected = selected;
         this.action = action;
+        this.toggleStyle = toggleStyle;
     }
 
     @Override
@@ -47,6 +62,16 @@ final class AnimatedPurpleButton extends AbstractButton {
         int width = this.getWidth();
         int height = this.getHeight();
         boolean selectedState = this.selected.getAsBoolean();
+        float selectedTarget = selectedState ? 1.0F : 0.0F;
+        if (Float.isNaN(this.selectionProgress)) {
+            this.selectionProgress = selectedTarget;
+        } else {
+            this.selectionProgress += (selectedTarget - this.selectionProgress) * response;
+        }
+        if (this.toggleStyle) {
+            this.drawToggle(graphics, x, y, width, height, selectedState);
+            return;
+        }
         int topColor = argb(
                 selectedState ? 174 : 118,
                 lerp(55, 112, this.hoverProgress),
@@ -64,6 +89,37 @@ final class AnimatedPurpleButton extends AbstractButton {
             graphics.fill(x + 2, y + 3, x + 4, y + height - 3, 0xE2D17AFF);
         }
         this.renderString(graphics, Minecraft.getInstance().font, 0xFFFFFFFF);
+    }
+
+    private void drawToggle(
+            GuiGraphics graphics,
+            int x,
+            int y,
+            int width,
+            int height,
+            boolean selectedState) {
+        int trackColor = selectedState
+                ? HerziumTheme.TOGGLE_TRACK_ON
+                : HerziumTheme.TOGGLE_TRACK_OFF;
+        fillRounded(graphics, x, y, width, height, trackColor, trackColor);
+        drawOutline(graphics, x, y, width, height, 0x906F46A2);
+
+        int knobWidth = Math.max(5, Math.min(7, height - 6));
+        int knobHeight = Math.max(6, height - 6);
+        int knobTravel = Math.max(0, width - knobWidth - 6);
+        int knobX = x + 3 + Math.round(knobTravel * this.selectionProgress);
+        int knobY = y + (height - knobHeight) / 2;
+        graphics.fill(knobX + 1, knobY, knobX + knobWidth - 1, knobY + knobHeight, HerziumTheme.TOGGLE_KNOB);
+        graphics.fill(knobX, knobY + 1, knobX + knobWidth, knobY + knobHeight - 1, HerziumTheme.TOGGLE_KNOB);
+
+        int labelLeft = selectedState ? x + 3 : x + knobWidth + 5;
+        int labelRight = selectedState ? x + width - knobWidth - 5 : x + width - 3;
+        graphics.drawCenteredString(
+                Minecraft.getInstance().font,
+                this.getMessage(),
+                (labelLeft + labelRight) / 2,
+                y + Math.max(1, (height - 9) / 2),
+                HerziumTheme.TEXT_PRIMARY);
     }
 
     @Override
