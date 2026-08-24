@@ -61,13 +61,21 @@ abstract class ItemInHandRendererMixin {
             return;
         }
 
+        // ItemInHandRenderer.tick() lowers both hands while the player is busy
+        // with an item -- eating, drinking, using a spyglass. That dip is not
+        // the equip transition this mod removes, and pinning the heights to 1.0
+        // every frame would erase it. Only the equip case is overridden.
+        boolean handsBusy = player.isHandsBusy();
+
         ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
         if (CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
             CoreDiagnostics.recordCombatEquipFramePreserved();
         } else {
             this.mainHandItem = visualMainHandItem;
-            this.mainHandHeight = 1.0F;
-            this.oMainHandHeight = 1.0F;
+            if (!handsBusy) {
+                this.mainHandHeight = 1.0F;
+                this.oMainHandHeight = 1.0F;
+            }
             CoreDiagnostics.recordInstantEquipFrame();
         }
 
@@ -76,8 +84,10 @@ abstract class ItemInHandRendererMixin {
             CoreDiagnostics.recordCombatEquipFramePreserved();
         } else {
             this.offHandItem = visualOffHandItem;
-            this.offHandHeight = 1.0F;
-            this.oOffHandHeight = 1.0F;
+            if (!handsBusy) {
+                this.offHandHeight = 1.0F;
+                this.oOffHandHeight = 1.0F;
+            }
             CoreDiagnostics.recordInstantEquipFrame();
         }
     }
