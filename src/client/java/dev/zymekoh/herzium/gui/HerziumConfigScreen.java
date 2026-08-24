@@ -2,28 +2,40 @@ package dev.zymekoh.herzium.gui;
 
 import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
+import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 
-/** Responsive Mod Menu screen for Herzium's core controls and diagnostics. */
+/**
+ * Mod Menu screen: Herzium's three feature toggles, and the diagnostics panel
+ * that lets the mod be checked without reading a log.
+ *
+ * <p>The left pane is deliberately not scrollable. Minecraft widgets are not
+ * clipped by a scissor, so scrolling a pane that contains buttons would draw
+ * them outside the panel. The three rows are laid out to fit the space instead,
+ * shedding description lines before they shed the controls themselves; only the
+ * diagnostics pane, which is pure text, scrolls.</p>
+ */
 public final class HerziumConfigScreen extends Screen {
     private static final Component TITLE = Component.translatable("herzium.config.title");
-    private static final Component COMING_SOON = Component.translatable("herzium.config.subtitle");
-    private static final Component IMMEDIATE_HOTBAR_OPTION =
-            Component.translatable("herzium.option.immediate_hotbar_selection");
-    private static final Component CORE_ACTIVE = Component.translatable("herzium.state.core_active");
+    private static final Component OPTIONS_HEADING =
+            Component.translatable("herzium.config.section.options");
     private static final long DIAGNOSTIC_REFRESH_MS = 250L;
+    private static final int OPTION_COUNT = 3;
 
     private final Screen parent;
-    private Particle[] particles = new Particle[0];
+    private final HerziumTheme.ParticleField particles = new HerziumTheme.ParticleField();
+    private final OptionRow[] optionRows = new OptionRow[OPTION_COUNT];
     private List<InfoLine> infoLines = List.of();
     private CoreDiagnostics.Snapshot diagnostics;
 
@@ -33,18 +45,17 @@ public final class HerziumConfigScreen extends Screen {
     private int panelHeight;
     private int headerHeight;
     private int footerHeight;
-    private int navX;
-    private int navY;
-    private int navWidth;
-    private int navHeight;
-    private int optionCardX;
-    private int optionCardY;
-    private int optionCardWidth;
-    private int optionCardHeight;
-    private int optionTextX;
-    private int optionTextY;
-    private int optionTextWidth;
-    private int optionTitleLineLimit;
+    private int optionsX;
+    private int optionsY;
+    private int optionsWidth;
+    private int optionsHeight;
+    private int optionsInset;
+    private int optionsHeadingHeight;
+    private int rowHeight;
+    private int rowGap;
+    private int buttonWidth;
+    private int buttonHeight;
+    private int descriptionLineLimit;
     private int infoX;
     private int infoY;
     private int infoWidth;
@@ -54,7 +65,6 @@ public final class HerziumConfigScreen extends Screen {
     private int scrollOffset;
     private int detectedIssueCount;
     private boolean compactLayout;
-    private long lastParticleFrame = System.nanoTime() / 1_000_000L;
     private long lastDiagnosticRefresh;
 
     public HerziumConfigScreen(Screen parent) {
@@ -65,8 +75,9 @@ public final class HerziumConfigScreen extends Screen {
     @Override
     protected void init() {
         this.calculateLayout();
-        this.initializeParticles();
+        this.particles.resize(this.width, this.height);
         this.refreshDiagnostics(true);
+        this.addOptionToggles();
         this.addDoneButton();
     }
 
@@ -95,46 +106,124 @@ public final class HerziumConfigScreen extends Screen {
         int bodyHeight = Math.max(1, bodyBottom - bodyY);
         int paneGap = this.panelWidth < 420 ? 5 : 9;
 
-        this.compactLayout = bodyWidth < 420 || bodyHeight < 115;
+        this.compactLayout = bodyWidth < 460 || bodyHeight < 150;
         if (this.compactLayout) {
-            this.navX = bodyX;
-            this.navY = bodyY;
-            this.navWidth = bodyWidth;
-            int minimumInfoHeight = Math.max(1, Math.min(64, bodyHeight / 2));
-            this.navHeight = Math.min(92, Math.max(44, bodyHeight - paneGap - minimumInfoHeight));
-            int actualGap = Math.min(paneGap, Math.max(0, bodyBottom - this.navY - this.navHeight));
+            // Stacked. The options pane takes what it needs and no more, and
+            // never so much that the diagnostics pane disappears entirely.
+            this.optionsX = bodyX;
+            this.optionsY = bodyY;
+            this.optionsWidth = bodyWidth;
+            int minimumInfoHeight = Math.max(1, Math.min(44, bodyHeight / 3));
+            int preferred = Math.max(1, Math.round(bodyHeight * 0.62F));
+            this.optionsHeight = Mth.clamp(
+                    preferred,
+                    1,
+                    Math.max(1, bodyHeight - paneGap - minimumInfoHeight));
+            int actualGap = Math.min(paneGap, Math.max(0, bodyBottom - this.optionsY - this.optionsHeight));
             this.infoX = bodyX;
-            this.infoY = this.navY + this.navHeight + actualGap;
+            this.infoY = this.optionsY + this.optionsHeight + actualGap;
             this.infoWidth = bodyWidth;
             this.infoHeight = Math.max(1, bodyBottom - this.infoY);
         } else {
-            this.navX = bodyX;
-            this.navY = bodyY;
-            this.navWidth = Mth.clamp(Math.round(bodyWidth * 0.34F), 154, 270);
-            this.navHeight = bodyHeight;
-            this.infoX = this.navX + this.navWidth + paneGap;
+            this.optionsX = bodyX;
+            this.optionsY = bodyY;
+            this.optionsWidth = Mth.clamp(Math.round(bodyWidth * 0.40F), 178, 320);
+            this.optionsHeight = bodyHeight;
+            this.infoX = this.optionsX + this.optionsWidth + paneGap;
             this.infoY = bodyY;
             this.infoWidth = Math.max(1, bodyX + bodyWidth - this.infoX);
             this.infoHeight = bodyHeight;
         }
 
-        int sidebarInset = this.compactLayout ? 4 : 7;
-        int comingSoonReserve = this.compactLayout ? 18 : 28;
-        int preferredCardHeight = this.compactLayout ? 38 : 42;
-        this.optionCardX = this.navX + sidebarInset;
-        this.optionCardY = this.navY + sidebarInset;
-        this.optionCardWidth = Math.max(1, this.navWidth - sidebarInset * 2);
-        this.optionCardHeight = Math.min(
-                preferredCardHeight,
-                Math.max(1, this.navHeight - sidebarInset * 2 - comingSoonReserve));
-        int textInset = Math.min(12, Math.max(4, this.optionCardWidth / 28));
-        this.optionTextX = this.optionCardX + textInset;
-        this.optionTextY = this.optionCardY + 5;
-        this.optionTextWidth = Math.max(1, this.optionCardWidth - textInset * 2);
-        int availableLines = Math.max(1, (this.optionCardHeight - 16) / 10);
-        this.optionTitleLineLimit = Math.min(
-                this.font.split(IMMEDIATE_HOTBAR_OPTION, Math.max(24, this.optionTextWidth)).size(),
-                Math.min(2, availableLines));
+        this.optionsInset = this.compactLayout ? 4 : 7;
+        this.optionsHeadingHeight = this.optionsHeight >= 96 ? 12 : 0;
+        this.rowGap = this.compactLayout ? 3 : 5;
+
+        int rowsArea = Math.max(
+                3,
+                this.optionsHeight - this.optionsInset * 2 - this.optionsHeadingHeight
+                        - this.rowGap * (OPTION_COUNT - 1));
+        this.rowHeight = Mth.clamp(rowsArea / OPTION_COUNT, 1, 48);
+
+        int rowWidth = Math.max(1, this.optionsWidth - this.optionsInset * 2);
+        // A shorter toggle in the stacked layout buys back the nine pixels a
+        // description line needs. At 320x240 that is the difference between
+        // three labelled controls and three bare ones.
+        this.buttonHeight = Mth.clamp(this.rowHeight - 4, 6, this.compactLayout ? 13 : 16);
+        this.buttonWidth = Mth.clamp(rowWidth / 3, 26, 62);
+        // Whatever is left under the label line becomes description; when the
+        // row is too short for even one line, the control still stands.
+        this.descriptionLineLimit =
+                Mth.clamp((this.rowHeight - this.labelLineHeight() - 3) / 9, 0, 3);
+
+        this.buildOptionRows(rowWidth);
+    }
+
+    private int labelLineHeight() {
+        return Math.max(11, this.buttonHeight + 2);
+    }
+
+    private void buildOptionRows(int rowWidth) {
+        int rowX = this.optionsX + this.optionsInset;
+        int firstRowY = this.optionsY + this.optionsInset + this.optionsHeadingHeight;
+        int labelWidth = Math.max(1, rowWidth - this.optionsInset * 2 - this.buttonWidth - 5);
+
+        this.optionRows[0] = new OptionRow(
+                "herzium.option.container_focus",
+                () -> HerziumConfig.get().containerFocus(),
+                enabled -> HerziumConfig.get().setContainerFocus(enabled));
+        this.optionRows[1] = new OptionRow(
+                "herzium.option.instant_equip",
+                () -> HerziumConfig.get().instantEquip(),
+                enabled -> HerziumConfig.get().setInstantEquip(enabled));
+        this.optionRows[2] = new OptionRow(
+                "herzium.option.hotbar_preview",
+                () -> HerziumConfig.get().hotbarPreview(),
+                enabled -> HerziumConfig.get().setHotbarPreview(enabled));
+
+        for (int index = 0; index < OPTION_COUNT; index++) {
+            OptionRow row = this.optionRows[index];
+            row.x = rowX;
+            row.y = firstRowY + index * (this.rowHeight + this.rowGap);
+            row.width = rowWidth;
+            row.height = this.rowHeight;
+            row.textX = rowX + this.optionsInset;
+            row.textWidth = labelWidth;
+            row.buttonX = rowX + rowWidth - this.optionsInset - this.buttonWidth;
+            row.buttonY = row.y + Math.max(1, (this.labelLineHeight() - this.buttonHeight) / 2);
+            row.descriptionLines = this.font.split(
+                    Component.translatable(row.translationKey + ".description"),
+                    Math.max(24, rowWidth - this.optionsInset * 2));
+        }
+    }
+
+    private void addOptionToggles() {
+        for (OptionRow row : this.optionRows) {
+            AnimatedPurpleButton toggle = new AnimatedPurpleButton(
+                    row.buttonX,
+                    row.buttonY,
+                    this.buttonWidth,
+                    this.buttonHeight,
+                    stateLabel(row.getter.getAsBoolean()),
+                    row.getter,
+                    button -> {
+                        boolean next = !row.getter.getAsBoolean();
+                        row.setter.accept(next);
+                        button.setMessage(stateLabel(next));
+                        // The diagnostics pane reports these options, so it has
+                        // to be rebuilt now rather than up to 250 ms later.
+                        this.refreshDiagnostics(true);
+                    });
+            // The stacked layout on a small window can end up with no room for
+            // the description under the label; the tooltip keeps it reachable.
+            toggle.setTooltip(Tooltip.create(
+                    Component.translatable(row.translationKey + ".description")));
+            this.addRenderableWidget(toggle);
+        }
+    }
+
+    private static Component stateLabel(boolean enabled) {
+        return Component.translatable(enabled ? "herzium.state.on" : "herzium.state.off");
     }
 
     private void addDoneButton() {
@@ -164,6 +253,7 @@ public final class HerziumConfigScreen extends Screen {
 
     private void rebuildInfoLines() {
         CoreDiagnostics.Snapshot snapshot = this.diagnostics;
+        HerziumConfig config = HerziumConfig.get();
         List<InfoLine> lines = new ArrayList<>();
         int textWidth = Math.max(24, this.infoWidth - 16);
         this.detectedIssueCount = 0;
@@ -172,14 +262,15 @@ public final class HerziumConfigScreen extends Screen {
         addStatus(
                 lines,
                 "herzium.config.status.hotbar_option",
-                CORE_ACTIVE,
-                0xFF9BE8B1,
+                stateLabel(config.hotbarPreview()),
+                config.hotbarPreview() ? HerziumTheme.TEXT_GOOD : HerziumTheme.TEXT_MUTED,
                 textWidth);
         addMixinStatus(
                 lines,
                 "herzium.config.status.minecraft_core",
                 "MinecraftMixin",
                 snapshot.coreFrameHookObserved(),
+                true,
                 snapshot,
                 textWidth);
         addMixinStatus(
@@ -187,6 +278,7 @@ public final class HerziumConfigScreen extends Screen {
                 "herzium.config.status.hotbar_visual",
                 "HotbarVisualMixin",
                 snapshot.hotbarVisualHookObserved(),
+                config.hotbarPreview(),
                 snapshot,
                 textWidth);
         addMixinStatus(
@@ -194,6 +286,7 @@ public final class HerziumConfigScreen extends Screen {
                 "herzium.config.status.keyboard_hook",
                 "KeyMappingMixin",
                 snapshot.keyboardHookObserved() || snapshot.mouseHookObserved(),
+                config.hotbarPreview(),
                 snapshot,
                 textWidth);
         addMixinStatus(
@@ -201,6 +294,7 @@ public final class HerziumConfigScreen extends Screen {
                 "herzium.config.status.mouse_hook",
                 "MouseHandlerMixin",
                 snapshot.wheelHookObserved(),
+                true,
                 snapshot,
                 textWidth);
         addMixinStatus(
@@ -208,6 +302,7 @@ public final class HerziumConfigScreen extends Screen {
                 "herzium.config.status.hand_equip",
                 "ItemInHandRendererMixin",
                 snapshot.handRenderHookObserved(),
+                config.instantEquip(),
                 snapshot,
                 textWidth);
 
@@ -218,31 +313,31 @@ public final class HerziumConfigScreen extends Screen {
             case WRITE_FAILED -> Component.translatable("herzium.config.state.write_failed");
         };
         int configColor = snapshot.configState() == CoreDiagnostics.ConfigState.HEALTHY
-                ? 0xFF9BE8B1
+                ? HerziumTheme.TEXT_GOOD
                 : snapshot.configState() == CoreDiagnostics.ConfigState.LOADING
-                        ? 0xFFFFD18A
-                        : 0xFFFF9D9D;
+                        ? HerziumTheme.TEXT_WARN
+                        : HerziumTheme.TEXT_BAD;
         addStatus(lines, "herzium.config.status.config", configState, configColor, textWidth);
 
         Component inputOwner = KoHsiumIntegration.present()
                 ? Component.translatable("herzium.config.state.managed_by_kohsium")
                 : Component.translatable("herzium.config.state.managed_by_herzium");
-        addStatus(lines, "herzium.config.status.input_owner", inputOwner, 0xFFCBA8ED, textWidth);
+        addStatus(lines, "herzium.config.status.input_owner", inputOwner, HerziumTheme.TEXT_ACCENT, textWidth);
 
         Component inputPipeline;
         int inputPipelineColor;
         if (ExternalInputCompatibility.competingExternalPipelinesPresent()) {
             inputPipeline = Component.translatable("herzium.config.state.external_input_multiple");
-            inputPipelineColor = 0xFFFF9D9D;
+            inputPipelineColor = HerziumTheme.TEXT_BAD;
         } else if (ExternalInputCompatibility.rawInputBufferPresent()) {
             inputPipeline = Component.translatable("herzium.config.state.external_input_raw_buffer");
-            inputPipelineColor = 0xFFFFD18A;
+            inputPipelineColor = HerziumTheme.TEXT_WARN;
         } else if (ExternalInputCompatibility.ixerisPresent()) {
             inputPipeline = Component.translatable("herzium.config.state.external_input_ixeris");
-            inputPipelineColor = 0xFFFFD18A;
+            inputPipelineColor = HerziumTheme.TEXT_WARN;
         } else {
             inputPipeline = Component.translatable("herzium.config.state.external_input_none");
-            inputPipelineColor = 0xFF9BE8B1;
+            inputPipelineColor = HerziumTheme.TEXT_GOOD;
         }
         addStatus(lines, "herzium.config.status.input_pipeline", inputPipeline, inputPipelineColor, textWidth);
         addMixinStatus(
@@ -250,6 +345,7 @@ public final class HerziumConfigScreen extends Screen {
                 "herzium.config.status.inventory_render",
                 "ContainerFocusRendererMixin",
                 snapshot.containerOptimizationHookObserved(),
+                config.containerFocus(),
                 snapshot,
                 textWidth);
 
@@ -258,13 +354,13 @@ public final class HerziumConfigScreen extends Screen {
         int exordiumColor;
         if (!exordiumPresent) {
             exordiumState = Component.translatable("herzium.config.state.not_installed");
-            exordiumColor = 0xFFAFA4B7;
+            exordiumColor = HerziumTheme.TEXT_MUTED;
         } else if (snapshot.mixinApplied("ExordiumBufferInstanceMixin")) {
             exordiumState = Component.translatable("herzium.config.state.applied");
-            exordiumColor = 0xFF9BE8B1;
+            exordiumColor = HerziumTheme.TEXT_GOOD;
         } else {
             exordiumState = Component.translatable("herzium.config.state.not_applied");
-            exordiumColor = 0xFFFF9D9D;
+            exordiumColor = HerziumTheme.TEXT_BAD;
         }
         addStatus(lines, "herzium.config.status.exordium", exordiumState, exordiumColor, textWidth);
 
@@ -276,7 +372,7 @@ public final class HerziumConfigScreen extends Screen {
                         snapshot.vanillaConfirmations(),
                         snapshot.previewMismatches(),
                         snapshot.ambiguousPreviewsResolved()),
-                0xFFBFAFCC,
+                HerziumTheme.TEXT_BODY,
                 textWidth);
         addWrapped(
                 lines,
@@ -285,7 +381,7 @@ public final class HerziumConfigScreen extends Screen {
                         snapshot.containerFramesOptimized(),
                         snapshot.instantEquipFrames(),
                         snapshot.combatEquipFramesPreserved()),
-                0xFFBFAFCC,
+                HerziumTheme.TEXT_BODY,
                 textWidth);
         if (snapshot.lastPreviewSlot() >= 0 && snapshot.lastInputSource() != null) {
             Component source = Component.translatable(snapshot.lastInputSource() == CoreDiagnostics.InputSource.KEYBOARD
@@ -297,13 +393,13 @@ public final class HerziumConfigScreen extends Screen {
                             "herzium.config.status.last_preview",
                             snapshot.lastPreviewSlot() + 1,
                             source),
-                    0xFFBFAFCC,
+                    HerziumTheme.TEXT_BODY,
                     textWidth);
         } else {
             addWrapped(
                     lines,
                     Component.translatable("herzium.config.status.no_preview"),
-                    0xFF9C91A5,
+                    HerziumTheme.TEXT_MUTED,
                     textWidth);
         }
 
@@ -331,6 +427,7 @@ public final class HerziumConfigScreen extends Screen {
         addMissingMixinIssue(lines, snapshot, "MouseHandlerMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "ItemInHandRendererMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "ContainerFocusRendererMixin", textWidth);
+        addMissingMixinIssue(lines, snapshot, "ContainerFocusBackgroundMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "MinecraftMixin", textWidth);
         if (exordiumPresent && !snapshot.mixinApplied("ExordiumBufferInstanceMixin")) {
             addIssue(lines, "herzium.config.issue.exordium", textWidth);
@@ -349,13 +446,13 @@ public final class HerziumConfigScreen extends Screen {
             addWrapped(
                     lines,
                     Component.translatable("herzium.config.issue.none"),
-                    0xFF9BE8B1,
+                    HerziumTheme.TEXT_GOOD,
                     textWidth);
         }
         addWrapped(
                 lines,
                 Component.translatable("herzium.config.issue.pending_note"),
-                0xFF9C91A5,
+                HerziumTheme.TEXT_MUTED,
                 textWidth);
 
         this.infoLines = List.copyOf(lines);
@@ -372,20 +469,26 @@ public final class HerziumConfigScreen extends Screen {
             String labelKey,
             String mixinName,
             boolean observed,
+            boolean optionEnabled,
             CoreDiagnostics.Snapshot snapshot,
             int textWidth) {
         boolean applied = snapshot.mixinApplied(mixinName);
         Component state;
         int color;
-        if (observed) {
-            state = Component.translatable("herzium.config.state.observed");
-            color = 0xFF9BE8B1;
-        } else if (applied) {
-            state = Component.translatable("herzium.config.state.applied_waiting");
-            color = 0xFFFFD18A;
-        } else {
+        if (!applied) {
             state = Component.translatable("herzium.config.state.not_applied");
-            color = 0xFFFF9D9D;
+            color = HerziumTheme.TEXT_BAD;
+        } else if (!optionEnabled) {
+            // The hook is in place and simply told not to act. Reporting that as
+            // "waiting" would look like a fault the user cannot fix.
+            state = Component.translatable("herzium.config.state.option_off");
+            color = HerziumTheme.TEXT_MUTED;
+        } else if (observed) {
+            state = Component.translatable("herzium.config.state.observed");
+            color = HerziumTheme.TEXT_GOOD;
+        } else {
+            state = Component.translatable("herzium.config.state.applied_waiting");
+            color = HerziumTheme.TEXT_WARN;
         }
         addStatus(lines, labelKey, state, color, textWidth);
     }
@@ -402,25 +505,25 @@ public final class HerziumConfigScreen extends Screen {
         addWrapped(
                 lines,
                 Component.translatable("herzium.config.issue.mixin_missing", mixinName),
-                0xFFFF9D9D,
+                HerziumTheme.TEXT_BAD,
                 textWidth);
     }
 
     private void addIssue(List<InfoLine> lines, String translationKey, int textWidth) {
         this.detectedIssueCount++;
-        addWrapped(lines, Component.translatable(translationKey), 0xFFFF9D9D, textWidth);
+        addWrapped(lines, Component.translatable(translationKey), HerziumTheme.TEXT_BAD, textWidth);
     }
 
     private void addWarning(List<InfoLine> lines, String translationKey, int textWidth) {
         this.detectedIssueCount++;
-        addWrapped(lines, Component.translatable(translationKey), 0xFFFFD18A, textWidth);
+        addWrapped(lines, Component.translatable(translationKey), HerziumTheme.TEXT_WARN, textWidth);
     }
 
     private void addHeading(List<InfoLine> lines, String translationKey, int textWidth, boolean spaceBefore) {
         if (spaceBefore) {
             lines.add(new InfoLine(null, 0, 7));
         }
-        addWrapped(lines, Component.translatable(translationKey), 0xFFE9C7FF, textWidth);
+        addWrapped(lines, Component.translatable(translationKey), HerziumTheme.TEXT_HEADING, textWidth);
         lines.add(new InfoLine(null, 0, 2));
     }
 
@@ -441,7 +544,7 @@ public final class HerziumConfigScreen extends Screen {
     }
 
     private void addParagraph(List<InfoLine> lines, String translationKey, int textWidth) {
-        addWrapped(lines, Component.translatable(translationKey), 0xFFD6C7DF, textWidth);
+        addWrapped(lines, Component.translatable(translationKey), HerziumTheme.TEXT_BODY, textWidth);
         lines.add(new InfoLine(null, 0, 4));
     }
 
@@ -460,7 +563,7 @@ public final class HerziumConfigScreen extends Screen {
         if (this.minecraft.level == null) {
             this.extractPanorama(graphics, partialTick);
         }
-        graphics.fillGradient(0, 0, this.width, this.height, 0x68070311, 0x7D12051F);
+        HerziumTheme.backdrop(graphics, this.width, this.height);
     }
 
     @Override
@@ -471,92 +574,142 @@ public final class HerziumConfigScreen extends Screen {
             float partialTick) {
         long now = System.nanoTime() / 1_000_000L;
         this.refreshDiagnostics(false);
-        this.drawParticles(graphics, mouseX, mouseY, now);
+        // Order matters and is load bearing: the field goes down first, then
+        // every opaque-enough surface, then the widgets and text on top. No
+        // label ever ends up sitting directly on a particle.
+        this.particles.render(graphics, this.width, this.height, mouseX, mouseY, now);
         this.drawPanel(graphics, now);
-        this.drawSidebar(graphics);
-        this.drawOptionCard(graphics);
+        this.drawOptionsPane(graphics);
         this.drawInfoPanel(graphics);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     private void drawPanel(GuiGraphicsExtractor graphics, long now) {
-        fillRounded(
+        HerziumTheme.fillRounded(
                 graphics,
                 this.panelX,
                 this.panelY,
                 this.panelWidth,
                 this.panelHeight,
-                0xA4140922,
-                0xB20A0412);
-        float pulse = 0.5F + 0.5F * (float) Math.sin(now / 520.0F);
-        drawOutline(
+                HerziumTheme.PANEL_TOP,
+                HerziumTheme.PANEL_BOTTOM);
+        HerziumTheme.drawOutline(
                 graphics,
                 this.panelX + 1,
                 this.panelY + 1,
                 this.panelWidth - 2,
                 this.panelHeight - 2,
-                argb(145 + Math.round(pulse * 45.0F), 155, 62, 222));
+                HerziumTheme.pulsingBorder(now, 150, 50));
 
         int titleY = this.panelY + Math.max(6, (this.headerHeight - 9) / 2);
-        graphics.centeredText(this.font, TITLE, this.panelX + this.panelWidth / 2, titleY, 0xFFF3E6FF);
+        graphics.centeredText(
+                this.font,
+                TITLE,
+                this.panelX + this.panelWidth / 2,
+                titleY,
+                HerziumTheme.TEXT_TITLE);
         int dividerY = this.panelY + this.headerHeight - 1;
-        graphics.fill(this.panelX + 8, dividerY, this.panelX + this.panelWidth - 8, dividerY + 1, 0x5D8E43B8);
+        graphics.fill(
+                this.panelX + 8,
+                dividerY,
+                this.panelX + this.panelWidth - 8,
+                dividerY + 1,
+                HerziumTheme.DIVIDER);
     }
 
-    private void drawSidebar(GuiGraphicsExtractor graphics) {
-        fillRounded(graphics, this.navX, this.navY, this.navWidth, this.navHeight, 0x681C0D2D, 0x7810061C);
-        drawOutline(graphics, this.navX, this.navY, this.navWidth, this.navHeight, 0x70733A94);
-        int textX = this.navX + 8;
-        int textY = this.optionCardY + this.optionCardHeight + (this.compactLayout ? 4 : 10);
-        int textWidth = Math.max(24, this.navWidth - 16);
-        int lineLimit = Math.max(0, (this.navY + this.navHeight - textY - 4) / 10);
-        drawWrapped(
+    private void drawOptionsPane(GuiGraphicsExtractor graphics) {
+        HerziumTheme.fillRounded(
                 graphics,
-                COMING_SOON,
-                textX,
-                textY,
-                textWidth,
-                0xFFCDAFE0,
-                Math.min(3, lineLimit));
-    }
+                this.optionsX,
+                this.optionsY,
+                this.optionsWidth,
+                this.optionsHeight,
+                HerziumTheme.PANE_TOP,
+                HerziumTheme.PANE_BOTTOM);
+        HerziumTheme.drawOutline(
+                graphics,
+                this.optionsX,
+                this.optionsY,
+                this.optionsWidth,
+                this.optionsHeight,
+                HerziumTheme.PANE_OUTLINE);
 
-    private void drawOptionCard(GuiGraphicsExtractor graphics) {
-        fillRounded(
-                graphics,
-                this.optionCardX,
-                this.optionCardY,
-                this.optionCardWidth,
-                this.optionCardHeight,
-                0x741F1031,
-                0x8611081D);
-        drawOutline(
-                graphics,
-                this.optionCardX,
-                this.optionCardY,
-                this.optionCardWidth,
-                this.optionCardHeight,
-                0x8A7135A3);
-        int titleLines = drawWrapped(
-                graphics,
-                IMMEDIATE_HOTBAR_OPTION,
-                this.optionTextX,
-                this.optionTextY,
-                this.optionTextWidth,
-                0xFFF1E6FF,
-                this.optionTitleLineLimit);
-        drawWrapped(
-                graphics,
-                CORE_ACTIVE,
-                this.optionTextX,
-                this.optionTextY + titleLines * 10 + 2,
-                this.optionTextWidth,
-                0xFF9BE8B1,
-                1);
+        if (this.optionsHeadingHeight > 0) {
+            graphics.text(
+                    this.font,
+                    OPTIONS_HEADING,
+                    this.optionsX + this.optionsInset + 1,
+                    this.optionsY + this.optionsInset,
+                    HerziumTheme.TEXT_HEADING);
+        }
+
+        int paneBottom = this.optionsY + this.optionsHeight;
+        for (OptionRow row : this.optionRows) {
+            if (row.y >= paneBottom) {
+                continue;
+            }
+
+            boolean enabled = row.getter.getAsBoolean();
+            HerziumTheme.fillRounded(
+                    graphics,
+                    row.x,
+                    row.y,
+                    row.width,
+                    row.height,
+                    HerziumTheme.CARD_TOP,
+                    HerziumTheme.CARD_BOTTOM);
+            HerziumTheme.drawOutline(
+                    graphics,
+                    row.x,
+                    row.y,
+                    row.width,
+                    row.height,
+                    HerziumTheme.CARD_OUTLINE);
+
+            graphics.text(
+                    this.font,
+                    this.font.split(
+                            Component.translatable(row.translationKey),
+                            Math.max(24, row.textWidth)).getFirst(),
+                    row.textX,
+                    row.y + Math.max(2, (this.labelLineHeight() - 9) / 2),
+                    enabled ? HerziumTheme.TEXT_PRIMARY : HerziumTheme.TEXT_MUTED);
+
+            int descriptionY = row.y + this.labelLineHeight();
+            int rowBottom = row.y + row.height;
+            int drawn = Math.min(this.descriptionLineLimit, row.descriptionLines.size());
+            for (int line = 0; line < drawn; line++) {
+                int lineY = descriptionY + line * 9;
+                if (lineY + 9 > rowBottom || lineY + 9 > paneBottom) {
+                    break;
+                }
+                graphics.text(
+                        this.font,
+                        row.descriptionLines.get(line),
+                        row.textX,
+                        lineY,
+                        HerziumTheme.TEXT_MUTED);
+            }
+        }
     }
 
     private void drawInfoPanel(GuiGraphicsExtractor graphics) {
-        fillRounded(graphics, this.infoX, this.infoY, this.infoWidth, this.infoHeight, 0x68150822, 0x78100619);
-        drawOutline(graphics, this.infoX, this.infoY, this.infoWidth, this.infoHeight, 0x68713A91);
+        HerziumTheme.fillRounded(
+                graphics,
+                this.infoX,
+                this.infoY,
+                this.infoWidth,
+                this.infoHeight,
+                HerziumTheme.PANE_TOP,
+                HerziumTheme.PANE_BOTTOM);
+        HerziumTheme.drawOutline(
+                graphics,
+                this.infoX,
+                this.infoY,
+                this.infoWidth,
+                this.infoHeight,
+                HerziumTheme.PANE_OUTLINE);
+
         int clipLeft = this.infoX + 1;
         int clipTop = this.infoY + 1;
         int clipRight = this.infoX + this.infoWidth - 1;
@@ -576,86 +729,14 @@ public final class HerziumConfigScreen extends Screen {
         }
         graphics.disableScissor();
 
-        if (this.maxScroll > 0) {
-            int trackX = this.infoX + this.infoWidth - 5;
-            int trackTop = this.infoY + 4;
-            int trackHeight = Math.max(1, this.infoHeight - 8);
-            int thumbHeight = Math.max(8, trackHeight * trackHeight / Math.max(1, trackHeight + this.maxScroll));
-            thumbHeight = Math.min(trackHeight, thumbHeight);
-            int thumbTravel = Math.max(0, trackHeight - thumbHeight);
-            int thumbY = trackTop + thumbTravel * this.scrollOffset / this.maxScroll;
-            graphics.fill(trackX, trackTop, trackX + 2, trackTop + trackHeight, 0x5A3C1C4E);
-            graphics.fill(trackX, thumbY, trackX + 2, thumbY + thumbHeight, 0xD6CE75F4);
-        }
-    }
-
-    private void initializeParticles() {
-        long area = Math.max(1L, (long) this.width * this.height);
-        int count = Mth.clamp(72 + (int) (area / 15_000L), 72, 110);
-        this.particles = new Particle[count];
-        Random random = new Random(0x4845525A49554DL ^ (long) this.width << 32 ^ this.height);
-        for (int index = 0; index < this.particles.length; index++) {
-            this.particles[index] = new Particle(
-                    random.nextFloat() * Math.max(1, this.width),
-                    random.nextFloat() * Math.max(1, this.height),
-                    22.0F + random.nextFloat() * 54.0F,
-                    -12.0F + random.nextFloat() * 24.0F,
-                    1 + random.nextInt(3),
-                    24 + random.nextInt(58));
-        }
-        this.lastParticleFrame = System.nanoTime() / 1_000_000L;
-    }
-
-    private void drawParticles(
-            GuiGraphicsExtractor graphics,
-            int mouseX,
-            int mouseY,
-            long now) {
-        float elapsedSeconds = Mth.clamp((now - this.lastParticleFrame) / 1000.0F, 0.0F, 0.05F);
-        this.lastParticleFrame = now;
-        float reactionRadius = Mth.clamp(Math.min(this.width, this.height) / 4.5F, 30.0F, 78.0F);
-        float radiusSquared = reactionRadius * reactionRadius;
-
-        for (Particle particle : this.particles) {
-            float dx = particle.x - mouseX;
-            float dy = particle.y - mouseY;
-            float distanceSquared = dx * dx + dy * dy;
-            float influence = distanceSquared >= radiusSquared
-                    ? 0.0F
-                    : 1.0F - (float) Math.sqrt(distanceSquared) / reactionRadius;
-            if (influence > 0.0F) {
-                float inverseDistance = 1.0F / Math.max(1.0F, (float) Math.sqrt(distanceSquared));
-                particle.x += dx * inverseDistance * influence * 18.0F * elapsedSeconds;
-                particle.y += dy * inverseDistance * influence * 18.0F * elapsedSeconds;
-            }
-            particle.x += particle.speedX * elapsedSeconds;
-            particle.y += particle.speedY * elapsedSeconds;
-            if (particle.x > this.width + 10.0F) {
-                particle.x = -10.0F;
-            }
-            if (particle.y < -8.0F) {
-                particle.y = this.height + 8.0F;
-            } else if (particle.y > this.height + 8.0F) {
-                particle.y = -8.0F;
-            }
-
-            int alpha = Mth.clamp(particle.baseAlpha + Math.round(influence * 74.0F), 8, 150);
-            int x = Math.round(particle.x);
-            int y = Math.round(particle.y);
-            int trail = Math.max(2, particle.size * 2);
-            graphics.fill(
-                    x - trail,
-                    y,
-                    x,
-                    y + particle.size,
-                    argb(Math.max(6, alpha / 3), 136, 55, 214));
-            graphics.fill(
-                    x,
-                    y,
-                    x + particle.size,
-                    y + particle.size,
-                    argb(alpha, 213, 132, 250));
-        }
+        HerziumTheme.drawScrollbar(
+                graphics,
+                this.infoX,
+                this.infoY,
+                this.infoWidth,
+                this.infoHeight,
+                this.scrollOffset,
+                this.maxScroll);
     }
 
     @Override
@@ -684,82 +765,27 @@ public final class HerziumConfigScreen extends Screen {
         return this.parent != null && this.parent.isPauseScreen();
     }
 
-    private int drawWrapped(
-            GuiGraphicsExtractor graphics,
-            Component text,
-            int x,
-            int y,
-            int width,
-            int color,
-            int maxLines) {
-        List<FormattedCharSequence> lines = this.font.split(text, Math.max(24, width));
-        int count = Math.min(lines.size(), Math.max(0, maxLines));
-        for (int index = 0; index < count; index++) {
-            graphics.text(this.font, lines.get(index), x, y + index * 10, color);
-        }
-        return count;
-    }
-
-    private static void fillRounded(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            int topColor,
-            int bottomColor) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        int radius = Math.min(3, Math.min(width / 2, height / 2));
-        graphics.fillGradient(x + radius, y, x + width - radius, y + height, topColor, bottomColor);
-        graphics.fillGradient(x, y + radius, x + width, y + height - radius, topColor, bottomColor);
-    }
-
-    private static void drawOutline(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            int color) {
-        if (width <= 1 || height <= 1) {
-            return;
-        }
-        graphics.fill(x, y, x + width, y + 1, color);
-        graphics.fill(x, y + height - 1, x + width, y + height, color);
-        graphics.fill(x, y + 1, x + 1, y + height - 1, color);
-        graphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
-    }
-
-    private static int argb(int alpha, int red, int green, int blue) {
-        return alpha << 24 | red << 16 | green << 8 | blue;
-    }
-
     private record InfoLine(FormattedCharSequence text, int color, int height) {
     }
 
-    private static final class Particle {
-        private float x;
-        private float y;
-        private final float speedX;
-        private final float speedY;
-        private final int size;
-        private final int baseAlpha;
+    private static final class OptionRow {
+        private final String translationKey;
+        private final BooleanSupplier getter;
+        private final Consumer<Boolean> setter;
+        private List<FormattedCharSequence> descriptionLines = List.of();
+        private int x;
+        private int y;
+        private int width;
+        private int height;
+        private int textX;
+        private int textWidth;
+        private int buttonX;
+        private int buttonY;
 
-        private Particle(
-                float x,
-                float y,
-                float speedX,
-                float speedY,
-                int size,
-                int baseAlpha) {
-            this.x = x;
-            this.y = y;
-            this.speedX = speedX;
-            this.speedY = speedY;
-            this.size = size;
-            this.baseAlpha = baseAlpha;
+        private OptionRow(String translationKey, BooleanSupplier getter, Consumer<Boolean> setter) {
+            this.translationKey = translationKey;
+            this.getter = getter;
+            this.setter = setter;
         }
     }
 }
