@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
@@ -43,6 +44,7 @@ abstract class ContainerFocusRendererMixin {
         return renderLevel;
     }
 
+    @Unique
     private static boolean herzium$containerOpen() {
         Minecraft minecraft = Minecraft.getInstance();
         return minecraft.screen instanceof AbstractContainerScreen<?>;
