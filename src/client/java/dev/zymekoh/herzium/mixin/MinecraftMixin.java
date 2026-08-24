@@ -3,6 +3,7 @@ package dev.zymekoh.herzium.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.zymekoh.herzium.Herzium;
 import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
 import dev.zymekoh.herzium.config.HerziumConfig;
@@ -12,6 +13,7 @@ import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.LevelLoadTracker;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -82,6 +84,13 @@ abstract class MinecraftMixin {
      * chain (onboarding, Quick Play, profile launchers). Wrapping leaves the
      * call site shareable, and deferring {@code original.call(...)} into the
      * screen's continuation keeps the rest of the chain intact.</p>
+     *
+     * <p>That deferral is the one part of this that runs outside the injected
+     * frame, so it carries a fallback: if calling the wrapped operation later
+     * fails, the captured runnable is invoked directly. That skips any other
+     * mod's wrapper, which is a bad outcome -- but the alternative is the exact
+     * failure this hook exists to prevent, a start-up that stops on a screen
+     * that will never advance, with nothing in the log to say why.</p>
      */
     @WrapOperation(
             method = "onGameLoadFinished",
@@ -99,7 +108,22 @@ abstract class MinecraftMixin {
         }
 
         Minecraft minecraft = (Minecraft) (Object) this;
-        minecraft.setScreen(new HerziumWarningScreen(() -> original.call(showInitialScreen)));
+        minecraft.setScreen(new HerziumWarningScreen(
+                () -> herzium$continueStartup(showInitialScreen, original)));
+    }
+
+    @Unique
+    private static void herzium$continueStartup(Runnable showInitialScreen, Operation<Void> original) {
+        try {
+            original.call(showInitialScreen);
+        } catch (Throwable failure) {
+            Herzium.LOGGER.error(
+                    "Herzium could not resume the vanilla start-up chain through the wrapped "
+                            + "operation; falling back to the captured runnable. Another mod's "
+                            + "wrapper around this call may have been skipped.",
+                    failure);
+            showInitialScreen.run();
+        }
     }
 
     /**
