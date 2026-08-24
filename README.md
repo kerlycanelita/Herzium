@@ -50,8 +50,16 @@ permanently active. The configuration screen reports their live diagnostic state
 
 ## Low-latency input
 
-- Without KoHsium or an external raw-input mod, Vanilla Raw Input is kept enabled
-  whenever GLFW and the operating system support it, and Smooth Camera remains disabled.
+- Without KoHsium or an external raw-input mod, Vanilla Raw Input is enabled at
+  start-up whenever GLFW and the operating system support it. It is applied to
+  the window directly and is not written to `options.txt`, so the setting stays
+  yours: turn it off in Controls and it stays off.
+- Herzium no longer forces Smooth Camera off. It used to overwrite that option
+  on every frame, which made cinematic camera impossible to enable and left the
+  value behind after uninstalling the mod. Nothing Herzium does depends on it.
+- The same applies to VSync and the frame rate limit: both are bypassed at the
+  window and pacing level, not by editing your saved settings. Video Settings
+  therefore shows what you chose, not what Herzium enforces.
 - When Raw Input Buffer or Ixeris is detected, Herzium disables only Vanilla's
   Raw Input path so two implementations do not own the same Vanilla setting.
   The external mod remains active; Herzium does not disable foreign mixins or threads.
@@ -186,7 +194,9 @@ On Linux or macOS:
 ```
 
 The root build targets Minecraft 26.1.2 and generates
-`build/libs/herzium-1.9.2.jar`. Do not use the file ending in `-sources.jar`.
+`build/libs/herzium-<mod_version>.jar`, where `mod_version` is the value in
+`gradle.properties` -- currently `1.9.3`, so `build/libs/herzium-1.9.3.jar`. Do
+not use the file ending in `-sources.jar`.
 
 ### All supported Minecraft versions
 
