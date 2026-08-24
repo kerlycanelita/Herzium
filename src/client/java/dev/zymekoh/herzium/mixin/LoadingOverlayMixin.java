@@ -22,6 +22,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Replaces fixed-duration loading fades with a lightweight Herzium screen.
  * Resource preparation and vanilla error handling are kept intact.
+ *
+ * <p>The title, subtitle and tips below are English literals on purpose and
+ * have no language keys. Two independent reasons, either of which is enough:
+ * during the initial reload the language system does not exist yet, and
+ * {@link StartupPixelFont} is a hand-written 3x5 glyph table covering ASCII
+ * only -- no accents, no {@code n} with tilde, no inverted punctuation -- so a
+ * Spanish string would render with holes in it. Drawing this screen with
+ * vanilla's {@code Font} instead is exactly the bug 1.8.4 fixed. The unused
+ * {@code herzium.loading.*} keys were therefore removed rather than wired up;
+ * see M-05 in docs/AUDIT-1.9.3.md.</p>
  */
 @Mixin(value = LoadingOverlay.class, priority = 2000)
 abstract class LoadingOverlayMixin {
