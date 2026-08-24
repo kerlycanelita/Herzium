@@ -1,5 +1,6 @@
 package dev.zymekoh.herzium.gui;
 
+import com.mojang.blaze3d.platform.FramerateLimitTracker;
 import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
 import dev.zymekoh.herzium.config.HerziumConfig;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -297,11 +299,14 @@ public final class HerziumConfigScreen extends Screen {
         this.detectedIssueCount = 0;
 
         addHeading(lines, "herzium.config.section.active", textWidth, false);
+        // The single most useful line on the page: what the frame limit is
+        // doing right now, and why. Without it, seeing 60 fps in a menu looks
+        // like the mod failed instead of like Vanilla's own menu throttle.
         addStatus(
                 lines,
-                "herzium.config.status.hotbar_option",
-                stateLabel(config.hotbarPreview()),
-                config.hotbarPreview() ? HerziumTheme.TEXT_GOOD : HerziumTheme.TEXT_MUTED,
+                "herzium.config.status.frame_limit",
+                herzium$frameLimitState(),
+                herzium$frameLimitUncapped() ? HerziumTheme.TEXT_GOOD : HerziumTheme.TEXT_MUTED,
                 textWidth);
         addMixinStatus(
                 lines,
@@ -378,12 +383,6 @@ public final class HerziumConfigScreen extends Screen {
             inputPipelineColor = HerziumTheme.TEXT_GOOD;
         }
         addStatus(lines, "herzium.config.status.input_pipeline", inputPipeline, inputPipelineColor, textWidth);
-        addStatus(
-                lines,
-                "herzium.config.status.inventory_render",
-                Component.translatable("herzium.config.state.vanilla_backdrop"),
-                HerziumTheme.TEXT_GOOD,
-                textWidth);
 
         boolean exordiumPresent = FabricLoader.getInstance().isModLoaded("exordium");
         Component exordiumState;
@@ -409,10 +408,6 @@ public final class HerziumConfigScreen extends Screen {
                 number(snapshot.previewMismatches()), textWidth);
         addCounter(lines, "herzium.config.counter.batch",
                 number(snapshot.ambiguousPreviewsResolved()), textWidth);
-        addCounter(lines, "herzium.config.counter.instant_equip",
-                number(snapshot.instantEquipFrames()), textWidth);
-        addCounter(lines, "herzium.config.counter.combat_kept",
-                number(snapshot.combatEquipFramesPreserved()), textWidth);
 
         Component lastPreview;
         if (snapshot.lastPreviewSlot() >= 0 && snapshot.lastInputSource() != null) {
@@ -595,6 +590,34 @@ public final class HerziumConfigScreen extends Screen {
                     10,
                     index == 0 ? color : 0));
         }
+    }
+
+    /**
+     * The frame limit as it stands this instant, named by the reason for it.
+     *
+     * <p>Read straight from vanilla's tracker rather than from anything Herzium
+     * caches, so the row cannot claim a policy the game is not applying.</p>
+     */
+    private static Component herzium$frameLimitState() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!minecraft.isWindowActive()) {
+            return Component.translatable("herzium.config.state.limit_unfocused");
+        }
+
+        return switch (minecraft.getFramerateLimitTracker().getThrottleReason()) {
+            case NONE -> Component.translatable("herzium.config.state.limit_none");
+            case WINDOW_ICONIFIED -> Component.translatable("herzium.config.state.limit_iconified");
+            case SHORT_AFK -> Component.translatable("herzium.config.state.limit_afk_short");
+            case LONG_AFK -> Component.translatable("herzium.config.state.limit_afk_long");
+            case OUT_OF_LEVEL_MENU -> Component.translatable("herzium.config.state.limit_menu");
+        };
+    }
+
+    private static boolean herzium$frameLimitUncapped() {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.isWindowActive()
+                && minecraft.getFramerateLimitTracker().getThrottleReason()
+                        == FramerateLimitTracker.FramerateThrottleReason.NONE;
     }
 
     /**

@@ -32,15 +32,11 @@ public final class CoreDiagnostics {
             boolean wheelHookObserved,
             boolean hotbarVisualHookObserved,
             boolean handRenderHookObserved,
-            boolean containerOptimizationHookObserved,
             ConfigState configState,
             long previewRequests,
             long vanillaConfirmations,
             long previewMismatches,
             long ambiguousPreviewsResolved,
-            long containerFramesOptimized,
-            long instantEquipFrames,
-            long combatEquipFramesPreserved,
             int lastPreviewSlot,
             InputSource lastInputSource) {
         public boolean mixinApplied(String simpleName) {
@@ -53,9 +49,6 @@ public final class CoreDiagnostics {
     private static final AtomicLong VANILLA_CONFIRMATIONS = new AtomicLong();
     private static final AtomicLong PREVIEW_MISMATCHES = new AtomicLong();
     private static final AtomicLong AMBIGUOUS_PREVIEWS_RESOLVED = new AtomicLong();
-    private static final AtomicLong CONTAINER_FRAMES_OPTIMIZED = new AtomicLong();
-    private static final AtomicLong INSTANT_EQUIP_FRAMES = new AtomicLong();
-    private static final AtomicLong COMBAT_EQUIP_FRAMES_PRESERVED = new AtomicLong();
 
     private static volatile boolean keyboardHookObserved;
     private static volatile boolean coreFrameHookObserved;
@@ -63,7 +56,6 @@ public final class CoreDiagnostics {
     private static volatile boolean wheelHookObserved;
     private static volatile boolean hotbarVisualHookObserved;
     private static volatile boolean handRenderHookObserved;
-    private static volatile boolean containerOptimizationHookObserved;
     private static volatile ConfigState configState = ConfigState.LOADING;
     private static volatile int lastPreviewSlot = -1;
     private static volatile InputSource lastInputSource;
@@ -102,9 +94,6 @@ public final class CoreDiagnostics {
         VANILLA_CONFIRMATIONS.set(0L);
         PREVIEW_MISMATCHES.set(0L);
         AMBIGUOUS_PREVIEWS_RESOLVED.set(0L);
-        CONTAINER_FRAMES_OPTIMIZED.set(0L);
-        INSTANT_EQUIP_FRAMES.set(0L);
-        COMBAT_EQUIP_FRAMES_PRESERVED.set(0L);
         lastPreviewSlot = -1;
         lastInputSource = null;
         return true;
@@ -150,19 +139,6 @@ public final class CoreDiagnostics {
         }
     }
 
-    public static void recordContainerFrameOptimized() {
-        containerOptimizationHookObserved = true;
-        CONTAINER_FRAMES_OPTIMIZED.incrementAndGet();
-    }
-
-    public static void recordInstantEquipFrame() {
-        INSTANT_EQUIP_FRAMES.incrementAndGet();
-    }
-
-    public static void recordCombatEquipFramePreserved() {
-        COMBAT_EQUIP_FRAMES_PRESERVED.incrementAndGet();
-    }
-
     public static void recordVanillaConfirmation(boolean matchedPreview) {
         VANILLA_CONFIRMATIONS.incrementAndGet();
         if (!matchedPreview) {
@@ -195,15 +171,11 @@ public final class CoreDiagnostics {
                 wheelHookObserved,
                 hotbarVisualHookObserved,
                 handRenderHookObserved,
-                containerOptimizationHookObserved,
                 configState,
                 PREVIEW_REQUESTS.get(),
                 VANILLA_CONFIRMATIONS.get(),
                 PREVIEW_MISMATCHES.get(),
                 AMBIGUOUS_PREVIEWS_RESOLVED.get(),
-                CONTAINER_FRAMES_OPTIMIZED.get(),
-                INSTANT_EQUIP_FRAMES.get(),
-                COMBAT_EQUIP_FRAMES_PRESERVED.get(),
                 lastPreviewSlot,
                 lastInputSource);
     }
