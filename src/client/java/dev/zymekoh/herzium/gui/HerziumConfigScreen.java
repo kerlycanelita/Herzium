@@ -152,7 +152,14 @@ public final class HerziumConfigScreen extends Screen {
                     Math.round(bodyWidth * 0.46F),
                     1,
                     Math.max(1, Math.min(330, optionsUpperBound)));
-            this.optionsHeight = bodyHeight;
+            // Sized to its content, not stretched to the body. With a couple of
+            // options a full-height pane leaves a large dead area under the last
+            // row; the status column keeps the full height because it is the one
+            // with more to show than fits.
+            int inset = this.optionsWidth < 210 ? 7 : 10;
+            int contentHeight = inset * 2 + 24
+                    + MAX_ROW_HEIGHT * OPTION_COUNT + 8 * (OPTION_COUNT - 1);
+            this.optionsHeight = Math.min(bodyHeight, contentHeight);
             this.infoX = this.optionsX + this.optionsWidth + paneGap;
             this.infoY = bodyY;
             this.infoWidth = Math.max(1, bodyX + bodyWidth - this.infoX);
@@ -393,43 +400,34 @@ public final class HerziumConfigScreen extends Screen {
         }
         addStatus(lines, "herzium.config.status.exordium", exordiumState, exordiumColor, textWidth);
 
-        addWrapped(
-                lines,
-                Component.translatable(
-                        "herzium.config.status.counters",
-                        snapshot.previewRequests(),
-                        snapshot.vanillaConfirmations(),
-                        snapshot.previewMismatches(),
-                        snapshot.ambiguousPreviewsResolved()),
-                HerziumTheme.TEXT_BODY,
-                textWidth);
-        addWrapped(
-                lines,
-                Component.translatable(
-                        "herzium.config.status.render_counters",
-                        snapshot.instantEquipFrames(),
-                        snapshot.combatEquipFramesPreserved()),
-                HerziumTheme.TEXT_BODY,
-                textWidth);
+        addHeading(lines, "herzium.config.section.counters", textWidth, true);
+        addCounter(lines, "herzium.config.counter.preview_requests",
+                number(snapshot.previewRequests()), textWidth);
+        addCounter(lines, "herzium.config.counter.confirmations",
+                number(snapshot.vanillaConfirmations()), textWidth);
+        addCounter(lines, "herzium.config.counter.differences",
+                number(snapshot.previewMismatches()), textWidth);
+        addCounter(lines, "herzium.config.counter.batch",
+                number(snapshot.ambiguousPreviewsResolved()), textWidth);
+        addCounter(lines, "herzium.config.counter.instant_equip",
+                number(snapshot.instantEquipFrames()), textWidth);
+        addCounter(lines, "herzium.config.counter.combat_kept",
+                number(snapshot.combatEquipFramesPreserved()), textWidth);
+
+        Component lastPreview;
         if (snapshot.lastPreviewSlot() >= 0 && snapshot.lastInputSource() != null) {
-            Component source = Component.translatable(snapshot.lastInputSource() == CoreDiagnostics.InputSource.KEYBOARD
-                    ? "herzium.config.input.keyboard"
-                    : "herzium.config.input.mouse");
-            addWrapped(
-                    lines,
-                    Component.translatable(
-                            "herzium.config.status.last_preview",
-                            snapshot.lastPreviewSlot() + 1,
-                            source),
-                    HerziumTheme.TEXT_BODY,
-                    textWidth);
+            Component source = Component.translatable(
+                    snapshot.lastInputSource() == CoreDiagnostics.InputSource.KEYBOARD
+                            ? "herzium.config.input.keyboard"
+                            : "herzium.config.input.mouse");
+            lastPreview = Component.translatable(
+                    "herzium.config.value.last_preview",
+                    snapshot.lastPreviewSlot() + 1,
+                    source);
         } else {
-            addWrapped(
-                    lines,
-                    Component.translatable("herzium.config.status.no_preview"),
-                    HerziumTheme.TEXT_MUTED,
-                    textWidth);
+            lastPreview = Component.literal("--");
         }
+        addCounter(lines, "herzium.config.counter.last_preview", lastPreview, textWidth);
 
         addHeading(lines, "herzium.config.section.how", textWidth, true);
         addParagraph(lines, "herzium.config.how.preview", textWidth);
@@ -555,17 +553,40 @@ public final class HerziumConfigScreen extends Screen {
         lines.add(new InfoLine(null, 0, 2));
     }
 
+    /**
+     * A status row: coloured dot, label on the left, state on the right.
+     *
+     * <p>Falls back to the wrapped {@code label: state} form only when the two
+     * genuinely do not fit on one line. That fallback is what the whole pane
+     * used to be, and it is why it read badly: a long label plus a long state
+     * wraps, and the continuation lands back at the left margin under the dot,
+     * so a list of states looks like a paragraph.</p>
+     */
     private void addStatus(
             List<InfoLine> lines,
             String labelKey,
             Component state,
             int color,
             int textWidth) {
+        Component label = Component.translatable(labelKey);
+        int valueWidth = this.font.width(state);
+        // Dot plus its gap on the left, the pane's padding on the right.
+        int available = Math.max(1, this.infoWidth - 29);
+
+        if (this.font.width(label) + 8 + valueWidth <= available) {
+            lines.add(new InfoLine(
+                    label.getVisualOrderText(),
+                    HerziumTheme.TEXT_BODY,
+                    11,
+                    color,
+                    state.getVisualOrderText(),
+                    valueWidth,
+                    color));
+            return;
+        }
+
         List<FormattedCharSequence> wrapped = this.font.split(
-                Component.translatable(
-                        "herzium.config.status.entry",
-                        Component.translatable(labelKey),
-                        state),
+                Component.translatable("herzium.config.status.entry", label, state),
                 Math.max(24, textWidth - 9));
         for (int index = 0; index < wrapped.size(); index++) {
             lines.add(new InfoLine(
@@ -574,6 +595,39 @@ public final class HerziumConfigScreen extends Screen {
                     10,
                     index == 0 ? color : 0));
         }
+    }
+
+    /**
+     * Counters run into the millions over a long session, and a raw
+     * {@code 26436} column is hard to read at a glance, so they are grouped.
+     */
+    private static Component number(long value) {
+        return Component.literal(String.format(java.util.Locale.ROOT, "%,d", value));
+    }
+
+    /** A counter row: no dot, label on the left, number on the right. */
+    private void addCounter(List<InfoLine> lines, String labelKey, Component value, int textWidth) {
+        Component label = Component.translatable(labelKey);
+        int valueWidth = this.font.width(value);
+        int available = Math.max(1, this.infoWidth - 20);
+
+        if (this.font.width(label) + 8 + valueWidth <= available) {
+            lines.add(new InfoLine(
+                    label.getVisualOrderText(),
+                    HerziumTheme.TEXT_MUTED,
+                    11,
+                    0,
+                    value.getVisualOrderText(),
+                    valueWidth,
+                    HerziumTheme.TEXT_BODY));
+            return;
+        }
+
+        addWrapped(
+                lines,
+                Component.translatable("herzium.config.status.entry", label, value),
+                HerziumTheme.TEXT_MUTED,
+                textWidth);
     }
 
     private void addParagraph(List<InfoLine> lines, String translationKey, int textWidth) {
@@ -791,6 +845,15 @@ public final class HerziumConfigScreen extends Screen {
                     lineX += 9;
                 }
                 graphics.text(this.font, line.text(), lineX, textY, line.color());
+                if (line.value() != null) {
+                    int valueX = this.infoX + this.infoWidth - 10 - line.valueWidth();
+                    graphics.text(
+                            this.font,
+                            line.value(),
+                            Math.max(lineX + 4, valueX),
+                            textY,
+                            line.valueColor());
+                }
             }
             textY += line.height();
         }
@@ -832,9 +895,29 @@ public final class HerziumConfigScreen extends Screen {
         return this.parent != null && this.parent.isPauseScreen();
     }
 
-    private record InfoLine(FormattedCharSequence text, int color, int height, int dotColor) {
+    /**
+     * One drawn line of the status pane.
+     *
+     * <p>With {@code value} present the line is a two-column row: dot and label
+     * pinned left, value pinned right. Without it, a plain wrapped line. The
+     * value's width is measured once here rather than on every frame of a
+     * screen that is deliberately not frame limited.</p>
+     */
+    private record InfoLine(
+            FormattedCharSequence text,
+            int color,
+            int height,
+            int dotColor,
+            FormattedCharSequence value,
+            int valueWidth,
+            int valueColor) {
+
         private InfoLine(FormattedCharSequence text, int color, int height) {
             this(text, color, height, 0);
+        }
+
+        private InfoLine(FormattedCharSequence text, int color, int height, int dotColor) {
+            this(text, color, height, dotColor, null, 0, 0);
         }
     }
 
