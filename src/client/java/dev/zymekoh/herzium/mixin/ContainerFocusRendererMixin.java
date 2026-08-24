@@ -1,5 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
+import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.render.ContainerFocusState;
 import net.minecraft.client.Minecraft;
@@ -24,7 +25,9 @@ abstract class ContainerFocusRendererMixin {
      */
     @ModifyVariable(method = "extract", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private boolean herzium$omitLevelExtractionBehindContainer(boolean renderLevel) {
-        boolean omitLevel = renderLevel && herzium$containerOpen();
+        boolean omitLevel = renderLevel
+                && HerziumConfig.get().containerFocus()
+                && herzium$containerOpen();
         ContainerFocusState.beginFrame(omitLevel);
         return renderLevel && !omitLevel;
     }

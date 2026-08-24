@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics.InputSource;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
@@ -33,6 +34,10 @@ public final class ImmediateHotbarInput {
 
     /** Called after Vanilla has registered exactly one logical KeyMapping click. */
     public static void previewLogicalKey(InputConstants.Key logicalKey) {
+        if (!HerziumConfig.get().hotbarPreview()) {
+            return;
+        }
+
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player == null
@@ -74,7 +79,10 @@ public final class ImmediateHotbarInput {
         if (state == null) {
             return vanillaSlot;
         }
-        if (!previewIsValid(state, inventory)) {
+        // Checked here as well as in previewLogicalKey so that switching the
+        // feature off drops a preview that is already in flight, instead of
+        // leaving it on screen until the fail-safe deadline.
+        if (!HerziumConfig.get().hotbarPreview() || !previewIsValid(state, inventory)) {
             clearPreview(state);
             return vanillaSlot;
         }

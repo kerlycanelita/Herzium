@@ -15,6 +15,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import net.fabricmc.loader.api.FabricLoader;
 
+/**
+ * Herzium's persisted settings.
+ *
+ * <p>Every feature flag here is read <em>at the injection point</em>, never
+ * when the mixin is applied, so toggling one takes effect on the next frame
+ * without restarting the game. That is deliberate: a mod whose only answer to
+ * an incompatibility is "uninstall it" is not a good neighbour, and a flag that
+ * needs a restart is barely better when the thing you are debugging is a
+ * conflict with another mod.</p>
+ *
+ * <p>New flags must default to {@code true} <em>in the field initialiser</em>.
+ * Gson leaves absent keys at their Java default, so a {@code herzium.json}
+ * written by an older version keeps every feature enabled instead of silently
+ * turning it off.</p>
+ */
 public final class HerziumConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path CONFIG_PATH =
@@ -23,6 +38,9 @@ public final class HerziumConfig {
     private static volatile CompletableFuture<HerziumConfig> pendingLoad;
 
     private boolean startupWarningAcknowledged;
+    private boolean containerFocus = true;
+    private boolean instantEquip = true;
+    private boolean hotbarPreview = true;
 
     public static HerziumConfig get() {
         HerziumConfig current = instance;
@@ -97,6 +115,48 @@ public final class HerziumConfig {
 
     public boolean startupWarningAcknowledged() {
         return this.startupWarningAcknowledged;
+    }
+
+    /** Read by {@code ContainerFocusRendererMixin} on every extracted frame. */
+    public boolean containerFocus() {
+        return this.containerFocus;
+    }
+
+    /** Read by {@code ItemInHandRendererMixin} on every rendered frame. */
+    public boolean instantEquip() {
+        return this.instantEquip;
+    }
+
+    /** Read by {@link dev.zymekoh.herzium.input.ImmediateHotbarInput} per input. */
+    public boolean hotbarPreview() {
+        return this.hotbarPreview;
+    }
+
+    public void setContainerFocus(boolean enabled) {
+        if (this.containerFocus == enabled) {
+            return;
+        }
+
+        this.containerFocus = enabled;
+        this.save();
+    }
+
+    public void setInstantEquip(boolean enabled) {
+        if (this.instantEquip == enabled) {
+            return;
+        }
+
+        this.instantEquip = enabled;
+        this.save();
+    }
+
+    public void setHotbarPreview(boolean enabled) {
+        if (this.hotbarPreview == enabled) {
+            return;
+        }
+
+        this.hotbarPreview = enabled;
+        this.save();
     }
 
     public void acknowledgeStartupWarning() {
