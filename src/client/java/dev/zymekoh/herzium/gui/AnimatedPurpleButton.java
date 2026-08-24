@@ -63,18 +63,24 @@ final class AnimatedPurpleButton extends AbstractButton {
         int bottomGreen = lerp(8, 19, this.hoverProgress);
         int bottomBlue = lerp(49, 107, this.hoverProgress);
 
-        fillRounded(
+        HerziumTheme.fillRounded(
                 graphics,
                 x,
                 y,
                 width,
                 height,
-                argb(topAlpha, topRed, topGreen, topBlue),
-                argb(bottomAlpha, bottomRed, bottomGreen, bottomBlue));
+                HerziumTheme.argb(topAlpha, topRed, topGreen, topBlue),
+                HerziumTheme.argb(bottomAlpha, bottomRed, bottomGreen, bottomBlue));
 
         int borderAlpha = 145 + (int) (this.hoverProgress * 85.0F);
         int borderBlue = 210 + (int) (pulse * 35.0F);
-        drawOutline(graphics, x + 1, y + 1, width - 2, height - 2, argb(borderAlpha, 191, 91, borderBlue));
+        HerziumTheme.drawOutline(
+                graphics,
+                x + 1,
+                y + 1,
+                width - 2,
+                height - 2,
+                HerziumTheme.argb(borderAlpha, 191, 91, Math.min(255, borderBlue)));
 
         if (selectedState && height >= 8) {
             graphics.fill(x + 2, y + 3, x + 4, y + height - 3, 0xE2D17AFF);
@@ -92,7 +98,7 @@ final class AnimatedPurpleButton extends AbstractButton {
                         y + 2,
                         clippedEnd,
                         y + height - 2,
-                        argb((int) (35.0F * this.hoverProgress), 238, 190, 255));
+                        HerziumTheme.argb((int) (35.0F * this.hoverProgress), 238, 190, 255));
             }
         }
 
@@ -105,36 +111,7 @@ final class AnimatedPurpleButton extends AbstractButton {
         this.defaultButtonNarrationText(output);
     }
 
-    private static void fillRounded(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            int topColor,
-            int bottomColor) {
-        graphics.fillGradient(x + 2, y, x + width - 2, y + height, topColor, bottomColor);
-        graphics.fillGradient(x, y + 2, x + width, y + height - 2, topColor, bottomColor);
-    }
-
-    private static void drawOutline(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            int color) {
-        graphics.fill(x, y, x + width, y + 1, color);
-        graphics.fill(x, y + height - 1, x + width, y + height, color);
-        graphics.fill(x, y + 1, x + 1, y + height - 1, color);
-        graphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
-    }
-
     private static int lerp(int start, int end, float progress) {
         return start + Math.round((end - start) * progress);
-    }
-
-    private static int argb(int alpha, int red, int green, int blue) {
-        return alpha << 24 | red << 16 | green << 8 | blue;
     }
 }

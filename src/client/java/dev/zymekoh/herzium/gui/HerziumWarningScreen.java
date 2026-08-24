@@ -2,7 +2,6 @@ package dev.zymekoh.herzium.gui;
 
 import dev.zymekoh.herzium.config.HerziumConfig;
 import java.util.List;
-import java.util.Random;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -18,10 +17,8 @@ public final class HerziumWarningScreen extends Screen {
             Component.translatable("herzium.warning.message");
     private static final Component QUOTE =
             Component.translatable("herzium.warning.quote").withStyle(ChatFormatting.ITALIC);
-    private static final int PARTICLE_COUNT = 58;
-
     private final Runnable continuation;
-    private final Particle[] particles = new Particle[PARTICLE_COUNT];
+    private final HerziumTheme.ParticleField particles = new HerziumTheme.ParticleField();
     private List<FormattedCharSequence> messageLines = List.of();
     private List<FormattedCharSequence> quoteLines = List.of();
     private int panelX;
@@ -36,7 +33,6 @@ public final class HerziumWarningScreen extends Screen {
     private int bodyHeight;
     private int maxScroll;
     private int scrollOffset;
-    private long lastParticleFrame = System.nanoTime() / 1_000_000L;
     private boolean completed;
 
     public HerziumWarningScreen(Runnable continuation) {
@@ -48,7 +44,7 @@ public final class HerziumWarningScreen extends Screen {
     protected void init() {
         this.calculateLayout();
         this.prepareText();
-        this.initializeParticles();
+        this.particles.resize(this.width, this.height);
         this.addButtons();
     }
 
@@ -154,8 +150,10 @@ public final class HerziumWarningScreen extends Screen {
             int mouseX,
             int mouseY,
             float partialTick) {
-        graphics.fillGradient(0, 0, this.width, this.height, 0xFF06020C, 0xFF190426);
-        graphics.fillGradient(0, 0, this.width, Math.max(1, this.height / 2), 0x77240A3A, 0x00240A3A);
+        // Opaque here, unlike the config screen: this runs before the title
+        // screen exists, so there is nothing behind it worth showing through.
+        graphics.fillGradient(0, 0, this.width, this.height, 0xFF1C0838, 0xFF0A0316);
+        graphics.fillGradient(0, 0, this.width, Math.max(1, this.height / 2), 0x8A3A1160, 0x003A1160);
     }
 
     @Override
@@ -165,36 +163,39 @@ public final class HerziumWarningScreen extends Screen {
             int mouseY,
             float partialTick) {
         long now = System.nanoTime() / 1_000_000L;
-        this.drawParticles(graphics, mouseX, mouseY, now);
+        // Same order as the config screen: field, surfaces, then text.
+        this.particles.render(graphics, this.width, this.height, mouseX, mouseY, now);
         this.drawPanel(graphics, now);
         this.drawBody(graphics);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     private void drawPanel(GuiGraphicsExtractor graphics, long now) {
-        fillRounded(
+        HerziumTheme.fillRounded(
                 graphics,
                 this.panelX,
                 this.panelY,
                 this.panelWidth,
                 this.panelHeight,
-                0xE0180828,
-                0xEA0B0412);
+                0xE02A0F49,
+                0xEA150723);
 
+        // Faster than the config screen's breathing border on purpose: this
+        // screen is an advisory and is meant to read as urgent.
         float pulse = 0.5F + 0.5F * (float) Math.sin(now / 180.0F);
-        int borderAlpha = 180 + Math.round(pulse * 65.0F);
-        drawOutline(
+        int borderAlpha = 185 + Math.round(pulse * 60.0F);
+        HerziumTheme.drawOutline(
                 graphics,
                 this.panelX + 1,
                 this.panelY + 1,
                 this.panelWidth - 2,
                 this.panelHeight - 2,
-                argb(borderAlpha, 205, 93, 255));
+                HerziumTheme.argb(borderAlpha, 205, 105, 255));
 
         int warningSize = this.headerHeight < 45 ? 15 : 20;
         int warningX = this.panelX + Mth.clamp(this.panelWidth / 24, 6, 14);
         int warningY = this.panelY + (this.headerHeight - warningSize) / 2;
-        fillRounded(graphics, warningX, warningY, warningSize, warningSize, 0xE09124C2, 0xDB4B0B72);
+        HerziumTheme.fillRounded(graphics, warningX, warningY, warningSize, warningSize, 0xE09124C2, 0xDB4B0B72);
         graphics.centeredText(
                 this.font,
                 Component.literal("!"),
@@ -204,22 +205,23 @@ public final class HerziumWarningScreen extends Screen {
 
         int titleX = this.panelX + this.panelWidth / 2;
         int titleY = this.panelY + Math.max(7, (this.headerHeight - 9) / 2);
-        graphics.centeredText(this.font, TITLE, titleX, titleY, 0xFFF4E8FF);
+        graphics.centeredText(this.font, TITLE, titleX, titleY, HerziumTheme.TEXT_TITLE);
 
-        graphics.fillGradient(
-                this.bodyX,
-                this.bodyTop,
-                this.bodyX + this.bodyWidth,
-                this.bodyTop + this.bodyHeight,
-                0x8B12071D,
-                0xA5080310);
-        drawOutline(
+        HerziumTheme.fillRounded(
                 graphics,
                 this.bodyX,
                 this.bodyTop,
                 this.bodyWidth,
                 this.bodyHeight,
-                0x8A743497);
+                HerziumTheme.PANE_TOP,
+                HerziumTheme.PANE_BOTTOM);
+        HerziumTheme.drawOutline(
+                graphics,
+                this.bodyX,
+                this.bodyTop,
+                this.bodyWidth,
+                this.bodyHeight,
+                HerziumTheme.PANE_OUTLINE);
     }
 
     private void drawBody(GuiGraphicsExtractor graphics) {
@@ -230,91 +232,25 @@ public final class HerziumWarningScreen extends Screen {
         graphics.enableScissor(this.bodyX + 1, this.bodyTop + 1, clipRight - 1, clipBottom - 1);
 
         for (FormattedCharSequence line : this.messageLines) {
-            graphics.text(this.font, line, textX, textY, 0xFFE6D9EC);
+            graphics.text(this.font, line, textX, textY, HerziumTheme.TEXT_PRIMARY);
             textY += 10;
         }
 
         textY += 10;
         for (FormattedCharSequence line : this.quoteLines) {
-            graphics.text(this.font, line, textX, textY, 0xFFE2A8FF);
+            graphics.text(this.font, line, textX, textY, HerziumTheme.TEXT_ACCENT);
             textY += 10;
         }
         graphics.disableScissor();
 
-        if (this.maxScroll > 0) {
-            int trackX = this.bodyX + this.bodyWidth - 5;
-            int trackTop = this.bodyTop + 3;
-            int trackHeight = Math.max(1, this.bodyHeight - 6);
-            int thumbHeight = Math.max(8, trackHeight * trackHeight / (trackHeight + this.maxScroll));
-            int thumbTravel = Math.max(0, trackHeight - thumbHeight);
-            int thumbY = trackTop + (this.maxScroll == 0 ? 0 : thumbTravel * this.scrollOffset / this.maxScroll);
-            graphics.fill(trackX, trackTop, trackX + 2, trackTop + trackHeight, 0x663B1B4D);
-            graphics.fill(trackX, thumbY, trackX + 2, thumbY + thumbHeight, 0xFFD278FF);
-        }
-    }
-
-    private void initializeParticles() {
-        Random random = new Random(0x4845525A49554DL ^ (long) this.width << 32 ^ this.height);
-        for (int index = 0; index < this.particles.length; index++) {
-            this.particles[index] = new Particle(
-                    random.nextFloat() * Math.max(1, this.width),
-                    random.nextFloat() * Math.max(1, this.height),
-                    125.0F + random.nextFloat() * 260.0F,
-                    -18.0F + random.nextFloat() * 36.0F,
-                    1 + random.nextInt(3),
-                    55 + random.nextInt(105));
-        }
-        this.lastParticleFrame = System.nanoTime() / 1_000_000L;
-    }
-
-    private void drawParticles(
-            GuiGraphicsExtractor graphics,
-            int mouseX,
-            int mouseY,
-            long now) {
-        float elapsedSeconds = Mth.clamp((now - this.lastParticleFrame) / 1000.0F, 0.0F, 0.05F);
-        this.lastParticleFrame = now;
-        float reactionRadius = Mth.clamp(Math.min(this.width, this.height) / 5.0F, 28.0F, 62.0F);
-        float reactionRadiusSquared = reactionRadius * reactionRadius;
-
-        for (Particle particle : this.particles) {
-            particle.x += particle.speedX * elapsedSeconds;
-            particle.y += particle.speedY * elapsedSeconds;
-            if (particle.x > this.width + 18.0F) {
-                particle.x = -18.0F;
-            }
-            if (particle.y < -8.0F) {
-                particle.y = this.height + 8.0F;
-            } else if (particle.y > this.height + 8.0F) {
-                particle.y = -8.0F;
-            }
-
-            float dx = particle.x - mouseX;
-            float dy = particle.y - mouseY;
-            float distanceSquared = dx * dx + dy * dy;
-            float mouseInfluence = distanceSquared >= reactionRadiusSquared
-                    ? 0.0F
-                    : 1.0F - (float) Math.sqrt(distanceSquared) / reactionRadius;
-            int alpha = Mth.clamp(
-                    particle.baseAlpha + Math.round(mouseInfluence * (255 - particle.baseAlpha)),
-                    0,
-                    255);
-            int x = Math.round(particle.x);
-            int y = Math.round(particle.y);
-            int trail = Math.max(4, particle.size * 4);
-            graphics.fill(
-                    x - trail,
-                    y,
-                    x,
-                    y + particle.size,
-                    argb(Math.max(8, alpha / 4), 150, 54, 232));
-            graphics.fill(
-                    x,
-                    y,
-                    x + particle.size,
-                    y + particle.size,
-                    argb(alpha, 215, 125, 255));
-        }
+        HerziumTheme.drawScrollbar(
+                graphics,
+                this.bodyX,
+                this.bodyTop,
+                this.bodyWidth,
+                this.bodyHeight,
+                this.scrollOffset,
+                this.maxScroll);
     }
 
     @Override
@@ -341,62 +277,5 @@ public final class HerziumWarningScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return true;
-    }
-
-    private static void fillRounded(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            int topColor,
-            int bottomColor) {
-        if (width <= 0 || height <= 0) {
-            return;
-        }
-        int radius = Math.min(3, Math.min(width / 2, height / 2));
-        graphics.fillGradient(x + radius, y, x + width - radius, y + height, topColor, bottomColor);
-        graphics.fillGradient(x, y + radius, x + width, y + height - radius, topColor, bottomColor);
-    }
-
-    private static void drawOutline(
-            GuiGraphicsExtractor graphics,
-            int x,
-            int y,
-            int width,
-            int height,
-            int color) {
-        graphics.fill(x, y, x + width, y + 1, color);
-        graphics.fill(x, y + height - 1, x + width, y + height, color);
-        graphics.fill(x, y + 1, x + 1, y + height - 1, color);
-        graphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
-    }
-
-    private static int argb(int alpha, int red, int green, int blue) {
-        return alpha << 24 | red << 16 | green << 8 | blue;
-    }
-
-    private static final class Particle {
-        private float x;
-        private float y;
-        private final float speedX;
-        private final float speedY;
-        private final int size;
-        private final int baseAlpha;
-
-        private Particle(
-                float x,
-                float y,
-                float speedX,
-                float speedY,
-                int size,
-                int baseAlpha) {
-            this.x = x;
-            this.y = y;
-            this.speedX = speedX;
-            this.speedY = speedY;
-            this.size = size;
-            this.baseAlpha = baseAlpha;
-        }
     }
 }
