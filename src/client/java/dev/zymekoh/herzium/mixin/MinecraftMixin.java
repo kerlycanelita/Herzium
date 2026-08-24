@@ -48,10 +48,16 @@ abstract class MinecraftMixin {
 
     @Inject(method = "runTick", at = @At("HEAD"))
     private void herzium$onFrameStart(boolean advanceGameTime, CallbackInfo ci) {
+        Minecraft minecraft = (Minecraft) (Object) this;
         CoreDiagnostics.recordCoreFrameHook();
+        // Identity hash rather than the level itself: the diagnostics ledger
+        // must not hold a reference to a ClientLevel, and must not import
+        // Minecraft classes at all.
+        CoreDiagnostics.observeSession(
+                minecraft.level == null ? 0 : System.identityHashCode(minecraft.level));
         // Runs on every frame, including frames without a level, so a preview
         // left behind by a disconnect cannot retain the player it captured.
-        ImmediateHotbarInput.releaseStalePreview((Minecraft) (Object) this);
+        ImmediateHotbarInput.releaseStalePreview(minecraft);
     }
 
     @Inject(method = "handleKeybinds", at = @At("TAIL"))

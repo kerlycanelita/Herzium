@@ -67,8 +67,44 @@ public final class CoreDiagnostics {
     private static volatile ConfigState configState = ConfigState.LOADING;
     private static volatile int lastPreviewSlot = -1;
     private static volatile InputSource lastInputSource;
+    private static volatile int currentSessionId;
 
     private CoreDiagnostics() {
+    }
+
+    /**
+     * Starts a fresh set of counters when the client enters a different world.
+     *
+     * <p>The frame and preview counters are cumulative, so without this they
+     * kept adding up across worlds and servers for the whole process lifetime:
+     * the numbers on the config page said nothing about the session the player
+     * was actually looking at. Leaving a world does not reset them -- the
+     * counters stay readable after disconnecting, and are cleared by the next
+     * join.</p>
+     *
+     * <p>Only the counters are session-scoped. Which mixins applied, and which
+     * hooks have ever fired, are facts about the process and are kept.</p>
+     *
+     * @param sessionId an identity for the current level, or {@code 0} for none.
+     *                  Passed as an int on purpose: this class must not import
+     *                  Minecraft classes, so the Mixin plugin can use it before
+     *                  the client classes exist.
+     */
+    public static void observeSession(int sessionId) {
+        if (sessionId == 0 || sessionId == currentSessionId) {
+            return;
+        }
+
+        currentSessionId = sessionId;
+        PREVIEW_REQUESTS.set(0L);
+        VANILLA_CONFIRMATIONS.set(0L);
+        PREVIEW_MISMATCHES.set(0L);
+        AMBIGUOUS_PREVIEWS_RESOLVED.set(0L);
+        CONTAINER_FRAMES_OPTIMIZED.set(0L);
+        INSTANT_EQUIP_FRAMES.set(0L);
+        COMBAT_EQUIP_FRAMES_PRESERVED.set(0L);
+        lastPreviewSlot = -1;
+        lastInputSource = null;
     }
 
     public static void recordMixinApplied(String mixinClassName) {
