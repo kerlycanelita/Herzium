@@ -31,7 +31,20 @@ repositories {
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+
+    // Mod Menu is only needed to compile ModMenuIntegration; it must not reach
+    // the runtime classpath, and its transitive dependencies must not leak into
+    // this build. version/build.gradle expresses the same intent with Loom's
+    // modCompileOnly. That configuration does not exist here: the root project
+    // applies the "net.fabricmc.fabric-loom" plugin, which -- unlike the
+    // "fabric-loom" plugin the multiversion matrix uses -- never creates the
+    // mod* configurations. Swapping the plugin id is not a local change: the
+    // full plugin also demands a Java 25 Gradle daemon and an explicit
+    // "mappings" dependency this build has never declared. See M-02 in
+    // docs/AUDIT-1.9.3.md.
+    compileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") {
+        transitive = false
+    }
 }
 
 processResources {
