@@ -122,6 +122,30 @@ public final class ImmediateHotbarInput {
         PREVIEW.set(null);
     }
 
+    /**
+     * Frame-level safety net that also releases the retained {@link LocalPlayer}.
+     *
+     * <p>{@link #onVanillaHotbarTick(Minecraft)} is the only other place that
+     * drops the preview, and it only runs while Vanilla is processing keybinds,
+     * which it does not do without a loaded level. Letting the fail-safe
+     * deadline merely make {@code previewIsValid} return {@code false} would
+     * keep a strong reference to the player alive -- and through it the level,
+     * its chunks and its entities -- until the next hotbar press in some later
+     * session. Pressing a hotbar key and disconnecting inside that window is
+     * enough to leak a whole {@code ClientLevel}. This runs on every frame
+     * instead, so both a player swap and an expired preview free the state.</p>
+     */
+    public static void releaseStalePreview(Minecraft minecraft) {
+        PreviewState state = PREVIEW.get();
+        if (state == null) {
+            return;
+        }
+        if (minecraft.player != state.player()
+                || System.nanoTime() - state.startedNanos() > FAIL_SAFE_PREVIEW_NANOS) {
+            clearPreview(state);
+        }
+    }
+
     private static void registerPreviewCandidate(LocalPlayer player, int slot) {
         long now = System.nanoTime();
         while (true) {

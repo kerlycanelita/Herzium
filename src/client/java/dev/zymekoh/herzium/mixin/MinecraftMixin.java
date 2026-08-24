@@ -37,8 +37,12 @@ abstract class MinecraftMixin {
 
     @Inject(method = "runTick", at = @At("HEAD"))
     private void herzium$keepCoreOptionsOptimized(boolean advanceGameTime, CallbackInfo ci) {
+        Minecraft minecraft = (Minecraft) (Object) this;
         CoreDiagnostics.recordCoreFrameHook();
-        herzium$enforceCoreOptions((Minecraft) (Object) this);
+        // Runs on every frame, including frames without a level, so a preview
+        // left behind by a disconnect cannot retain the player it captured.
+        ImmediateHotbarInput.releaseStalePreview(minecraft);
+        herzium$enforceCoreOptions(minecraft);
     }
 
     @Inject(method = "handleKeybinds", at = @At("TAIL"))
