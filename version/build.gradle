@@ -41,18 +41,21 @@ def generatedClientSources = layout.buildDirectory.dir('generated/sources/herziu
 tasks.register('generateHerziumClientSources', Sync) {
     from('../src/client/java') {
         if (minecraft121) {
+            exclude '**/ContainerFocusRendererMixin.java'
             exclude '**/FramerateLimiterMixin.java'
             exclude '**/FramerateLimitTrackerMixin.java'
             exclude '**/GlDeviceMixin.java'
             exclude '**/MinecraftMixin.java'
+            exclude '**/render/CombatItemClassifier.java'
         }
         if (classicInput) {
             exclude '**/AnimatedPurpleButton.java'
-            exclude '**/ImmediateHotbarInput.java'
             exclude '**/ItemInHandRendererMixin.java'
-            exclude '**/KeyboardHandlerMixin.java'
             exclude '**/LoadingOverlayMixin.java'
             exclude '**/MouseHandlerMixin.java'
+        }
+        if (publicSelectedSlot) {
+            exclude '**/HotbarVisualMixin.java'
         }
         if (modernButton) {
             exclude '**/AnimatedPurpleButton.java'
@@ -76,6 +79,11 @@ tasks.register('generateHerziumClientSources', Sync) {
                 }
                 if (modernButton) {
                     transformed = transformed.replace('.screen.init(', '.screen.resize(this.minecraft,')
+                }
+                if (publicSelectedSlot) {
+                    transformed = transformed.replace(
+                            'player.getInventory().getSelectedSlot()',
+                            'player.getInventory().selected')
                 }
                 transformed = transformed
                         .replace('require = 4', 'require = 0')
@@ -101,12 +109,19 @@ tasks.register('generateHerziumClientSources', Sync) {
                 }
                 return line
                         .replace('player.getInventory().getSelectedSlot()', 'player.getInventory().selected')
-                        .replace('player.getInventory().setSelectedSlot(slot);', 'player.getInventory().selected = slot;')
             }
         }
     }
     if (modernButton) {
         from('src/client/modern-button')
+    }
+    if (publicSelectedSlot) {
+        from('src/client/public-selected') {
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                line.replace('extractItemHotbar', 'renderItemHotbar')
+            }
+        }
     }
     if (basicFramerateTracker) {
         from('src/client/tracker-basic')

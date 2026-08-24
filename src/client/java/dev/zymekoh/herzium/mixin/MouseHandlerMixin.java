@@ -1,29 +1,50 @@
 package dev.zymekoh.herzium.mixin;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
-import net.minecraft.client.KeyMapping;
+import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/** Observes only completed Vanilla wheel selection without changing it. */
 @Mixin(value = MouseHandler.class, priority = 2000)
 abstract class MouseHandlerMixin {
     @Shadow
     @Final
     private Minecraft minecraft;
 
-    @Redirect(
-            method = "onButton",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/KeyMapping;click(Lcom/mojang/blaze3d/platform/InputConstants$Key;)V"))
-    private void herzium$selectMouseBoundHotbarOnInputEvent(InputConstants.Key key) {
-        KeyMapping.click(key);
-        ImmediateHotbarInput.selectFromMouse(this.minecraft, key.getValue());
+    @Unique
+    private int herzium$selectedSlotBeforeScroll = -1;
+
+    @Inject(method = "onScroll", at = @At("HEAD"))
+    private void herzium$captureSlotBeforeScroll(
+            long handle,
+            double xOffset,
+            double yOffset,
+            CallbackInfo ci) {
+        CoreDiagnostics.recordWheelHook();
+        this.herzium$selectedSlotBeforeScroll = this.minecraft.player == null
+                ? -1
+                : this.minecraft.player.getInventory().getSelectedSlot();
+    }
+
+    @Inject(method = "onScroll", at = @At("RETURN"))
+    private void herzium$acceptVanillaScrollSelection(
+            long handle,
+            double xOffset,
+            double yOffset,
+            CallbackInfo ci) {
+        if (this.herzium$selectedSlotBeforeScroll >= 0) {
+            ImmediateHotbarInput.onVanillaScrollFinished(
+                    this.minecraft,
+                    this.herzium$selectedSlotBeforeScroll);
+        }
+        this.herzium$selectedSlotBeforeScroll = -1;
     }
 }

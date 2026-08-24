@@ -7,11 +7,14 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Prevents the 1.21.x render loop from entering its limiter; inactive pacing is independent. */
+/** Bypasses the 1.21.x limiter only while active; Vanilla owns inactive/AFK pacing. */
 @Mixin(value = Minecraft.class, priority = 10000)
 abstract class FramerateLimiterMixin {
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void herzium$skipVanillaFramePacing(CallbackInfoReturnable<Integer> cir) {
-        cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
+        Minecraft minecraft = (Minecraft) (Object) this;
+        if (minecraft.isWindowActive()) {
+            cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
+        }
     }
 }

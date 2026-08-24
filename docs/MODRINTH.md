@@ -9,9 +9,10 @@ Herzium is a client-side Fabric optimization mod focused on uncapped rendering, 
 ## Highlights
 
 - Removes active-window VSync and internal Minecraft FPS limits.
-- Keeps an independent 10 FPS safeguard while the window is unfocused or minimized.
-- Makes ordinary hotbar keys 1-9 update on their input event, with an option to restore Vanilla tick timing.
-- Removes the delayed first-person item replacement dip without changing attack cooldowns, reach, raycasts, packets, or server ticks.
+- Leaves inactive, minimized, menu, and AFK frame pacing to Minecraft's existing policy.
+- Keeps Priority Hotbar permanently active as a single render-only preview; Vanilla retains every click, slot write, and packet.
+- Keeps inventories and containers live at the active-window frame rate while omitting the expensive 3D world rendered behind them.
+- Removes the delayed first-person equip dip for ordinary items while combat items retain Vanilla's visible equip transition.
 - Removes safe decorative loading waits while preserving required resource reload, validation, model baking, shader compilation, chunk readiness, and error handling.
 - Includes a responsive dark-purple configuration screen and startup advisory.
 - Supports English, Spanish (Spain), and Spanish (Mexico).
@@ -26,7 +27,7 @@ Uncapped rendering can increase GPU usage, power consumption, temperature, and f
 
 Herzium es un mod de optimización para Fabric del lado del cliente. Elimina VSync y los límites internos de FPS mientras la ventana está activa, reduce la latencia visual de la hotbar y acelera transiciones seguras sin modificar los ticks, paquetes, alcance, cooldowns ni la autoridad del servidor.
 
-Al perder el foco o minimizar Minecraft, una protección independiente limita el renderizado a 10 FPS. El mod incluye interfaz y advertencias en inglés, español de España y español de México.
+La prioridad de hotbar funciona siempre como una única previsualización visual y Vanilla conserva cada clic, selección real y paquete. Los inventarios y contenedores mantienen su GUI a la frecuencia de frames activa mientras se omite el costoso mundo 3D del fondo; al perder el foco, minimizar, estar en menús o AFK, Minecraft conserva su propia política de FPS. El mod incluye interfaz y advertencias en inglés, español de España y español de México.
 
 ## Compatibility
 

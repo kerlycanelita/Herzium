@@ -11,19 +11,19 @@
 
 Herzium is a client-side Fabric mod for Minecraft 1.21 through 26.2 that removes
 internal FPS limits while its window is active, forces VSync to remain disabled,
-reduces mouse and hotbar latency, and removes safe decorative waits from startup
-and world entry. When Minecraft loses focus, Herzium limits rendering to 10 FPS.
+reduces mouse and hotbar visual latency, and removes safe decorative waits from startup
+and world entry. Background, minimized, menu, and AFK pacing remain owned by Minecraft.
 
 ## KoHsium cooperation
 
-Herzium 1.8.7 and KoHsium 0.10.0 use an explicit ownership split when both are
+Herzium 1.9.3 and KoHsium 0.10.0 use an explicit ownership split when both are
 installed. Herzium remains the sole writer of VSync, the FPS limit and immediate
-hotbar behavior. KoHsium owns its editable Raw Input, Smooth Camera and late-input
+hotbar visual preview. KoHsium owns its editable Raw Input, Smooth Camera and late-input
 controls; Herzium stops rewriting those two vanilla input values while KoHsium is present.
 
-Herzium remains authoritative over frame pacing when both mods are installed:
-the active window stays uncapped and an unfocused or minimized window is held
-to 10 FPS. KoHsium's optional Streaming Headroom does not replace those rules.
+Herzium remains authoritative over active-window frame pacing when both mods are
+installed. When the window is inactive, minimized, in a menu, or AFK, Minecraft's
+own frame-rate policy is allowed to run without a duplicate Herzium limiter.
 
 KoHsium continues to provide its independent late-event sample, conservative
 section scheduling, render-work reduction, PvP visual safety and diagnostics.
@@ -40,19 +40,24 @@ so neither startup screen overwrites the other.
 - The OpenGL `swap interval` (VSync) is forced to `0`.
 - Minecraft's general FPS limiter becomes a no-op while the window is active.
 - The configured frame-rate limit remains on vanilla's `Unlimited` value.
-- Special menu, loading-screen, and AFK limits are bypassed while the window is
-  active. An independent render-thread limiter enforces 10 FPS whenever the
-  Minecraft window loses focus, including when it is minimized.
+- Special menu, loading-screen, and AFK limits are bypassed only while the window
+  is active. Minecraft's own inactive, minimized, menu, and AFK policy is left intact.
 - When Exordium is installed, Herzium disables its HUD cache so the hotbar, TAB
   list, and the rest of the HUD are extracted and rendered every frame again.
 
-The core optimizations and fast loading transitions remain permanently active.
-The configuration screen only controls the optional immediate hotbar behavior.
+The core optimizations, Priority Hotbar, and fast loading transitions remain
+permanently active. The configuration screen reports their live diagnostic state.
 
 ## Low-latency input
 
-- Without KoHsium, Raw Input is kept enabled whenever GLFW and the operating
-  system support it, and Smooth Camera remains disabled.
+- Without KoHsium or an external raw-input mod, Vanilla Raw Input is kept enabled
+  whenever GLFW and the operating system support it, and Smooth Camera remains disabled.
+- When Raw Input Buffer or Ixeris is detected, Herzium disables only Vanilla's
+  Raw Input path so two implementations do not own the same Vanilla setting.
+  The external mod remains active; Herzium does not disable foreign mixins or threads.
+- Raw Input Buffer and Ixeris must not be installed together because both own
+  overlapping low-level mouse pipelines. Herzium detects and reports the overlap,
+  but the safe fix is to remove one of them.
 - With KoHsium installed, Herzium yields those two input settings so KoHsium's
   Precision Camera, Direct Mouse and Force Raw controls remain authoritative.
   Mouse sensitivity and the amount of rotation produced by each raw delta remain unchanged.
@@ -60,13 +65,24 @@ The configuration screen only controls the optional immediate hotbar behavior.
   the next rendered frame. Actual end-to-end latency still depends on mouse
   polling rate, frame rate, display refresh rate, GPU queue, and compositor;
   Herzium cannot guarantee 0.1 ms response time.
-- When `Immediate hotbar 1-9 selection` is enabled, keyboard and mouse-button
-  hotbar bindings select their ordinary slot as soon as the input callback runs
-  instead of waiting up to one 20 TPS client tick. Multiple presses resolve in
-  event order, so the last received press wins. The option is enabled by
-  default and can be disabled to restore Vanilla's tick timing. Mouse-wheel
-  hotbar selection remains entirely Vanilla; the first-person renderer reads
-  Vanilla's completed selection directly on the next rendered frame.
+- Cursor Landing is supplied by KoHs Inventory Tweaks rather than Herzium. Its
+  verified Raw Input Buffer adapter suppresses only the late menu recentring and
+  disarms after the one requested landing; without that mod, Cursor Landing is unavailable.
+- `Priority Hotbar` is an always-active core feature. One unambiguous keyboard or remapped
+  mouse-button binding is previewed in the HUD and first-person hand before the
+  next client tick. The observer never consumes a click or writes the real
+  inventory slot; Vanilla alone confirms selection and emits carried-item packets.
+  If distinct hotbar slots are pending in the same tick, one aggregate visual
+  state resolves them exactly like Vanilla's ascending hotbar loop. This keeps
+  the previewed block equal to the block Vanilla can actually use without
+  changing or consuming the underlying click queue.
+  Mouse-wheel selection remains entirely Vanilla and supersedes a pending preview.
+- The preview observes Vanilla's central logical `KeyMapping.click` after the
+  click is registered, instead of redirecting keyboard or mouse callbacks. This
+  lets ordinary input-remapping mods cooperate without an exclusive redirect.
+  A mod that cancels Vanilla input before that point or replaces the HUD path
+  cannot be overridden safely; Herzium falls back to Vanilla and reports the
+  unobserved hook in the Core page.
 - Creative hotbar save/load shortcuts and spectator controls retain their
   vanilla path.
 - `Attack` and `Use/Place` remain entirely on Vanilla's 20 TPS input path,
@@ -105,25 +121,28 @@ transitions when buttons are hovered or focused. Its compact vertical layout
 shrinks with high GUI scales while keeping transparent backgrounds,
 high-contrast text, and every control inside the panel.
 
-The `Immediate hotbar 1-9 selection` option controls Herzium's event-time slot
-selection and is enabled by default. Turning it off restores Vanilla tick timing
-for number-key and remapped-button selection; it never alters mouse-wheel input.
-Zero-duration hotbar and offhand model replacement is part of the visual core
-and remains active independently of this input option.
-This is Herzium's only configuration option and it is enabled by default. Its
-state is stored in `config/herzium.json`.
+`Priority Hotbar` is displayed as an always-active core feature rather than a
+toggle. Keyboard, remapped-button, and mouse-wheel selection stay on Vanilla's
+unchanged input and packet paths. The diagnostics panel reports which mixins were
+applied, which runtime hooks have actually executed, config health, active features,
+container-focus frames, operating details, compatibility warnings, and hardware risks.
+The one-time startup-warning acknowledgement is stored in `config/herzium.json`.
 
 ## High-refresh improvements
 
 - The HUD is not capped at 240 FPS: it renders at the game's full frame rate.
   When the game delivers 240 FPS, the HUD, hotbar, TAB list, and inventories
   update at 240 Hz; if the game runs faster, they can exceed that rate too.
+- Inventories and containers keep extracting and drawing their GUI every active-window
+  frame. While one is open, Herzium omits the expensive live 3D world behind it;
+  client ticks, slot interaction, menu packets, and server synchronization remain Vanilla.
 - The crosshair and hotbar attack-strength indicators interpolate only toward
   vanilla combat's `0.5` partial-tick sample. They never display a stronger
   value than the one used by the attack calculation.
-- When the hotbar, mouse wheel, inventory, or server-authorized equipment state
-  changes an item, both first-person hands adopt the current models on the next
-  frame with no equip dip. Swing and held-item use animations remain Vanilla.
+- Ordinary items adopt the current first-person model on the next frame with no
+  equip dip. Combat-capable items such as swords, axes, pickaxes, spears, maces,
+  bows, crossbows, tridents, and shields retain Vanilla's visible equip transition.
+  Swing and held-item use animations remain Vanilla.
 - Eating, bows, crossbows, held item use, gameplay cooldowns, and server tick
   rates are not accelerated or falsified.
 - Players, hitboxes, raycasts, packet contents, block textures, and entity
@@ -137,12 +156,11 @@ server packets, or override VSync imposed by the graphics driver, operating
 system compositor, or an external layer. An element whose logic only changes
 once per tick will still change at 20 Hz even though it is rendered every frame.
 
-Herzium takes priority over Vanilla's limiter and the known limiter mixin paths:
-focused rendering remains uncapped and unfocused rendering is protected at
-10 FPS. It cannot override an external driver, compositor, or arbitrary mod
-that blocks the render thread outside those paths. `Dynamic FPS` remains
-declared incompatible so two background-throttling systems cannot fight each
-other. Exordium buffer compatibility is specifically verified against Exordium
+Herzium takes priority over Vanilla's limiter and the known limiter mixin paths
+only while the window is active. It cannot override an external driver, compositor, or arbitrary mod
+that blocks the render thread outside those paths. `Dynamic FPS` is no longer
+declared incompatible because Herzium no longer owns background throttling.
+Exordium buffer compatibility is specifically verified against Exordium
 2.1.0/2.1.1 for Minecraft 26.1.x.
 
 ## Requirements
@@ -168,7 +186,7 @@ On Linux or macOS:
 ```
 
 The root build targets Minecraft 26.1.2 and generates
-`build/libs/herzium-1.8.7.jar`. Do not use the file ending in `-sources.jar`.
+`build/libs/herzium-1.9.2.jar`. Do not use the file ending in `-sources.jar`.
 
 ### All supported Minecraft versions
 
@@ -181,15 +199,14 @@ with:
 ```
 
 This produces one release JAR per target at
-`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.8.7.jar`
+`version/<minecraft-version>/build/libs/herzium-<minecraft-version>-1.9.3.jar`
 for 1.21, every 1.21.x release through 1.21.11, and 26.1 through 26.2.
 
 ## Warning
 
 While the Minecraft window is active, uncapped rendering may keep the GPU at
-100% usage, consume more power, and generate more heat. When the window loses
-focus or is minimized, Herzium intentionally protects the system with a 10 FPS
-ceiling.
+100% usage, consume more power, and generate more heat. Inactive, minimized,
+menu, and AFK frame pacing is provided by Minecraft itself.
 
 ## License
 

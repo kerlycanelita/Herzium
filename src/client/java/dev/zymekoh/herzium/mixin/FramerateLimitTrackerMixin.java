@@ -1,7 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.FramerateLimitTracker;
-import dev.zymekoh.herzium.performance.InactiveFpsLimiter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import org.spongepowered.asm.mixin.Final;
@@ -19,21 +18,8 @@ abstract class FramerateLimitTrackerMixin {
 
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void herzium$useUnlimitedFramerate(CallbackInfoReturnable<Integer> cir) {
-        cir.setReturnValue(this.minecraft.isWindowActive()
-                ? Options.UNLIMITED_FRAMERATE_CUTOFF
-                : InactiveFpsLimiter.INACTIVE_FPS);
-    }
-
-    @Inject(method = "getThrottleReason", at = @At("HEAD"), cancellable = true)
-    private void herzium$disableThrottleReasons(
-            CallbackInfoReturnable<FramerateLimitTracker.FramerateThrottleReason> cir) {
-        cir.setReturnValue(this.minecraft.isWindowActive()
-                ? FramerateLimitTracker.FramerateThrottleReason.NONE
-                : FramerateLimitTracker.FramerateThrottleReason.WINDOW_ICONIFIED);
-    }
-
-    @Inject(method = "isHeavilyThrottled", at = @At("HEAD"), cancellable = true)
-    private void herzium$neverReportHeavyThrottling(CallbackInfoReturnable<Boolean> cir) {
-        cir.setReturnValue(!this.minecraft.isWindowActive());
+        if (this.minecraft.isWindowActive()) {
+            cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
+        }
     }
 }

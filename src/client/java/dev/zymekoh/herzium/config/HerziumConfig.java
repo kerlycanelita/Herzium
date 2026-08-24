@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import dev.zymekoh.herzium.Herzium;
+import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -21,7 +22,6 @@ public final class HerziumConfig {
     private static volatile HerziumConfig instance;
     private static volatile CompletableFuture<HerziumConfig> pendingLoad;
 
-    private boolean immediateHotbarSelection = true;
     private boolean startupWarningAcknowledged;
 
     public static HerziumConfig get() {
@@ -48,6 +48,7 @@ public final class HerziumConfig {
             loaded = load.join();
         } catch (CompletionException exception) {
             Herzium.LOGGER.warn("Could not finish loading {}; defaults will be used.", CONFIG_PATH, exception);
+            CoreDiagnostics.recordConfigReadFailure();
             loaded = new HerziumConfig();
         }
         synchronized (HerziumConfig.class) {
@@ -70,12 +71,14 @@ public final class HerziumConfig {
         pendingLoad = CompletableFuture.supplyAsync(HerziumConfig::read)
                 .exceptionally(exception -> {
                     Herzium.LOGGER.warn("Could not load {}; defaults will be used.", CONFIG_PATH, exception);
+                    CoreDiagnostics.recordConfigReadFailure();
                     return new HerziumConfig();
                 });
     }
 
     private static HerziumConfig read() {
         if (!Files.isRegularFile(CONFIG_PATH)) {
+            CoreDiagnostics.recordConfigHealthy();
             return new HerziumConfig();
         }
 
@@ -83,20 +86,13 @@ public final class HerziumConfig {
             HerziumConfig loaded = GSON.fromJson(
                     Files.readString(CONFIG_PATH, StandardCharsets.UTF_8),
                     HerziumConfig.class);
+            CoreDiagnostics.recordConfigHealthy();
             return loaded != null ? loaded : new HerziumConfig();
         } catch (IOException | JsonParseException exception) {
             Herzium.LOGGER.warn("Could not read {}; defaults will be used.", CONFIG_PATH, exception);
+            CoreDiagnostics.recordConfigReadFailure();
             return new HerziumConfig();
         }
-    }
-
-    public boolean immediateHotbarSelection() {
-        return this.immediateHotbarSelection;
-    }
-
-    public void setImmediateHotbarSelection(boolean immediateHotbarSelection) {
-        this.immediateHotbarSelection = immediateHotbarSelection;
-        this.save();
     }
 
     public boolean startupWarningAcknowledged() {
@@ -131,8 +127,10 @@ public final class HerziumConfig {
             } catch (AtomicMoveNotSupportedException ignored) {
                 Files.move(temporaryPath, CONFIG_PATH, StandardCopyOption.REPLACE_EXISTING);
             }
+            CoreDiagnostics.recordConfigHealthy();
         } catch (IOException exception) {
             Herzium.LOGGER.warn("Could not save {}.", CONFIG_PATH, exception);
+            CoreDiagnostics.recordConfigWriteFailure();
 
             try {
                 Files.deleteIfExists(temporaryPath);

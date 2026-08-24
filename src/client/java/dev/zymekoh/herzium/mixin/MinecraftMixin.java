@@ -1,9 +1,12 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
 import dev.zymekoh.herzium.config.HerziumConfig;
+import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.multiplayer.LevelLoadTracker;
@@ -28,13 +31,19 @@ abstract class MinecraftMixin {
         herzium$enforceCoreOptions(minecraft);
         minecraft.getWindow().updateVsync(false);
         if (!KoHsiumIntegration.present() && InputConstants.isRawMouseInputSupported()) {
-            minecraft.getWindow().updateRawMouseInput(true);
+            minecraft.getWindow().updateRawMouseInput(!ExternalInputCompatibility.externalRawInputPresent());
         }
     }
 
     @Inject(method = "runTick", at = @At("HEAD"))
     private void herzium$keepCoreOptionsOptimized(boolean advanceGameTime, CallbackInfo ci) {
+        CoreDiagnostics.recordCoreFrameHook();
         herzium$enforceCoreOptions((Minecraft) (Object) this);
+    }
+
+    @Inject(method = "handleKeybinds", at = @At("TAIL"))
+    private void herzium$observeVanillaHotbarConfirmation(CallbackInfo ci) {
+        ImmediateHotbarInput.onVanillaHotbarTick((Minecraft) (Object) this);
     }
 
     /**
@@ -88,8 +97,10 @@ abstract class MinecraftMixin {
         // KoHsium owns its explicit input-latency controls when both mods are present.
         // Herzium keeps VSync/FPS ownership and does not race those editable values.
         if (!KoHsiumIntegration.present()) {
-            if (InputConstants.isRawMouseInputSupported() && !minecraft.options.rawMouseInput().get()) {
-                minecraft.options.rawMouseInput().set(true);
+            boolean vanillaRawInput = !ExternalInputCompatibility.externalRawInputPresent();
+            if (InputConstants.isRawMouseInputSupported()
+                    && minecraft.options.rawMouseInput().get() != vanillaRawInput) {
+                minecraft.options.rawMouseInput().set(vanillaRawInput);
             }
             minecraft.options.smoothCamera = false;
         }

@@ -1,6 +1,9 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
+import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -13,9 +16,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Keeps both first-person item slots synchronized with the player every frame.
- * Only renderer-owned item references and equip interpolation fields are
- * changed; inventory state, actions, packets and server timing stay Vanilla.
+ * Removes the decorative equip dip for ordinary items while preserving the
+ * complete Vanilla transition whenever a combat item appears. Inventory state,
+ * actions, cooldowns, and packets remain untouched.
  */
 @Mixin(value = ItemInHandRenderer.class, priority = 2000)
 abstract class ItemInHandRendererMixin {
@@ -38,22 +41,33 @@ abstract class ItemInHandRendererMixin {
     private float oOffHandHeight;
 
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
-    private void herzium$renderCurrentItemsWithoutEquipAnimation(
+    private void herzium$synchronizeVisibleHandsWithoutEquipTransition(
             float partialTick,
             PoseStack poseStack,
             SubmitNodeCollector submitNodeCollector,
             LocalPlayer player,
             int packedLight,
             CallbackInfo ci) {
-        this.mainHandItem = player.getMainHandItem();
-        this.offHandItem = player.getOffhandItem();
+        ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
+        if (CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
+            CoreDiagnostics.recordCombatEquipFramePreserved();
+        } else {
+            this.mainHandItem = visualMainHandItem;
+            this.mainHandHeight = 1.0F;
+            this.oMainHandHeight = 1.0F;
+            CoreDiagnostics.recordInstantEquipFrame();
+        }
 
-        // Move both interpolation endpoints together. This removes the
-        // hotbar/offhand equip dip without touching swing or use animations.
-        this.mainHandHeight = 1.0F;
-        this.oMainHandHeight = 1.0F;
-        this.offHandHeight = 1.0F;
-        this.oOffHandHeight = 1.0F;
+        ItemStack visualOffHandItem = player.getOffhandItem();
+        if (CombatItemClassifier.preservesVanillaEquipTransition(visualOffHandItem)) {
+            CoreDiagnostics.recordCombatEquipFramePreserved();
+        } else {
+            this.offHandItem = visualOffHandItem;
+            this.offHandHeight = 1.0F;
+            this.oOffHandHeight = 1.0F;
+            CoreDiagnostics.recordInstantEquipFrame();
+        }
+        CoreDiagnostics.recordHandRenderHook();
     }
 
     @Inject(
@@ -65,6 +79,8 @@ abstract class ItemInHandRendererMixin {
             ItemStack renderedItem,
             ItemStack currentItem,
             CallbackInfoReturnable<Boolean> cir) {
-        cir.setReturnValue(true);
+        if (!CombatItemClassifier.preservesVanillaEquipTransition(currentItem)) {
+            cir.setReturnValue(true);
+        }
     }
 }

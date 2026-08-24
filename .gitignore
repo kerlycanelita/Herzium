@@ -1,8 +1,12 @@
+# --- Gradle / Loom ---
 .gradle/
 build/
 out/
 run/
+tmp/
+*.out.log
 
+# --- IDEs ---
 .idea/
 *.iml
 *.ipr
@@ -14,10 +18,10 @@ bin/
 .classpath
 .project
 
+# --- Crash / profiling ---
 hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
 *.launch
 *.DS_Store
-

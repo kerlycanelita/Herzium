@@ -46,6 +46,7 @@ tasks.register('generateHerzium26ClientSources', Sync) {
             return transformed
                     // Mojang renamed the first-person hand submission entry point in 26.2.
                     .replace('renderHandsWithItems', 'submitHandsWithItems')
+                    .replace('renderArmWithItem', 'submitArmWithItem')
                     // The 26.1 HUD implementation moved from Gui into Hud in 26.2.
                     .replace('import net.minecraft.client.gui.Gui;', 'import net.minecraft.client.gui.Hud;')
                     .replace('Gui.class', 'Hud.class')

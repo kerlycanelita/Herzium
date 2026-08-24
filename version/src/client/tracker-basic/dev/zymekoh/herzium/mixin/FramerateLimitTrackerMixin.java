@@ -19,6 +19,8 @@ abstract class FramerateLimitTrackerMixin {
 
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void herzium$useFocusedFrameratePolicy(CallbackInfoReturnable<Integer> cir) {
-        cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
+        if (this.minecraft.isWindowActive()) {
+            cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
+        }
     }
 }

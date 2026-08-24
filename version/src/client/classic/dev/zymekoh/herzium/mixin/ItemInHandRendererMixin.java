@@ -1,6 +1,9 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
+import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -12,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Removes hotbar and offhand equip transitions on the classic 1.21 renderer. */
+/** Renderer-only instant ordinary items with Vanilla combat equip transitions. */
 @Mixin(value = ItemInHandRenderer.class, priority = 2000)
 abstract class ItemInHandRendererMixin {
     @Shadow
@@ -34,19 +37,33 @@ abstract class ItemInHandRendererMixin {
     private float oOffHandHeight;
 
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
-    private void herzium$renderCurrentItemsWithoutEquipAnimation(
+    private void herzium$synchronizeVisibleHandsWithoutEquipTransition(
             float partialTick,
             PoseStack poseStack,
             MultiBufferSource.BufferSource buffers,
             LocalPlayer player,
             int packedLight,
             CallbackInfo ci) {
-        this.mainHandItem = player.getMainHandItem();
-        this.offHandItem = player.getOffhandItem();
-        this.mainHandHeight = 1.0F;
-        this.oMainHandHeight = 1.0F;
-        this.offHandHeight = 1.0F;
-        this.oOffHandHeight = 1.0F;
+        ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
+        if (CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
+            CoreDiagnostics.recordCombatEquipFramePreserved();
+        } else {
+            this.mainHandItem = visualMainHandItem;
+            this.mainHandHeight = 1.0F;
+            this.oMainHandHeight = 1.0F;
+            CoreDiagnostics.recordInstantEquipFrame();
+        }
+
+        ItemStack visualOffHandItem = player.getOffhandItem();
+        if (CombatItemClassifier.preservesVanillaEquipTransition(visualOffHandItem)) {
+            CoreDiagnostics.recordCombatEquipFramePreserved();
+        } else {
+            this.offHandItem = visualOffHandItem;
+            this.offHandHeight = 1.0F;
+            this.oOffHandHeight = 1.0F;
+            CoreDiagnostics.recordInstantEquipFrame();
+        }
+        CoreDiagnostics.recordHandRenderHook();
     }
 
     @Inject(
@@ -58,6 +75,8 @@ abstract class ItemInHandRendererMixin {
             ItemStack renderedItem,
             ItemStack currentItem,
             CallbackInfoReturnable<Boolean> cir) {
-        cir.setReturnValue(true);
+        if (!CombatItemClassifier.preservesVanillaEquipTransition(currentItem)) {
+            cir.setReturnValue(true);
+        }
     }
 }
