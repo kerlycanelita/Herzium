@@ -9,6 +9,11 @@
   ],
   "icon": "assets/herzium/icon.png",
   "license": "MIT",
+  "contact": {
+    "homepage": "https://modrinth.com/mod/herzium",
+    "sources": "https://github.com/kerlycanelita/Herzium",
+    "issues": "https://github.com/kerlycanelita/Herzium/issues"
+  },
   "environment": "client",
   "entrypoints": {
     "client": [
