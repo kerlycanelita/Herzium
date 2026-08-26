@@ -10,7 +10,6 @@ def classicInputVersions = [
         '1.21.5', '1.21.6', '1.21.7', '1.21.8'
 ] as Set
 def classicInput = classicInputVersions.contains(targetMinecraft)
-def publicSelectedSlot = ['1.21', '1.21.1', '1.21.2', '1.21.3', '1.21.4'].contains(targetMinecraft)
 def modernButton = ['1.21.9', '1.21.10'].contains(targetMinecraft)
 def noFramerateTracker = ['1.21', '1.21.1'].contains(targetMinecraft)
 def basicFramerateTracker = ['1.21.2', '1.21.3', '1.21.4'].contains(targetMinecraft)
@@ -51,10 +50,6 @@ tasks.register('generateHerziumClientSources', Sync) {
             exclude '**/AnimatedPurpleButton.java'
             exclude '**/ItemInHandRendererMixin.java'
             exclude '**/LoadingOverlayMixin.java'
-            exclude '**/MouseHandlerMixin.java'
-        }
-        if (publicSelectedSlot) {
-            exclude '**/HotbarVisualMixin.java'
         }
         if (modernButton) {
             exclude '**/AnimatedPurpleButton.java'
@@ -79,11 +74,6 @@ tasks.register('generateHerziumClientSources', Sync) {
                 if (modernButton) {
                     transformed = transformed.replace('.screen.init(', '.screen.resize(this.minecraft,')
                 }
-                if (publicSelectedSlot) {
-                    transformed = transformed.replace(
-                            'player.getInventory().getSelectedSlot()',
-                            'player.getInventory().selected')
-                }
                 transformed = transformed
                         .replace('require = 4', 'require = 0')
                         .replace('require = 2', 'require = 0')
@@ -100,27 +90,10 @@ tasks.register('generateHerziumClientSources', Sync) {
         }
     }
     if (classicInput) {
-        from('src/client/classic') {
-            filteringCharset = 'UTF-8'
-            filter { String line ->
-                if (!publicSelectedSlot) {
-                    return line
-                }
-                return line
-                        .replace('player.getInventory().getSelectedSlot()', 'player.getInventory().selected')
-            }
-        }
+        from('src/client/classic')
     }
     if (modernButton) {
         from('src/client/modern-button')
-    }
-    if (publicSelectedSlot) {
-        from('src/client/public-selected') {
-            filteringCharset = 'UTF-8'
-            filter { String line ->
-                line.replace('extractItemHotbar', 'renderItemHotbar')
-            }
-        }
     }
     if (basicFramerateTracker) {
         from('src/client/tracker-basic')

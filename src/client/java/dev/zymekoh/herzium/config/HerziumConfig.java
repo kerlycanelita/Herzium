@@ -145,21 +145,21 @@ public final class HerziumConfig {
         return this.hotbarPreview;
     }
 
-    public void setInstantEquip(boolean enabled) {
-        if (this.instantEquip == enabled) {
-            return;
-        }
-
-        this.instantEquip = enabled;
-        this.save();
-    }
-
     public void setHotbarPreview(boolean enabled) {
         if (this.hotbarPreview == enabled) {
             return;
         }
 
         this.hotbarPreview = enabled;
+        this.save();
+    }
+
+    public void setInstantEquip(boolean enabled) {
+        if (this.instantEquip == enabled) {
+            return;
+        }
+
+        this.instantEquip = enabled;
         this.save();
     }
 

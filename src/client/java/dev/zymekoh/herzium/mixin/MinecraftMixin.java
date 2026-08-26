@@ -42,9 +42,13 @@ abstract class MinecraftMixin {
     private void herzium$applyWindowPolicy(CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
         minecraft.getWindow().updateVsync(false);
-        // KoHsium owns its explicit input-latency controls when both mods are
-        // present, so Herzium does not race those editable values.
-        if (!KoHsiumIntegration.present() && InputConstants.isRawMouseInputSupported()) {
+        // KoHsium owns its explicit input-latency controls. KoHs Inventory
+        // Tweaks separately owns cursor placement across screen transitions;
+        // rewriting the GLFW raw-input mode here can race its verified Cursor
+        // Landing. Herzium therefore yields only this input-window decision.
+        if (!KoHsiumIntegration.present()
+                && !ExternalInputCompatibility.cursorPipelineOwnerPresent()
+                && InputConstants.isRawMouseInputSupported()) {
             minecraft.getWindow().updateRawMouseInput(!ExternalInputCompatibility.externalRawInputPresent());
         }
     }
@@ -62,6 +66,7 @@ abstract class MinecraftMixin {
             // Entering a level is when the server's tag sync lands, so it is the
             // moment anything derived from item tags stops being trustworthy.
             CombatItemClassifier.invalidate();
+            ImmediateHotbarInput.resetSession();
         }
         // Runs on every frame, including frames without a level, so a preview
         // left behind by a disconnect cannot retain the player it captured.

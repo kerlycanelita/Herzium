@@ -11,15 +11,21 @@
 
 Herzium is a client-side Fabric mod for Minecraft 1.21 through 26.2 that removes
 internal FPS limits while its window is active, forces VSync to remain disabled,
-reduces mouse and hotbar visual latency, and removes safe decorative waits from startup
+reduces mouse latency, and removes safe decorative waits from startup
 and world entry. Background, minimized, menu, and AFK pacing remain owned by Minecraft.
 
 ## KoHsium cooperation
 
 Herzium 1.9.3 and KoHsium 0.10.0 use an explicit ownership split when both are
-installed. Herzium remains the sole writer of VSync, the FPS limit and immediate
-hotbar visual preview. KoHsium owns its editable Raw Input, Smooth Camera and late-input
+installed. Herzium remains the sole writer of VSync and the active-window FPS policy.
+KoHsium owns its editable Raw Input, Smooth Camera and late-input
 controls; Herzium stops rewriting those two vanilla input values while KoHsium is present.
+
+KoHs Inventory Tweaks has a separate, narrower ownership role: it owns Cursor Landing
+and verifies cursor placement across screen transitions. While it is installed, Herzium
+does not rewrite the Vanilla Raw Input window mode at start-up, preventing a late GLFW
+mode change from racing that verified landing. Herzium still owns active-window VSync,
+FPS policy, and conditional first-person equip rendering.
 
 Herzium remains authoritative over active-window frame pacing when both mods are
 installed. When the window is inactive, minimized, in a menu, or AFK, Minecraft's
@@ -45,13 +51,13 @@ so neither startup screen overwrites the other.
 - When Exordium is installed, Herzium disables its HUD cache so the hotbar, TAB
   list, and the rest of the HUD are extracted and rendered every frame again.
 
-The core optimizations, Priority Hotbar, and fast loading transitions remain
+The core rendering optimizations and fast loading transitions remain
 permanently active. The configuration screen reports their live diagnostic state.
 
 ## Low-latency input
 
-- Without KoHsium or an external raw-input mod, Vanilla Raw Input is enabled at
-  start-up whenever GLFW and the operating system support it. It is applied to
+- Without KoHsium, an external raw-input mod, or KoHs Inventory Tweaks, Vanilla
+  Raw Input is enabled at start-up whenever GLFW and the operating system support it. It is applied to
   the window directly and is not written to `options.txt`, so the setting stays
   yours: turn it off in Controls and it stays off.
 - Herzium no longer forces Smooth Camera off. It used to overwrite that option
@@ -60,8 +66,8 @@ permanently active. The configuration screen reports their live diagnostic state
 - The same applies to VSync and the frame rate limit: both are bypassed at the
   window and pacing level, not by editing your saved settings. Video Settings
   therefore shows what you chose, not what Herzium enforces.
-- When Raw Input Buffer or Ixeris is detected, Herzium disables only Vanilla's
-  Raw Input path so two implementations do not own the same Vanilla setting.
+- When Raw Input Buffer or Ixeris is detected without KoHsium or KoHs Inventory
+  Tweaks, Herzium disables only Vanilla's Raw Input path so two implementations do not own the same Vanilla setting.
   The external mod remains active; Herzium does not disable foreign mixins or threads.
 - Raw Input Buffer and Ixeris must not be installed together because both own
   overlapping low-level mouse pipelines. Herzium detects and reports the overlap,
@@ -73,24 +79,19 @@ permanently active. The configuration screen reports their live diagnostic state
   the next rendered frame. Actual end-to-end latency still depends on mouse
   polling rate, frame rate, display refresh rate, GPU queue, and compositor;
   Herzium cannot guarantee 0.1 ms response time.
-- Cursor Landing is supplied by KoHs Inventory Tweaks rather than Herzium. Its
-  verified Raw Input Buffer adapter suppresses only the late menu recentring and
-  disarms after the one requested landing; without that mod, Cursor Landing is unavailable.
-- `Priority Hotbar` is an always-active core feature. One unambiguous keyboard or remapped
-  mouse-button binding is previewed in the HUD and first-person hand before the
-  next client tick. The observer never consumes a click or writes the real
-  inventory slot; Vanilla alone confirms selection and emits carried-item packets.
-  If distinct hotbar slots are pending in the same tick, one aggregate visual
-  state resolves them exactly like Vanilla's ascending hotbar loop. This keeps
-  the previewed block equal to the block Vanilla can actually use without
-  changing or consuming the underlying click queue.
-  Mouse-wheel selection remains entirely Vanilla and supersedes a pending preview.
-- The preview observes Vanilla's central logical `KeyMapping.click` after the
-  click is registered, instead of redirecting keyboard or mouse callbacks. This
-  lets ordinary input-remapping mods cooperate without an exclusive redirect.
-  A mod that cancels Vanilla input before that point or replaces the HUD path
-  cannot be overridden safely; Herzium falls back to Vanilla and reports the
-  unobserved hook in the Core page.
+- Cursor Landing is supplied by KoHs Inventory Tweaks rather than Herzium. That
+  mod owns cursor placement across screen transitions and verifies each requested
+  landing against late GLFW recentring. Herzium therefore leaves the player's
+  Vanilla Raw Input window mode untouched while Inventory Tweaks is present. This
+  ownership handoff does not transfer Herzium's VSync, FPS, or HUD policies.
+- Hotbar keys 1-9 stay on Minecraft 26.1.2's exact `KeyMapping` and
+  `handleKeybinds()` path. Herzium no longer observes those clicks, previews a
+  different HUD/hand slot, writes the selected slot, or emits carried-item
+  packets. Responsiveness comes only from displaying Vanilla's committed result
+  on Herzium's uncapped render loop.
+- Herzium does not inject into `KeyMapping.click`, `MouseHandler.onScroll`, or
+  the hotbar's selected-slot expression. Mods that remap or reposition the
+  hotbar therefore keep ownership instead of being overridden by Herzium.
 - Creative hotbar save/load shortcuts and spectator controls retain their
   vanilla path.
 - `Attack` and `Use/Place` remain entirely on Vanilla's 20 TPS input path,
@@ -129,9 +130,10 @@ switches, clear option descriptions, and a scrollable system overview. At normal
 GUI scales it uses two balanced columns; at high GUI scales it stacks them while
 keeping every control inside the panel.
 
-`Priority Hotbar` is displayed as an always-active core feature rather than a
-toggle. Keyboard, remapped-button, and mouse-wheel selection stay on Vanilla's
-unchanged input and packet paths. The diagnostics panel reports which mixins were
+The options pane contains only Herzium's independent visual controls. Hotbar keys
+1-9 are reported as a Vanilla pass-through rather than as a Herzium feature.
+Keyboard, remapped-button, and mouse-wheel selection stay on Vanilla's unchanged
+input and packet paths. The diagnostics panel reports which mixins were
 applied, which runtime hooks have actually executed, config health, active features,
 operating details, compatibility warnings, and hardware risks.
 The one-time startup-warning acknowledgement is stored in `config/herzium.json`.

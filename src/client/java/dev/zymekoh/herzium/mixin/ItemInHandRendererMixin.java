@@ -3,7 +3,6 @@ package dev.zymekoh.herzium.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
-import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -21,10 +20,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * complete Vanilla transition whenever a combat item appears. Inventory state,
  * actions, cooldowns, and packets remain untouched.
  *
- * <p>Turning {@code instantEquip} off returns first-person hand rendering to
- * plain Vanilla, which also means the hand stops previewing the hotbar slot
- * ahead of the next tick: that preview is applied by writing the visible item
- * here, so it cannot survive the dip being restored.</p>
+ * <p>Hotbar selection is never read ahead here. The current main-hand stack is
+ * taken from the player only after Vanilla commits the selected slot, leaving
+ * remaps, duplicate bindings and other hotbar mods completely authoritative.</p>
  */
 @Mixin(value = ItemInHandRenderer.class, priority = 2000)
 abstract class ItemInHandRendererMixin {
@@ -67,7 +65,7 @@ abstract class ItemInHandRendererMixin {
         // every frame would erase it. Only the equip case is overridden.
         boolean handsBusy = player.isHandsBusy();
 
-        ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
+        ItemStack visualMainHandItem = player.getMainHandItem();
         if (!CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
             this.mainHandItem = visualMainHandItem;
             if (!handsBusy) {

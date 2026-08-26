@@ -316,20 +316,26 @@ public final class HerziumConfigScreen extends Screen {
                 true,
                 snapshot,
                 textWidth);
+        addStatus(
+                lines,
+                "herzium.config.status.hotbar_preview",
+                herzium$previewState(config, snapshot),
+                herzium$previewStateColor(config, snapshot),
+                textWidth);
         addMixinStatus(
                 lines,
                 "herzium.config.status.hotbar_visual",
                 "HotbarVisualMixin",
                 snapshot.hotbarVisualHookObserved(),
-                config.hotbarPreview(),
+                config.hotbarPreview() && !snapshot.previewSuspended(),
                 snapshot,
                 textWidth);
         addMixinStatus(
                 lines,
-                "herzium.config.status.keyboard_hook",
+                "herzium.config.status.hotbar_input",
                 "KeyMappingMixin",
                 snapshot.keyboardHookObserved() || snapshot.mouseHookObserved(),
-                config.hotbarPreview(),
+                config.hotbarPreview() && !snapshot.previewSuspended(),
                 snapshot,
                 textWidth);
         addMixinStatus(
@@ -362,9 +368,17 @@ public final class HerziumConfigScreen extends Screen {
                         : HerziumTheme.TEXT_BAD;
         addStatus(lines, "herzium.config.status.config", configState, configColor, textWidth);
 
-        Component inputOwner = KoHsiumIntegration.present()
-                ? Component.translatable("herzium.config.state.managed_by_kohsium")
-                : Component.translatable("herzium.config.state.managed_by_herzium");
+        Component inputOwner;
+        if (KoHsiumIntegration.present()
+                && ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
+            inputOwner = Component.translatable("herzium.config.state.managed_by_kohsium_inventory_tweaks");
+        } else if (KoHsiumIntegration.present()) {
+            inputOwner = Component.translatable("herzium.config.state.managed_by_kohsium");
+        } else if (ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
+            inputOwner = Component.translatable("herzium.config.state.managed_by_inventory_tweaks");
+        } else {
+            inputOwner = Component.translatable("herzium.config.state.managed_by_herzium");
+        }
         addStatus(lines, "herzium.config.status.input_owner", inputOwner, HerziumTheme.TEXT_ACCENT, textWidth);
 
         Component inputPipeline;
@@ -373,11 +387,18 @@ public final class HerziumConfigScreen extends Screen {
             inputPipeline = Component.translatable("herzium.config.state.external_input_multiple");
             inputPipelineColor = HerziumTheme.TEXT_BAD;
         } else if (ExternalInputCompatibility.rawInputBufferPresent()) {
-            inputPipeline = Component.translatable("herzium.config.state.external_input_raw_buffer");
+            inputPipeline = Component.translatable(ExternalInputCompatibility.cursorPipelineOwnerPresent()
+                    ? "herzium.config.state.external_input_raw_buffer_cursor"
+                    : "herzium.config.state.external_input_raw_buffer");
             inputPipelineColor = HerziumTheme.TEXT_WARN;
         } else if (ExternalInputCompatibility.ixerisPresent()) {
-            inputPipeline = Component.translatable("herzium.config.state.external_input_ixeris");
+            inputPipeline = Component.translatable(ExternalInputCompatibility.cursorPipelineOwnerPresent()
+                    ? "herzium.config.state.external_input_ixeris_cursor"
+                    : "herzium.config.state.external_input_ixeris");
             inputPipelineColor = HerziumTheme.TEXT_WARN;
+        } else if (ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
+            inputPipeline = Component.translatable("herzium.config.state.external_input_cursor");
+            inputPipelineColor = HerziumTheme.TEXT_GOOD;
         } else {
             inputPipeline = Component.translatable("herzium.config.state.external_input_none");
             inputPipelineColor = HerziumTheme.TEXT_GOOD;
@@ -425,7 +446,6 @@ public final class HerziumConfigScreen extends Screen {
         addCounter(lines, "herzium.config.counter.last_preview", lastPreview, textWidth);
 
         addHeading(lines, "herzium.config.section.how", textWidth, true);
-        addParagraph(lines, "herzium.config.how.preview", textWidth);
         addParagraph(lines, "herzium.config.how.vanilla", textWidth);
         addParagraph(lines, "herzium.config.how.hands", textWidth);
         addParagraph(lines, "herzium.config.how.inventory", textWidth);
@@ -442,24 +462,31 @@ public final class HerziumConfigScreen extends Screen {
         } else if (snapshot.configState() == CoreDiagnostics.ConfigState.WRITE_FAILED) {
             addIssue(lines, "herzium.config.issue.config_write", textWidth);
         }
+        addMissingMixinIssue(lines, snapshot, "ItemInHandRendererMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "HotbarVisualMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "KeyMappingAccessor", textWidth);
         addMissingMixinIssue(lines, snapshot, "KeyMappingMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "MouseHandlerMixin", textWidth);
-        addMissingMixinIssue(lines, snapshot, "ItemInHandRendererMixin", textWidth);
         addMissingMixinIssue(lines, snapshot, "MinecraftMixin", textWidth);
         if (exordiumPresent && !snapshot.mixinApplied("ExordiumBufferInstanceMixin")) {
             addIssue(lines, "herzium.config.issue.exordium", textWidth);
         }
         if (ExternalInputCompatibility.competingExternalPipelinesPresent()) {
-            addIssue(lines, "herzium.config.issue.external_input_collision", textWidth);
+            addIssue(lines, KoHsiumIntegration.present()
+                            || ExternalInputCompatibility.cursorPipelineOwnerPresent()
+                            ? "herzium.config.issue.external_input_collision_yielded"
+                            : "herzium.config.issue.external_input_collision",
+                    textWidth);
         } else if (ExternalInputCompatibility.rawInputBufferPresent()
                 && !ExternalInputCompatibility.inventoryTweaksPresent()) {
             addWarning(lines, "herzium.config.issue.raw_input_cursor_adapter_missing", textWidth);
         } else if (ExternalInputCompatibility.rawInputBufferPresent()) {
-            addWarning(lines, "herzium.config.issue.raw_input_buffer", textWidth);
+            addWarning(lines, "herzium.config.issue.raw_input_buffer_cursor_owner", textWidth);
         } else if (ExternalInputCompatibility.ixerisPresent()) {
-            addWarning(lines, "herzium.config.issue.ixeris", textWidth);
+            addWarning(lines, ExternalInputCompatibility.cursorPipelineOwnerPresent()
+                            ? "herzium.config.issue.ixeris_cursor_owner"
+                            : "herzium.config.issue.ixeris",
+                    textWidth);
         }
         if (this.detectedIssueCount == 0) {
             addWrapped(
@@ -483,6 +510,58 @@ public final class HerziumConfigScreen extends Screen {
                 0,
                 this.logicalInfoHeight - Math.max(1, this.infoHeight - this.infoHeaderHeight - 12));
         this.scrollOffset = Mth.clamp(this.scrollOffset, 0, this.maxScroll);
+    }
+
+    /**
+     * The preview's own state, which is not the same question as whether its
+     * mixins applied: it can be off by choice, or suspended because it was
+     * wrong, and both are normal outcomes rather than faults.
+     */
+    private static Component herzium$previewState(HerziumConfig config, CoreDiagnostics.Snapshot snapshot) {
+        if (!config.hotbarPreview()) {
+            return Component.translatable("herzium.config.state.option_off");
+        }
+        if (snapshot.previewSuspended()) {
+            return Component.translatable("herzium.config.state.preview_suspended");
+        }
+        return Component.translatable("herzium.config.state.observed");
+    }
+
+    private static int herzium$previewStateColor(HerziumConfig config, CoreDiagnostics.Snapshot snapshot) {
+        if (!config.hotbarPreview()) {
+            return HerziumTheme.TEXT_MUTED;
+        }
+        return snapshot.previewSuspended() ? HerziumTheme.TEXT_WARN : HerziumTheme.TEXT_GOOD;
+    }
+
+    /** Groups long counters so a six-digit column stays readable. */
+    private static Component number(long value) {
+        return Component.literal(String.format(java.util.Locale.ROOT, "%,d", value));
+    }
+
+    /** A counter row: no dot, label on the left, number on the right. */
+    private void addCounter(List<InfoLine> lines, String labelKey, Component value, int textWidth) {
+        Component label = Component.translatable(labelKey);
+        int valueWidth = this.font.width(value);
+        int available = Math.max(1, this.infoWidth - 20);
+
+        if (this.font.width(label) + 8 + valueWidth <= available) {
+            lines.add(new InfoLine(
+                    label.getVisualOrderText(),
+                    HerziumTheme.TEXT_MUTED,
+                    11,
+                    0,
+                    value.getVisualOrderText(),
+                    valueWidth,
+                    HerziumTheme.TEXT_BODY));
+            return;
+        }
+
+        addWrapped(
+                lines,
+                Component.translatable("herzium.config.status.entry", label, value),
+                HerziumTheme.TEXT_MUTED,
+                textWidth);
     }
 
     private void addMixinStatus(
@@ -618,39 +697,6 @@ public final class HerziumConfigScreen extends Screen {
         return minecraft.isWindowActive()
                 && minecraft.getFramerateLimitTracker().getThrottleReason()
                         == FramerateLimitTracker.FramerateThrottleReason.NONE;
-    }
-
-    /**
-     * Counters run into the millions over a long session, and a raw
-     * {@code 26436} column is hard to read at a glance, so they are grouped.
-     */
-    private static Component number(long value) {
-        return Component.literal(String.format(java.util.Locale.ROOT, "%,d", value));
-    }
-
-    /** A counter row: no dot, label on the left, number on the right. */
-    private void addCounter(List<InfoLine> lines, String labelKey, Component value, int textWidth) {
-        Component label = Component.translatable(labelKey);
-        int valueWidth = this.font.width(value);
-        int available = Math.max(1, this.infoWidth - 20);
-
-        if (this.font.width(label) + 8 + valueWidth <= available) {
-            lines.add(new InfoLine(
-                    label.getVisualOrderText(),
-                    HerziumTheme.TEXT_MUTED,
-                    11,
-                    0,
-                    value.getVisualOrderText(),
-                    valueWidth,
-                    HerziumTheme.TEXT_BODY));
-            return;
-        }
-
-        addWrapped(
-                lines,
-                Component.translatable("herzium.config.status.entry", label, value),
-                HerziumTheme.TEXT_MUTED,
-                textWidth);
     }
 
     private void addParagraph(List<InfoLine> lines, String translationKey, int textWidth) {

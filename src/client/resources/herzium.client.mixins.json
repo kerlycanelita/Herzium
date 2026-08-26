@@ -4,8 +4,8 @@
   "plugin": "dev.zymekoh.herzium.mixin.HerziumMixinPlugin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "FramerateLimiterMixin",
     "FramerateLimitTrackerMixin",
+    "FramerateLimiterMixin",
     "GlDeviceMixin",
     "GuiMixin",
     "HotbarVisualMixin",

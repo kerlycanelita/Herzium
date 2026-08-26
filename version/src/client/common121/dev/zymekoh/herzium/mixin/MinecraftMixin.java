@@ -6,7 +6,6 @@ import dev.zymekoh.herzium.compat.KoHsiumIntegration;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
-import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,11 +32,6 @@ abstract class MinecraftMixin {
     private void herzium$keepCoreOptionsOptimized(boolean advanceGameTime, CallbackInfo ci) {
         CoreDiagnostics.recordCoreFrameHook();
         herzium$enforceCoreOptions((Minecraft) (Object) this);
-    }
-
-    @Inject(method = "handleKeybinds", at = @At("TAIL"))
-    private void herzium$observeVanillaHotbarConfirmation(CallbackInfo ci) {
-        ImmediateHotbarInput.onVanillaHotbarTick((Minecraft) (Object) this);
     }
 
     @Redirect(

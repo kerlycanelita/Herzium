@@ -2,7 +2,6 @@ package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
-import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -44,24 +43,18 @@ abstract class ItemInHandRendererMixin {
             LocalPlayer player,
             int packedLight,
             CallbackInfo ci) {
-        ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
-        if (CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
-            CoreDiagnostics.recordCombatEquipFramePreserved();
-        } else {
+        ItemStack visualMainHandItem = player.getMainHandItem();
+        if (!CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
             this.mainHandItem = visualMainHandItem;
             this.mainHandHeight = 1.0F;
             this.oMainHandHeight = 1.0F;
-            CoreDiagnostics.recordInstantEquipFrame();
         }
 
         ItemStack visualOffHandItem = player.getOffhandItem();
-        if (CombatItemClassifier.preservesVanillaEquipTransition(visualOffHandItem)) {
-            CoreDiagnostics.recordCombatEquipFramePreserved();
-        } else {
+        if (!CombatItemClassifier.preservesVanillaEquipTransition(visualOffHandItem)) {
             this.offHandItem = visualOffHandItem;
             this.offHandHeight = 1.0F;
             this.oOffHandHeight = 1.0F;
-            CoreDiagnostics.recordInstantEquipFrame();
         }
         CoreDiagnostics.recordHandRenderHook();
     }

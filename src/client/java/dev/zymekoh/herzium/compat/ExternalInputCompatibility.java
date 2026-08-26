@@ -24,6 +24,18 @@ public final class ExternalInputCompatibility {
         return INVENTORY_TWEAKS_PRESENT;
     }
 
+    /**
+     * Returns whether another mod owns cursor placement across screen transitions.
+     *
+     * <p>GLFW cursor placement is not authoritative: a later window-input change
+     * can replace a landing that was already requested. KoHs Inventory Tweaks
+     * verifies Cursor Landing after the transition, so Herzium must not rewrite
+     * the Vanilla Raw Input window mode while that cursor pipeline is present.</p>
+     */
+    public static boolean cursorPipelineOwnerPresent() {
+        return INVENTORY_TWEAKS_PRESENT;
+    }
+
     public static boolean externalRawInputPresent() {
         return RAW_INPUT_BUFFER_PRESENT || IXERIS_PRESENT;
     }

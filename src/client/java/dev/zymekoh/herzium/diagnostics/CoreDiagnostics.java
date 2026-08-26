@@ -12,6 +12,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * available.</p>
  */
 public final class CoreDiagnostics {
+    public enum InputSource {
+        KEYBOARD,
+        MOUSE
+    }
+
     public enum ConfigState {
         LOADING,
         HEALTHY,
@@ -19,24 +24,20 @@ public final class CoreDiagnostics {
         WRITE_FAILED
     }
 
-    public enum InputSource {
-        KEYBOARD,
-        MOUSE
-    }
-
     public record Snapshot(
             Set<String> appliedMixins,
             boolean coreFrameHookObserved,
+            boolean handRenderHookObserved,
             boolean keyboardHookObserved,
             boolean mouseHookObserved,
             boolean wheelHookObserved,
             boolean hotbarVisualHookObserved,
-            boolean handRenderHookObserved,
             ConfigState configState,
             long previewRequests,
             long vanillaConfirmations,
             long previewMismatches,
             long ambiguousPreviewsResolved,
+            boolean previewSuspended,
             int lastPreviewSlot,
             InputSource lastInputSource) {
         public boolean mixinApplied(String simpleName) {
@@ -50,12 +51,13 @@ public final class CoreDiagnostics {
     private static final AtomicLong PREVIEW_MISMATCHES = new AtomicLong();
     private static final AtomicLong AMBIGUOUS_PREVIEWS_RESOLVED = new AtomicLong();
 
-    private static volatile boolean keyboardHookObserved;
     private static volatile boolean coreFrameHookObserved;
+    private static volatile boolean handRenderHookObserved;
+    private static volatile boolean keyboardHookObserved;
     private static volatile boolean mouseHookObserved;
     private static volatile boolean wheelHookObserved;
     private static volatile boolean hotbarVisualHookObserved;
-    private static volatile boolean handRenderHookObserved;
+    private static volatile boolean previewSuspended;
     private static volatile ConfigState configState = ConfigState.LOADING;
     private static volatile int lastPreviewSlot = -1;
     private static volatile InputSource lastInputSource;
@@ -65,17 +67,7 @@ public final class CoreDiagnostics {
     }
 
     /**
-     * Starts a fresh set of counters when the client enters a different world.
-     *
-     * <p>The frame and preview counters are cumulative, so without this they
-     * kept adding up across worlds and servers for the whole process lifetime:
-     * the numbers on the config page said nothing about the session the player
-     * was actually looking at. Leaving a world does not reset them -- the
-     * counters stay readable after disconnecting, and are cleared by the next
-     * join.</p>
-     *
-     * <p>Only the counters are session-scoped. Which mixins applied, and which
-     * hooks have ever fired, are facts about the process and are kept.</p>
+     * Observes when the client enters a different world.
      *
      * @param sessionId an identity for the current level, or {@code 0} for none.
      *                  Passed as an int on purpose: this class must not import
@@ -96,12 +88,21 @@ public final class CoreDiagnostics {
         AMBIGUOUS_PREVIEWS_RESOLVED.set(0L);
         lastPreviewSlot = -1;
         lastInputSource = null;
+        // A suspension is a judgement about one world's mod combination, not a
+        // permanent verdict on the install, so a new world gets a clean try.
+        previewSuspended = false;
         return true;
     }
 
     public static void recordMixinApplied(String mixinClassName) {
         int separator = mixinClassName.lastIndexOf('.');
         APPLIED_MIXINS.add(separator >= 0 ? mixinClassName.substring(separator + 1) : mixinClassName);
+    }
+
+    public static void recordCoreFrameHook() {
+        if (!coreFrameHookObserved) {
+            coreFrameHookObserved = true;
+        }
     }
 
     public static void recordHotbarInput(InputSource source, int slot) {
@@ -113,12 +114,6 @@ public final class CoreDiagnostics {
         lastInputSource = source;
         lastPreviewSlot = slot;
         PREVIEW_REQUESTS.incrementAndGet();
-    }
-
-    public static void recordCoreFrameHook() {
-        if (!coreFrameHookObserved) {
-            coreFrameHookObserved = true;
-        }
     }
 
     public static void recordHotbarVisualHook() {
@@ -133,12 +128,6 @@ public final class CoreDiagnostics {
         }
     }
 
-    public static void recordHandRenderHook() {
-        if (!handRenderHookObserved) {
-            handRenderHookObserved = true;
-        }
-    }
-
     public static void recordVanillaConfirmation(boolean matchedPreview) {
         VANILLA_CONFIRMATIONS.incrementAndGet();
         if (!matchedPreview) {
@@ -148,6 +137,17 @@ public final class CoreDiagnostics {
 
     public static void recordAmbiguousPreviewResolved() {
         AMBIGUOUS_PREVIEWS_RESOLVED.incrementAndGet();
+    }
+
+    /** The preview gave up on this world after disagreeing with Vanilla. */
+    public static void recordPreviewSuspended() {
+        previewSuspended = true;
+    }
+
+    public static void recordHandRenderHook() {
+        if (!handRenderHookObserved) {
+            handRenderHookObserved = true;
+        }
     }
 
     public static void recordConfigHealthy() {
@@ -166,16 +166,17 @@ public final class CoreDiagnostics {
         return new Snapshot(
                 Set.copyOf(APPLIED_MIXINS),
                 coreFrameHookObserved,
+                handRenderHookObserved,
                 keyboardHookObserved,
                 mouseHookObserved,
                 wheelHookObserved,
                 hotbarVisualHookObserved,
-                handRenderHookObserved,
                 configState,
                 PREVIEW_REQUESTS.get(),
                 VANILLA_CONFIRMATIONS.get(),
                 PREVIEW_MISMATCHES.get(),
                 AMBIGUOUS_PREVIEWS_RESOLVED.get(),
+                previewSuspended,
                 lastPreviewSlot,
                 lastInputSource);
     }

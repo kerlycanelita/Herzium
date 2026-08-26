@@ -5,6 +5,8 @@ import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics.InputSource;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
+import dev.zymekoh.herzium.Herzium;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -27,14 +29,32 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class ImmediateHotbarInput {
     private static final long FAIL_SAFE_PREVIEW_NANOS = 2_000_000_000L;
+
+    /**
+     * How many times in a row the preview may disagree with Vanilla before it
+     * stops previewing for the rest of the world session.
+     *
+     * <p>A disagreement is not cosmetic: it means the HUD and the hand showed a
+     * slot Vanilla did not end up selecting, so for up to one tick the player
+     * saw an item they did not have. One-off disagreements are possible without
+     * anything being wrong -- another mod can legitimately move the selection in
+     * the same tick as the keypress -- so a single miss only drops that preview.
+     * A run of them means something else owns hotbar selection and Herzium's
+     * model of it is not valid here, and the honest response is to stop
+     * guessing rather than keep being wrong quietly.</p>
+     */
+    private static final int MAX_CONSECUTIVE_MISMATCHES = 3;
+
     private static final AtomicReference<PreviewState> PREVIEW = new AtomicReference<>();
+    private static final AtomicInteger CONSECUTIVE_MISMATCHES = new AtomicInteger();
+    private static volatile boolean suspended;
 
     private ImmediateHotbarInput() {
     }
 
     /** Called after Vanilla has registered exactly one logical KeyMapping click. */
     public static void previewLogicalKey(InputConstants.Key logicalKey) {
-        if (!HerziumConfig.get().hotbarPreview()) {
+        if (suspended || !HerziumConfig.get().hotbarPreview()) {
             return;
         }
 
@@ -82,7 +102,7 @@ public final class ImmediateHotbarInput {
         // Checked here as well as in previewLogicalKey so that switching the
         // feature off drops a preview that is already in flight, instead of
         // leaving it on screen until the fail-safe deadline.
-        if (!HerziumConfig.get().hotbarPreview() || !previewIsValid(state, inventory)) {
+        if (suspended || !HerziumConfig.get().hotbarPreview() || !previewIsValid(state, inventory)) {
             clearPreview(state);
             return vanillaSlot;
         }
@@ -110,8 +130,23 @@ public final class ImmediateHotbarInput {
         }
 
         int vanillaSlot = player.getInventory().getSelectedSlot();
-        CoreDiagnostics.recordVanillaConfirmation(vanillaSlot == state.slot());
+        boolean matched = vanillaSlot == state.slot();
+        CoreDiagnostics.recordVanillaConfirmation(matched);
         clearPreview(state);
+
+        if (matched) {
+            CONSECUTIVE_MISMATCHES.set(0);
+            return;
+        }
+        if (CONSECUTIVE_MISMATCHES.incrementAndGet() >= MAX_CONSECUTIVE_MISMATCHES) {
+            suspended = true;
+            CoreDiagnostics.recordPreviewSuspended();
+            Herzium.LOGGER.warn(
+                    "Priority Hotbar disagreed with Vanilla's selection {} times in a row and has "
+                            + "suspended itself for this world. Something else owns hotbar selection "
+                            + "here; the hotbar now follows Vanilla exactly, one tick later.",
+                    MAX_CONSECUTIVE_MISMATCHES);
+        }
     }
 
     /** A real Vanilla wheel change supersedes any provisional key preview. */
@@ -128,6 +163,13 @@ public final class ImmediateHotbarInput {
 
     public static void clearPreview() {
         PREVIEW.set(null);
+    }
+
+    /** Called when the client enters a different world; see the suspension note. */
+    public static void resetSession() {
+        PREVIEW.set(null);
+        CONSECUTIVE_MISMATCHES.set(0);
+        suspended = false;
     }
 
     /**

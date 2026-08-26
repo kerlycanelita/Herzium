@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Removes VSync and FPS limits, reduces mouse and hotbar visual latency, and adds safe high-refresh visual improvements.",
+  "description": "Removes VSync and FPS limits, reduces mouse latency, and adds safe high-refresh visual improvements while leaving hotbar input Vanilla-owned.",
   "authors": [
     "zymekoh"
   ],

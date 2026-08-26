@@ -15,8 +15,7 @@ import org.spongepowered.asm.mixin.injection.At;
  * <p>Both hooks are {@link ModifyExpressionValue} rather than {@code @Redirect}.
  * A redirect is exclusive: it claims the call site, so any other HUD mod
  * touching {@code getAttackStrengthScale} at these two points would simply
- * stop working. The neighbouring {@code HotbarVisualMixin} already used the
- * composable form; these two were the outliers.</p>
+ * stop working. The composable form keeps those call sites shareable.</p>
  */
 @Mixin(value = Gui.class, priority = 2000)
 abstract class GuiMixin {

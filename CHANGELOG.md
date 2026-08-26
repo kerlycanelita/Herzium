@@ -2,12 +2,14 @@
 
 ## 1.9.3
 
-- Makes Priority Hotbar an always-active render-only core feature; it remains a single Vanilla-resolvable preview with no extra queue, slot write, click consumption, or packet.
+- Yields the start-up Raw Input window rewrite while KoHs Inventory Tweaks owns Cursor Landing, preventing Herzium from racing its verified cursor placement without changing VSync or FPS policy.
+- Reports the cursor-pipeline ownership handoff accurately in the startup log and all three localized Core diagnostics, including combinations with Raw Input Buffer, Ixeris, and KoHsium.
+- Removes Priority Hotbar, its preview state, input observers, HUD substitution, wheel hook, diagnostics counters, and saved toggle.
+- Returns hotbar keys 1-9 completely to Vanilla's `KeyMapping` and `handleKeybinds()` path so Herzium cannot reorder input or override mods that own hotbar positions.
 - Removes container-focus world suppression so inventories use Vanilla's live background, or the background supplied by another visual mod, instead of exposing a cleared black framebuffer.
 - Keeps zero-duration equip transitions for ordinary items but preserves Vanilla's visible equip transition for swords, axes, pickaxes, spears, maces, bows, crossbows, tridents, shields, and tagged combat items.
 - Removes Herzium's duplicate 10 FPS background limiter and returns inactive, minimized, menu, and AFK pacing completely to Minecraft's existing policy.
 - Redesigns the bilingual Mod Menu screen with a professional two-column layout, compact switch controls, muted status indicators, and responsive stacked rendering at high GUI scales.
-- Keeps runtime counters for instant ordinary-item frames and preserved combat-item frames in the diagnostics panel.
 
 ## 1.9.2
 
