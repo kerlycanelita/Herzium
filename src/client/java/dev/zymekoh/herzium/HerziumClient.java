@@ -1,8 +1,8 @@
 package dev.zymekoh.herzium;
 
-import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.compat.KoHsiumIntegration;
+import dev.zymekoh.herzium.config.HerziumConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -11,71 +11,54 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized: fast loading, conditional instant equip, Priority Hotbar preview, and "
-                        + "active-window uncapped rendering are active. Inventory backgrounds remain "
-                        + "Vanilla-owned, and the hotbar preview never writes the real selection.");
+                "Herzium initialized. Always on, with no in-game options: uncapped rendering while the "
+                        + "window is active, forced Vanilla Raw Input, instant equip for ordinary items, "
+                        + "Priority Hotbar preview, and a start-up with no decorative waits.");
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");
         }
+
+        // Herzium no longer stands down for either of these. Both are still
+        // reported, because a player whose cursor or camera behaves differently
+        // than it used to deserves to find the reason in the log rather than
+        // guess at it.
         if (KoHsiumIntegration.present()) {
             Herzium.LOGGER.info(
-                    "KoHsium cooperation active: Herzium owns active-window VSync/FPS policy and "
-                            + "conditional item-equip rendering; Vanilla owns hotbar input and inactive pacing, "
-                            + "and KoHsium owns "
-                            + "editable input controls.");
+                    "KoHsium detected. Herzium now takes the Vanilla Raw Input window mode regardless, so "
+                            + "KoHsium's editable input controls no longer decide it. KoHsium keeps everything "
+                            + "else it owns.");
         }
         if (ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
-            Herzium.LOGGER.info(
-                    "KoHs Inventory Tweaks detected: it owns Cursor Landing across screen transitions. "
-                            + "Herzium skips its start-up Vanilla Raw Input window rewrite and leaves the "
-                            + "player's setting unchanged; "
-                            + "active-window VSync/FPS policy remains owned by Herzium.");
-        } else if (!KoHsiumIntegration.present()) {
-            Herzium.LOGGER.info(
-                    "No external cursor-pipeline owner detected: Herzium retains its existing start-up "
-                            + "Vanilla Raw Input window policy.");
+            Herzium.LOGGER.warn(
+                    "KoHs Inventory Tweaks detected. Herzium rewrites the Vanilla Raw Input window mode at "
+                            + "start-up and no longer yields that decision, so it can race Cursor Landing's "
+                            + "placement when a screen opens. If the pointer lands centred instead of where "
+                            + "Cursor Landing put it, this is why.");
         }
+
+        // Raw Input Buffer and Ixeris are a different case from the two above.
+        // They drive their own low-level mouse pipeline, so turning Vanilla's on
+        // as well means two implementations feeding the same deltas. That is not
+        // deference, so it survives the change.
         if (ExternalInputCompatibility.competingExternalPipelinesPresent()) {
-            if (KoHsiumIntegration.present()
-                    || ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
-                Herzium.LOGGER.warn(
-                        "Raw Input Buffer and Ixeris are both loaded. Their external pipelines still overlap "
-                                + "and one of them should be removed. Herzium left Vanilla Raw Input unchanged "
-                                + "because another installed mod owns the input-window decision.");
-            } else {
-                Herzium.LOGGER.warn(
-                        "Raw Input Buffer and Ixeris are both loaded. Herzium disabled only Vanilla Raw Input; "
-                                + "the two external pipelines still overlap and one of them should be removed.");
-            }
+            Herzium.LOGGER.warn(
+                    "Raw Input Buffer and Ixeris are both loaded. Herzium disabled only Vanilla Raw Input; "
+                            + "the two external pipelines still overlap and one of them should be removed.");
         } else if (ExternalInputCompatibility.rawInputBufferPresent()) {
-            if (KoHsiumIntegration.present()
-                    || ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
-                Herzium.LOGGER.warn(
-                        "Raw Input Buffer detected. Herzium left Vanilla Raw Input unchanged because another "
-                                + "installed mod owns the input-window decision; Raw Input Buffer still owns "
-                                + "its external mouse-delta pipeline.");
-            } else {
-                Herzium.LOGGER.warn(
-                        "Raw Input Buffer detected. Vanilla Raw Input is disabled to avoid duplicate ownership. "
-                                + "Cursor Landing requires KoHs Inventory Tweaks for its verified recentering adapter.");
-            }
+            Herzium.LOGGER.warn(
+                    "Raw Input Buffer detected. Vanilla Raw Input is disabled to avoid two implementations "
+                            + "owning the same mouse deltas; Raw Input Buffer keeps its own pipeline.");
         } else if (ExternalInputCompatibility.ixerisPresent()) {
-            if (KoHsiumIntegration.present()
-                    || ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
-                Herzium.LOGGER.warn(
-                        "Ixeris detected. Herzium left Vanilla Raw Input unchanged because another installed mod "
-                                + "owns the input-window decision; Ixeris still owns its external input thread.");
-            } else {
-                Herzium.LOGGER.warn(
-                        "Ixeris detected. Vanilla Raw Input is disabled while Ixeris owns its external input pipeline.");
-            }
+            Herzium.LOGGER.warn(
+                    "Ixeris detected. Vanilla Raw Input is disabled while Ixeris owns its external input pipeline.");
         }
+
         if (ExternalInputCompatibility.rawInputBufferPresent()
                 && !ExternalInputCompatibility.inventoryTweaksPresent()) {
             Herzium.LOGGER.warn(
-                    "KoHs Inventory Tweaks is not loaded, so Cursor Landing and the Raw Input Buffer cursor adapter "
-                            + "are unavailable in this session.");
+                    "KoHs Inventory Tweaks is not loaded, so Cursor Landing and the Raw Input Buffer cursor "
+                            + "adapter are unavailable in this session.");
         }
     }
 }

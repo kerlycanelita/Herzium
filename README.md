@@ -14,32 +14,35 @@ internal FPS limits while its window is active, forces VSync to remain disabled,
 reduces mouse latency, and removes safe decorative waits from startup
 and world entry. Background, minimized, menu, and AFK pacing remain owned by Minecraft.
 
-## KoHsium cooperation
+## Ownership
 
-Herzium 1.9.3 and KoHsium 0.10.0 use an explicit ownership split when both are
-installed. Herzium remains the sole writer of VSync and the active-window FPS policy.
-KoHsium owns its editable Raw Input, Smooth Camera and late-input
-controls; Herzium stops rewriting those two vanilla input values while KoHsium is present.
+Herzium takes what it needs and does not negotiate for it. It is the sole writer
+of VSync, of the active-window frame policy, and of the Vanilla Raw Input window
+mode. Earlier releases stood down from that last one for KoHsium and for KoHs
+Inventory Tweaks; they no longer do.
 
-KoHs Inventory Tweaks has a separate, narrower ownership role: it owns Cursor Landing
-and verifies cursor placement across screen transitions. While it is installed, Herzium
-does not rewrite the Vanilla Raw Input window mode at start-up, preventing a late GLFW
-mode change from racing that verified landing. Herzium still owns active-window VSync,
-FPS policy, and conditional first-person equip rendering.
+That has a cost worth stating plainly rather than burying. KoHs Inventory Tweaks
+owns Cursor Landing, which places the pointer when a screen opens and verifies
+the placement afterwards. Herzium rewrites the Raw Input window mode at start-up,
+and a GLFW mode change can move the pointer, so the two can race. If your cursor
+lands centred instead of where Cursor Landing put it, that is this decision and
+the start-up log says so.
 
-Herzium remains authoritative over active-window frame pacing when both mods are
-installed. When the window is inactive, minimized, in a menu, or AFK, Minecraft's
-own frame-rate policy is allowed to run without a duplicate Herzium limiter.
+Raw Input Buffer and Ixeris are treated differently, and not out of courtesy.
+Each drives its own low-level mouse pipeline; enabling Vanilla's as well would
+mean two implementations feeding the same deltas, which is a broken state rather
+than a contested one. When either is installed Herzium leaves Vanilla Raw Input
+off. Installing both at once is unsupported by either of them, and Herzium only
+reports the overlap.
 
-KoHsium continues to provide its independent late-event sample, conservative
-section scheduling, render-work reduction, PvP visual safety and diagnostics.
-Its adaptive percentile and background telemetry cadence are based on actual
-render work instead of raw frame count, so Herzium's uncapped rendering does
-not cause those maintenance tasks to run hundreds of times per second.
+KoHsium keeps everything else it owns: its late-event sample, section
+scheduling, render-work reduction, PvP visual safety and diagnostics. Its
+adaptive cadence is based on actual render work rather than raw frame count, so
+Herzium's uncapped rendering does not make those tasks run hundreds of times a
+second.
 
-The Herzium warning remains first because it owns the initial-screen runnable.
-KoHsium waits until the real title screen is free before showing its own notice,
-so neither startup screen overwrites the other.
+The Herzium warning still appears first, because it owns the initial-screen
+runnable. KoHsium waits for the real title screen before showing its own notice.
 
 ## What it removes
 
@@ -51,53 +54,50 @@ so neither startup screen overwrites the other.
 - When Exordium is installed, Herzium disables its HUD cache so the hotbar, TAB
   list, and the rest of the HUD are extracted and rendered every frame again.
 
-The core rendering optimizations and fast loading transitions remain
-permanently active. The configuration screen reports their live diagnostic state.
+Every one of these is permanently active. There is nothing to configure and no
+screen that reports it.
 
 ## Low-latency input
 
-- Without KoHsium, an external raw-input mod, or KoHs Inventory Tweaks, Vanilla
-  Raw Input is enabled at start-up whenever GLFW and the operating system support it. It is applied to
-  the window directly and is not written to `options.txt`, so the setting stays
-  yours: turn it off in Controls and it stays off.
-- Herzium no longer forces Smooth Camera off. It used to overwrite that option
-  on every frame, which made cinematic camera impossible to enable and left the
-  value behind after uninstalling the mod. Nothing Herzium does depends on it.
-- The same applies to VSync and the frame rate limit: both are bypassed at the
-  window and pacing level, not by editing your saved settings. Video Settings
-  therefore shows what you chose, not what Herzium enforces.
-- When Raw Input Buffer or Ixeris is detected without KoHsium or KoHs Inventory
-  Tweaks, Herzium disables only Vanilla's Raw Input path so two implementations do not own the same Vanilla setting.
-  The external mod remains active; Herzium does not disable foreign mixins or threads.
-- Raw Input Buffer and Ixeris must not be installed together because both own
-  overlapping low-level mouse pipelines. Herzium detects and reports the overlap,
-  but the safe fix is to remove one of them.
-- With KoHsium installed, Herzium yields those two input settings so KoHsium's
-  Precision Camera, Direct Mouse and Force Raw controls remain authoritative.
-  Mouse sensitivity and the amount of rotation produced by each raw delta remain unchanged.
-- Mouse events are accumulated without discarding samples and applied before
-  the next rendered frame. Actual end-to-end latency still depends on mouse
-  polling rate, frame rate, display refresh rate, GPU queue, and compositor;
-  Herzium cannot guarantee 0.1 ms response time.
-- Cursor Landing is supplied by KoHs Inventory Tweaks rather than Herzium. That
-  mod owns cursor placement across screen transitions and verifies each requested
-  landing against late GLFW recentring. Herzium therefore leaves the player's
-  Vanilla Raw Input window mode untouched while Inventory Tweaks is present. This
-  ownership handoff does not transfer Herzium's VSync, FPS, or HUD policies.
-- Hotbar keys 1-9 stay on Minecraft 26.1.2's exact `KeyMapping` and
-  `handleKeybinds()` path. Herzium no longer observes those clicks, previews a
-  different HUD/hand slot, writes the selected slot, or emits carried-item
-  packets. Responsiveness comes only from displaying Vanilla's committed result
-  on Herzium's uncapped render loop.
-- Herzium does not inject into `KeyMapping.click`, `MouseHandler.onScroll`, or
-  the hotbar's selected-slot expression. Mods that remap or reposition the
-  hotbar therefore keep ownership instead of being overridden by Herzium.
-- Creative hotbar save/load shortcuts and spectator controls retain their
-  vanilla path.
-- `Attack` and `Use/Place` remain entirely on Vanilla's 20 TPS input path,
-  including mouse buttons, side buttons, keyboard remaps, and scancodes.
-  Herzium does not dispatch combat or interaction packets from render-only
-  frames.
+- Vanilla Raw Input is forced on at start-up whenever GLFW and the operating
+  system support it, regardless of what any other mod would prefer. It is
+  applied to the window directly and is never written to `options.txt`, so the
+  value stored in your settings is left alone even though the running window
+  ignores it.
+- The single exception is Raw Input Buffer or Ixeris: with either installed,
+  Herzium leaves Vanilla Raw Input off so two implementations do not feed the
+  same mouse deltas. The external mod stays active; Herzium never disables
+  another mod's mixins or threads.
+- Smooth Camera is not touched. Herzium used to overwrite it every frame, which
+  made cinematic camera impossible to enable and left the value behind after
+  uninstalling.
+- VSync and the frame-rate limit are bypassed at the window and pacing level,
+  not by editing saved settings, so Video Settings shows what you chose rather
+  than what Herzium enforces.
+- Mouse events are accumulated without discarding samples and applied before the
+  next rendered frame. End-to-end latency still depends on polling rate, frame
+  rate, refresh rate, GPU queue and compositor; no mod can promise a number
+  here, and Herzium does not.
+- `Priority Hotbar` previews the slot you pressed in the HUD and in the
+  first-person hand before Vanilla's next tick commits it. It never consumes a
+  click, never writes the selected slot, and never sends a packet: Vanilla
+  resolves the selection exactly as it always did, and Herzium only stops the
+  display from waiting up to one tick to agree.
+- When several hotbar keys land in the same tick, the preview resolves them the
+  way Vanilla's ascending loop will, so the previewed item is the item Vanilla
+  is about to hold.
+- The preview checks itself. Every tick it compares its prediction against
+  Vanilla's committed slot; three disagreements in a row and it suspends itself
+  for the rest of that world and says so in the log. Another mod that owns
+  hotbar selection therefore wins without needing to be known to Herzium by
+  name.
+- Mouse-wheel selection is Vanilla's, unpreviewed, and supersedes a pending key
+  preview.
+- Creative hotbar save/load shortcuts and spectator controls keep their vanilla
+  path.
+- `Attack` and `Use/Place` stay entirely on Vanilla's 20 TPS input path,
+  including mouse buttons, side buttons, remaps and scancodes. Herzium does not
+  dispatch combat or interaction packets from render-only frames.
 
 ## Faster loading
 
@@ -121,22 +121,15 @@ permanently active. The configuration screen reports their live diagnostic state
   mouse become more opaque, and compact logical resolutions receive a
   scrollable text area plus vertically stacked buttons.
 
-## Configuration menu
+## No configuration menu
 
-Installing the compatible Mod Menu release for the selected Minecraft version
-adds a configuration button for Herzium.
-Its interface uses a restrained translucent dark-purple panel, compact animated
-switches, clear option descriptions, and a scrollable system overview. At normal
-GUI scales it uses two balanced columns; at high GUI scales it stacks them while
-keeping every control inside the panel.
+There are no options. Every feature is core and always on, and Herzium adds no
+Mod Menu entry.
 
-The options pane contains only Herzium's independent visual controls. Hotbar keys
-1-9 are reported as a Vanilla pass-through rather than as a Herzium feature.
-Keyboard, remapped-button, and mouse-wheel selection stay on Vanilla's unchanged
-input and packet paths. The diagnostics panel reports which mixins were
-applied, which runtime hooks have actually executed, config health, active features,
-operating details, compatibility warnings, and hardware risks.
-The one-time startup-warning acknowledgement is stored in `config/herzium.json`.
+The only interface it shows is the one-time start-up advisory, which explains
+the instability, FPS drops, frame-time spikes, hardware usage, heat and power
+cost of uncapped operation. Acknowledging it is stored in `config/herzium.json`,
+which is the only thing that file now contains.
 
 ## High-refresh improvements
 
@@ -150,9 +143,13 @@ The one-time startup-warning acknowledgement is stored in `config/herzium.json`.
   vanilla combat's `0.5` partial-tick sample. They never display a stronger
   value than the one used by the attack calculation.
 - Ordinary items adopt the current first-person model on the next frame with no
-  equip dip. Combat-capable items such as swords, axes, pickaxes, spears, maces,
-  bows, crossbows, tridents, and shields retain Vanilla's visible equip transition.
+  equip dip. Combat-capable items -- swords, axes, pickaxes, spears, maces, bows,
+  crossbows, tridents and shields -- keep Vanilla's visible equip transition.
   Swing and held-item use animations remain Vanilla.
+- That classification is decided from item tags, which arrive from the server
+  after the world does. Until they have arrived Herzium answers "combat", so an
+  unclassifiable item keeps Vanilla's animation rather than losing it. The
+  answer is only cached once the tag set is demonstrably live.
 - Eating, bows, crossbows, held item use, gameplay cooldowns, and server tick
   rates are not accelerated or falsified.
 - Players, hitboxes, raycasts, packet contents, block textures, and entity

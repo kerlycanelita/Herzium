@@ -1,8 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.zymekoh.herzium.config.HerziumConfig;
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
@@ -53,13 +51,6 @@ abstract class ItemInHandRendererMixin {
             LocalPlayer player,
             int packedLight,
             CallbackInfo ci) {
-        // Recorded before the flag is consulted: the diagnostics panel reports
-        // whether the hook fires, which stays true when the feature is off.
-        CoreDiagnostics.recordHandRenderHook();
-        if (!HerziumConfig.get().instantEquip()) {
-            return;
-        }
-
         // ItemInHandRenderer.tick() lowers both hands while the player is busy
         // with an item -- eating, drinking, using a spyglass. That dip is not
         // the equip transition this mod removes, and pinning the heights to 1.0
@@ -96,10 +87,6 @@ abstract class ItemInHandRendererMixin {
             ItemStack renderedItem,
             ItemStack currentItem,
             CallbackInfoReturnable<Boolean> cir) {
-        if (!HerziumConfig.get().instantEquip()) {
-            return;
-        }
-
         if (!CombatItemClassifier.preservesVanillaEquipTransition(currentItem)) {
             cir.setReturnValue(true);
         }

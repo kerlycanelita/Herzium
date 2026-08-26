@@ -1,6 +1,5 @@
 package dev.zymekoh.herzium.mixin;
 
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import java.util.List;
 import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
@@ -53,6 +52,5 @@ public final class HerziumMixinPlugin implements IMixinConfigPlugin {
             ClassNode targetClass,
             String mixinClassName,
             IMixinInfo mixinInfo) {
-        CoreDiagnostics.recordMixinApplied(mixinClassName);
     }
 }

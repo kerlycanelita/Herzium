@@ -1,9 +1,6 @@
 package dev.zymekoh.herzium.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.zymekoh.herzium.config.HerziumConfig;
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics.InputSource;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
 import dev.zymekoh.herzium.Herzium;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -54,7 +51,7 @@ public final class ImmediateHotbarInput {
 
     /** Called after Vanilla has registered exactly one logical KeyMapping click. */
     public static void previewLogicalKey(InputConstants.Key logicalKey) {
-        if (suspended || !HerziumConfig.get().hotbarPreview()) {
+        if (suspended) {
             return;
         }
 
@@ -86,11 +83,7 @@ public final class ImmediateHotbarInput {
             return;
         }
 
-        InputSource source = logicalKey.getType() == InputConstants.Type.MOUSE
-                ? InputSource.MOUSE
-                : InputSource.KEYBOARD;
         registerPreviewCandidate(player, matchedSlot);
-        CoreDiagnostics.recordHotbarInput(source, matchedSlot);
     }
 
     /** Returns a provisional render value; it never writes to the inventory. */
@@ -99,10 +92,9 @@ public final class ImmediateHotbarInput {
         if (state == null) {
             return vanillaSlot;
         }
-        // Checked here as well as in previewLogicalKey so that switching the
-        // feature off drops a preview that is already in flight, instead of
-        // leaving it on screen until the fail-safe deadline.
-        if (suspended || !HerziumConfig.get().hotbarPreview() || !previewIsValid(state, inventory)) {
+        // Checked here too, so a suspension takes effect on the very next
+        // frame instead of leaving a preview on screen until the deadline.
+        if (suspended || !previewIsValid(state, inventory)) {
             clearPreview(state);
             return vanillaSlot;
         }
@@ -131,7 +123,6 @@ public final class ImmediateHotbarInput {
 
         int vanillaSlot = player.getInventory().getSelectedSlot();
         boolean matched = vanillaSlot == state.slot();
-        CoreDiagnostics.recordVanillaConfirmation(matched);
         clearPreview(state);
 
         if (matched) {
@@ -140,7 +131,6 @@ public final class ImmediateHotbarInput {
         }
         if (CONSECUTIVE_MISMATCHES.incrementAndGet() >= MAX_CONSECUTIVE_MISMATCHES) {
             suspended = true;
-            CoreDiagnostics.recordPreviewSuspended();
             Herzium.LOGGER.warn(
                     "Priority Hotbar disagreed with Vanilla's selection {} times in a row and has "
                             + "suspended itself for this world. Something else owns hotbar selection "
@@ -224,7 +214,6 @@ public final class ImmediateHotbarInput {
                     ambiguous);
             if (PREVIEW.compareAndSet(previous, replacement)) {
                 if (newlyAmbiguous) {
-                    CoreDiagnostics.recordAmbiguousPreviewResolved();
                 }
                 return;
             }

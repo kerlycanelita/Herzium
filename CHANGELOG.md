@@ -2,14 +2,37 @@
 
 ## 1.9.3
 
-- Yields the start-up Raw Input window rewrite while KoHs Inventory Tweaks owns Cursor Landing, preventing Herzium from racing its verified cursor placement without changing VSync or FPS policy.
-- Reports the cursor-pipeline ownership handoff accurately in the startup log and all three localized Core diagnostics, including combinations with Raw Input Buffer, Ixeris, and KoHsium.
-- Removes Priority Hotbar, its preview state, input observers, HUD substitution, wheel hook, diagnostics counters, and saved toggle.
-- Returns hotbar keys 1-9 completely to Vanilla's `KeyMapping` and `handleKeybinds()` path so Herzium cannot reorder input or override mods that own hotbar positions.
-- Removes container-focus world suppression so inventories use Vanilla's live background, or the background supplied by another visual mod, instead of exposing a cleared black framebuffer.
-- Keeps zero-duration equip transitions for ordinary items but preserves Vanilla's visible equip transition for swords, axes, pickaxes, spears, maces, bows, crossbows, tridents, shields, and tagged combat items.
-- Removes Herzium's duplicate 10 FPS background limiter and returns inactive, minimized, menu, and AFK pacing completely to Minecraft's existing policy.
-- Redesigns the bilingual Mod Menu screen with a professional two-column layout, compact switch controls, muted status indicators, and responsive stacked rendering at high GUI scales.
+- Forces Vanilla Raw Input at start-up unconditionally. Herzium no longer stands
+  down for KoHsium or for KoHs Inventory Tweaks, and can therefore race Cursor
+  Landing's pointer placement; the start-up log reports it when that mod is
+  present. Raw Input Buffer and Ixeris still suppress it, because two
+  implementations feeding the same mouse deltas is a broken state rather than a
+  contested one.
+- Removes the configuration screen and the Mod Menu entry. Every feature is core
+  and always on, so `config/herzium.json` now holds nothing but the start-up
+  advisory acknowledgement.
+- Removes the runtime diagnostics ledger along with the screen that displayed
+  it, ending its per-frame bookkeeping.
+- Restores Priority Hotbar, which now verifies itself: it compares its predicted
+  slot against Vanilla's committed slot every tick and suspends itself for the
+  rest of the world after three disagreements in a row, so any mod that owns
+  hotbar selection wins without being known to Herzium by name.
+- Fixes combat items losing Vanilla's equip animation on servers. Item tags
+  arrive after the level does, and a sword classified in that window was cached
+  as an ordinary item for the whole session; an unanswerable classification now
+  reports "combat" and nothing is cached until the tag set is live.
+- Connects the first-person hand to the previewed hotbar slot again, so a swap
+  reaches the HUD and the hand in the same frame.
+- Keeps zero-duration equip transitions for ordinary items while preserving
+  Vanilla's visible transition for swords, axes, pickaxes, spears, maces, bows,
+  crossbows, tridents, shields and tagged combat items.
+- Removes container-focus world suppression so inventories use Vanilla's live
+  background, or the background supplied by another visual mod, instead of
+  exposing a cleared black framebuffer.
+- Removes Herzium's duplicate background limiter and returns inactive,
+  minimized, menu and AFK pacing completely to Minecraft's existing policy.
+- Stops writing VSync, the frame-rate limit, Smooth Camera and Raw Input into
+  `options.txt`; the policy is applied at the window and pacing level instead.
 
 ## 1.9.2
 

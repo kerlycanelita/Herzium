@@ -1,7 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Final;
@@ -28,7 +27,6 @@ abstract class MouseHandlerMixin {
             double xOffset,
             double yOffset,
             CallbackInfo ci) {
-        CoreDiagnostics.recordWheelHook();
         this.herzium$selectedSlotBeforeScroll = this.minecraft.player == null
                 ? -1
                 : this.minecraft.player.getInventory().getSelectedSlot();

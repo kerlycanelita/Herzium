@@ -18,9 +18,6 @@
   "entrypoints": {
     "client": [
       "dev.zymekoh.herzium.HerziumClient"
-    ],
-    "modmenu": [
-      "dev.zymekoh.herzium.compat.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -35,7 +32,6 @@
     "java": ">=${java_version}"
   },
   "suggests": {
-    "modmenu": ">=${modmenu_version}",
     "kohsium": "*"
   }
 }

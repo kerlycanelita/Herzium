@@ -10,14 +10,14 @@ Herzium is a client-side Fabric optimization mod focused on uncapped rendering, 
 
 - Removes active-window VSync and internal Minecraft FPS limits.
 - Leaves inactive, minimized, menu, and AFK frame pacing to Minecraft's existing policy.
-- Leaves hotbar keys 1-9, remaps, selected-slot writes, and carried-item packets entirely on Vanilla's normal path so other hotbar-position mods retain ownership.
+- Previews the hotbar slot you pressed in the HUD and hand before Vanilla's tick commits it, without consuming clicks, writing the selected slot, or sending packets. The preview compares itself against Vanilla every tick and suspends itself after three disagreements, so a mod that owns hotbar selection wins automatically.
 - Keeps inventories and containers live at the active-window frame rate while omitting the expensive 3D world rendered behind them.
 - Removes the delayed first-person equip dip for ordinary items while combat items retain Vanilla's visible equip transition.
 - Removes safe decorative loading waits while preserving required resource reload, validation, model baking, shader compilation, chunk readiness, and error handling.
-- Includes a responsive dark-purple configuration screen and startup advisory.
+- Has no options and no Mod Menu entry: every feature is core and always on. The only interface is the one-time startup advisory.
 - Supports English, Spanish (Spain), and Spanish (Mexico).
 - Disables Exordium's HUD cache when both mods are installed so HUD elements render every frame.
-- Coordinates ownership with KoHsium to avoid competing input and frame-limit settings.
+- Forces Vanilla Raw Input at start-up and does not yield that decision to other mods. It is left off only when Raw Input Buffer or Ixeris is installed, because two implementations feeding the same mouse deltas is a broken state.
 
 ## Important
 
@@ -27,7 +27,7 @@ Uncapped rendering can increase GPU usage, power consumption, temperature, and f
 
 Herzium es un mod de optimización para Fabric del lado del cliente. Elimina VSync y los límites internos de FPS mientras la ventana está activa, reduce la latencia del mouse y acelera transiciones seguras sin modificar los ticks, paquetes, alcance, cooldowns ni la autoridad del servidor.
 
-Las teclas 1-9 de la hotbar, sus remapeos, la selección real y sus paquetes quedan completamente en manos de Vanilla; Herzium no se impone sobre mods que cambien sus posiciones. Los inventarios y contenedores mantienen su GUI a la frecuencia de frames activa mientras se omite el costoso mundo 3D del fondo; al perder el foco, minimizar, estar en menús o AFK, Minecraft conserva su propia política de FPS. El mod incluye interfaz y advertencias en inglés, español de España y español de México.
+La preview de hotbar muestra la ranura pulsada antes de que el tick de Vanilla la confirme, sin consumir clics, sin escribir la selección real y sin enviar paquetes; si se equivoca tres veces seguidas se suspende sola. Los inventarios y contenedores se dibujan a la frecuencia de frames activa y su fondo lo pinta Vanilla, no Herzium. Al perder el foco, minimizar, estar en menús o AFK, Minecraft conserva su propia política de FPS. El mod no tiene opciones: todo es core. El aviso inicial está en inglés, español de España y español de México.
 
 ## Compatibility
 
@@ -36,6 +36,6 @@ Las teclas 1-9 de la hotbar, sus remapeos, la selección real y sus paquetes que
 - Java 21 for Minecraft 1.21.x
 - Java 25 for Minecraft 26.x
 - Fabric API is not required at runtime
-- Mod Menu is optional
+- Mod Menu is not used
 
 Herzium is licensed under MIT and created by **zymekoh**.

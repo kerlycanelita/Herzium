@@ -5,9 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.Herzium;
 import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
-import dev.zymekoh.herzium.compat.KoHsiumIntegration;
 import dev.zymekoh.herzium.config.HerziumConfig;
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
@@ -22,6 +20,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = Minecraft.class, priority = 2000)
 abstract class MinecraftMixin {
+    @Unique
+    private static int herzium$sessionId;
+
     /**
      * Applies Herzium's policy at the window and device level, once, on start-up.
      *
@@ -42,13 +43,14 @@ abstract class MinecraftMixin {
     private void herzium$applyWindowPolicy(CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
         minecraft.getWindow().updateVsync(false);
-        // KoHsium owns its explicit input-latency controls. KoHs Inventory
-        // Tweaks separately owns cursor placement across screen transitions;
-        // rewriting the GLFW raw-input mode here can race its verified Cursor
-        // Landing. Herzium therefore yields only this input-window decision.
-        if (!KoHsiumIntegration.present()
-                && !ExternalInputCompatibility.cursorPipelineOwnerPresent()
-                && InputConstants.isRawMouseInputSupported()) {
+        // Herzium owns the Vanilla Raw Input window mode outright. It used to
+        // stand down for KoHsium and for the mod that owns Cursor Landing, on
+        // the theory that whoever placed the cursor last should win; that
+        // deference is gone by design. What is kept is the Raw Input Buffer and
+        // Ixeris case, because that is not politeness: those mods drive their
+        // own low-level mouse pipeline, and turning Vanilla's on as well means
+        // two implementations feeding the same deltas.
+        if (InputConstants.isRawMouseInputSupported()) {
             minecraft.getWindow().updateRawMouseInput(!ExternalInputCompatibility.externalRawInputPresent());
         }
     }
@@ -56,13 +58,11 @@ abstract class MinecraftMixin {
     @Inject(method = "runTick", at = @At("HEAD"))
     private void herzium$onFrameStart(boolean advanceGameTime, CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
-        CoreDiagnostics.recordCoreFrameHook();
-        // Identity hash rather than the level itself: the diagnostics ledger
-        // must not hold a reference to a ClientLevel, and must not import
-        // Minecraft classes at all.
-        boolean newSession = CoreDiagnostics.observeSession(
-                minecraft.level == null ? 0 : System.identityHashCode(minecraft.level));
-        if (newSession) {
+        // Identity hash rather than the level itself, so nothing here can keep a
+        // ClientLevel alive past its disconnect.
+        int sessionId = minecraft.level == null ? 0 : System.identityHashCode(minecraft.level);
+        if (sessionId != 0 && sessionId != herzium$sessionId) {
+            herzium$sessionId = sessionId;
             // Entering a level is when the server's tag sync lands, so it is the
             // moment anything derived from item tags stops being trustworthy.
             CombatItemClassifier.invalidate();
