@@ -3,6 +3,7 @@ package dev.zymekoh.herzium.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -65,7 +66,9 @@ abstract class ItemInHandRendererMixin {
         // every frame would erase it. Only the equip case is overridden.
         boolean handsBusy = player.isHandsBusy();
 
-        ItemStack visualMainHandItem = player.getMainHandItem();
+        // The hand follows the same previewed slot the HUD shows, so a swap
+        // reaches both at once instead of the hand trailing by up to a tick.
+        ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
         if (!CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
             this.mainHandItem = visualMainHandItem;
             if (!handsBusy) {
