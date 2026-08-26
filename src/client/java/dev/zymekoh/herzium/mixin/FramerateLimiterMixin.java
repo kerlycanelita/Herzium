@@ -1,6 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
-import com.mojang.blaze3d.platform.FramerateLimitTracker;
+import dev.zymekoh.herzium.render.FramePolicy;
 import net.minecraft.client.FramerateLimiter;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,9 +24,9 @@ abstract class FramerateLimiterMixin {
     @Inject(method = "limitDisplayFPS", at = @At("HEAD"), cancellable = true)
     private static void herzium$skipFramePacing(int framerateLimit, CallbackInfo ci) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.isWindowActive()
-                && minecraft.getFramerateLimitTracker().getThrottleReason()
-                        == FramerateLimitTracker.FramerateThrottleReason.NONE) {
+        if (FramePolicy.shouldRunUncapped(
+                minecraft,
+                minecraft.getFramerateLimitTracker().getThrottleReason())) {
             ci.cancel();
         }
     }

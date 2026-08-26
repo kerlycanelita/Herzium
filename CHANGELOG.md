@@ -29,8 +29,12 @@
 - Removes container-focus world suppression so inventories use Vanilla's live
   background, or the background supplied by another visual mod, instead of
   exposing a cleared black framebuffer.
-- Removes Herzium's duplicate background limiter and returns inactive,
-  minimized, menu and AFK pacing completely to Minecraft's existing policy.
+- Returns inactive, minimized, menu and ten-minute AFK pacing to Minecraft's
+  own policy, but keeps rendering uncapped through Vanilla's sixty-second AFK
+  throttle while a level is loaded. Sixty seconds without input is not away from
+  the game, and dropping to 30 fps there made the first mouse movement afterwards
+  arrive as one lump instead of a sweep, which players read as the camera
+  dragging.
 - Stops writing VSync, the frame-rate limit, Smooth Camera and Raw Input into
   `options.txt`; the policy is applied at the window and pacing level instead.
 

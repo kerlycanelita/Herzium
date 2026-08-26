@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.FramerateLimitTracker;
+import dev.zymekoh.herzium.render.FramePolicy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import org.spongepowered.asm.mixin.Final;
@@ -50,10 +51,7 @@ abstract class FramerateLimitTrackerMixin {
 
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void herzium$useUnlimitedFramerate(CallbackInfoReturnable<Integer> cir) {
-        // An unfocused window is vanilla's business even when it reports NONE:
-        // there is no "unfocused" throttle reason, so the focus check stays.
-        if (this.minecraft.isWindowActive()
-                && this.getThrottleReason() == FramerateLimitTracker.FramerateThrottleReason.NONE) {
+        if (FramePolicy.shouldRunUncapped(this.minecraft, this.getThrottleReason())) {
             cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
         }
     }

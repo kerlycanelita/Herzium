@@ -49,8 +49,14 @@ runnable. KoHsium waits for the real title screen before showing its own notice.
 - The OpenGL `swap interval` (VSync) is forced to `0`.
 - Minecraft's general FPS limiter becomes a no-op while the window is active.
 - The configured frame-rate limit remains on vanilla's `Unlimited` value.
-- Special menu, loading-screen, and AFK limits are bypassed only while the window
-  is active. Minecraft's own inactive, minimized, menu, and AFK policy is left intact.
+- Vanilla's own throttles are left intact where they cost nothing that can be
+  seen: a minimized window, a menu with no level behind it, and ten minutes
+  without a single input. Handing those back is what keeps a long session from
+  ending slower than it started.
+- The exception is Vanilla's sixty-second AFK throttle, which Herzium ignores
+  while a level is loaded. A minute without input is still playing -- standing in
+  a queue, reading chat -- and dropping to 30 fps there makes the next mouse
+  movement land as one lump rather than a sweep.
 - When Exordium is installed, Herzium disables its HUD cache so the hotbar, TAB
   list, and the rest of the HUD are extracted and rendered every frame again.
 
