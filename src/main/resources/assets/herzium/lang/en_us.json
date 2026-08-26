@@ -3,7 +3,16 @@
   "modmenu.descriptionTranslation.herzium": "Removes active-window VSync and internal FPS limits, reduces mouse latency, and eliminates safe loading delays while leaving hotbar input Vanilla-owned.",
   "herzium.warning.title": "HERZIUM WARNING",
   "herzium.warning.message": "Herzium removes active-window frame-rate limits and prioritizes minimum input latency. Depending on your hardware, drivers, settings, and other mods, it may cause instability, FPS drops, uneven frame times, high GPU or CPU usage, extra heat, or increased power consumption. Use it at your own risk.",
-  "herzium.warning.quote": "Speed is essential, but control turns it into performance.",
-  "herzium.warning.continue": "Continue",
-  "herzium.warning.quit": "Quit Game"
+  "herzium.warning.accept": "I understand",
+  "herzium.warning.dont_show": "Don't show again",
+  "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer is installed. Herzium leaves Vanilla Raw Input off so both do not feed the same mouse deltas. Nothing to remove.",
+  "herzium.warning.notice.ixeris": "Ixeris is installed. Herzium leaves Vanilla Raw Input off while Ixeris owns its input thread. Nothing to remove.",
+  "herzium.warning.notice.both_pipelines": "Raw Input Buffer and Ixeris are both installed. They own overlapping mouse pipelines and neither supports the other. Remove one of them.",
+  "herzium.warning.notice.exordium": "Exordium is installed. Herzium bypasses its HUD cache, so that part of it does nothing here.",
+  "herzium.warning.tip.0": "No VSync, no frame limit, no waiting.",
+  "herzium.warning.tip.1": "Your display refresh rate still decides what you actually see.",
+  "herzium.warning.tip.2": "Herzium never speeds up the 20 ticks per second the server runs on.",
+  "herzium.warning.tip.3": "The hotbar preview shows the slot early. It never writes it.",
+  "herzium.warning.tip.4": "Combat items keep Vanilla's equip animation, on purpose.",
+  "herzium.warning.tip.5": "Uncapped means uncapped. Watch your temperatures."
 }

@@ -3,7 +3,16 @@
   "modmenu.descriptionTranslation.herzium": "Elimina VSync y los límites internos de FPS con la ventana activa, reduce la latencia del ratón y acelera transiciones seguras sin apropiarse de la entrada de la hotbar.",
   "herzium.warning.title": "ADVERTENCIA DE HERZIUM",
   "herzium.warning.message": "Herzium elimina los límites de fotogramas con la ventana activa y prioriza una latencia de entrada mínima. Dependiendo de tu hardware, controladores, configuración y otros mods, puede causar inestabilidad, bajones de FPS, tiempos de fotograma irregulares, uso elevado de GPU o CPU, más calor o mayor consumo de energía. Úsalo bajo tu propia responsabilidad.",
-  "herzium.warning.quote": "La velocidad es esencial, pero el control es lo que la convierte en rendimiento.",
-  "herzium.warning.continue": "Continuar",
-  "herzium.warning.quit": "Cerrar el juego"
+  "herzium.warning.accept": "Entendido",
+  "herzium.warning.dont_show": "No mostrar de nuevo",
+  "herzium.warning.notice.raw_input_buffer": "Tienes Raw Input Buffer. Herzium deja el Raw Input de Vanilla apagado para que los dos no alimenten los mismos deltas. No hace falta quitar nada.",
+  "herzium.warning.notice.ixeris": "Tienes Ixeris. Herzium deja el Raw Input de Vanilla apagado mientras Ixeris lleva su propio hilo de entrada. No hace falta quitar nada.",
+  "herzium.warning.notice.both_pipelines": "Tienes Raw Input Buffer e Ixeris a la vez. Sus pipelines de raton se solapan y ninguno soporta al otro. Quita uno de los dos.",
+  "herzium.warning.notice.exordium": "Tienes Exordium. Herzium se salta su cache de HUD, asi que esa parte no hace nada aqui.",
+  "herzium.warning.tip.0": "Sin VSync, sin limite de FPS, sin esperas.",
+  "herzium.warning.tip.1": "La frecuencia de tu monitor sigue decidiendo lo que ves de verdad.",
+  "herzium.warning.tip.2": "Herzium nunca acelera los 20 ticks por segundo del servidor.",
+  "herzium.warning.tip.3": "La preview de hotbar ensena la ranura antes. Nunca la escribe.",
+  "herzium.warning.tip.4": "Los items de combate conservan la animacion de Vanilla, a proposito.",
+  "herzium.warning.tip.5": "Sin limite es sin limite. Vigila las temperaturas."
 }
