@@ -36,8 +36,30 @@ public final class ExternalInputCompatibility {
         return INVENTORY_TWEAKS_PRESENT;
     }
 
+    /** Kept for reporting: either mod changes how mouse deltas reach the game. */
     public static boolean externalRawInputPresent() {
         return RAW_INPUT_BUFFER_PRESENT || IXERIS_PRESENT;
+    }
+
+    /**
+     * Whether Herzium must leave GLFW's raw mouse motion off.
+     *
+     * <p>Only Raw Input Buffer. It reads the Win32 raw input stream itself and
+     * runs alongside GLFW's, so switching both on means two paths delivering
+     * the same movement.</p>
+     *
+     * <p>Ixeris looks like the same case and is not, which is why it is named
+     * here rather than lumped in. Its {@code GLFWMixin} intercepts
+     * {@code glfwSetInputMode} for {@code GLFW_RAW_MOUSE_MOTION} (208901) and
+     * forwards the value straight to {@code InputManager.setRawInput}: the flag
+     * is not a competing setting, it is the switch Ixeris listens to for its own
+     * buffered Win32 handler. Turning it off therefore does not prevent a
+     * duplicate, it disables Ixeris's raw input as well, and the player is left
+     * on the operating system's accelerated pointer path with no raw input at
+     * all. Herzium turns it on and lets Ixeris take it.</p>
+     */
+    public static boolean rawMouseMotionOwnedElsewhere() {
+        return RAW_INPUT_BUFFER_PRESENT;
     }
 
     public static boolean competingExternalPipelinesPresent() {

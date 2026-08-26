@@ -43,15 +43,13 @@ abstract class MinecraftMixin {
     private void herzium$applyWindowPolicy(CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
         minecraft.getWindow().updateVsync(false);
-        // Herzium owns the Vanilla Raw Input window mode outright. It used to
-        // stand down for KoHsium and for the mod that owns Cursor Landing, on
-        // the theory that whoever placed the cursor last should win; that
-        // deference is gone by design. What is kept is the Raw Input Buffer and
-        // Ixeris case, because that is not politeness: those mods drive their
-        // own low-level mouse pipeline, and turning Vanilla's on as well means
-        // two implementations feeding the same deltas.
+        // Herzium owns the raw mouse motion mode outright: it does not stand
+        // down for KoHsium or for the mod that owns Cursor Landing. The single
+        // mod it leaves it off for is Raw Input Buffer, which reads the Win32
+        // raw stream in parallel with GLFW's. See rawMouseMotionOwnedElsewhere.
         if (InputConstants.isRawMouseInputSupported()) {
-            minecraft.getWindow().updateRawMouseInput(!ExternalInputCompatibility.externalRawInputPresent());
+            minecraft.getWindow()
+                    .updateRawMouseInput(!ExternalInputCompatibility.rawMouseMotionOwnedElsewhere());
         }
     }
 

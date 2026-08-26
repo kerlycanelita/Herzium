@@ -2,6 +2,12 @@
 
 ## 1.9.3
 
+- Stops disabling raw mouse motion when Ixeris is installed. Ixeris
+  intercepts `glfwSetInputMode` for `GLFW_RAW_MOUSE_MOTION` and forwards the
+  value to its own buffered handler, so turning that flag off did not prevent a
+  duplicate: it disarmed Ixeris too and left the pointer on the operating
+  system's accelerated path with no raw input at all, which players reported as
+  a slight delay in mouse movement. Raw Input Buffer still suppresses it.
 - Forces Vanilla Raw Input at start-up unconditionally. Herzium no longer stands
   down for KoHsium or for KoHs Inventory Tweaks, and can therefore race Cursor
   Landing's pointer placement; the start-up log reports it when that mod is

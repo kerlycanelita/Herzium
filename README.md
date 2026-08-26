@@ -70,10 +70,15 @@ screen that reports it.
   applied to the window directly and is never written to `options.txt`, so the
   value stored in your settings is left alone even though the running window
   ignores it.
-- The single exception is Raw Input Buffer or Ixeris: with either installed,
-  Herzium leaves Vanilla Raw Input off so two implementations do not feed the
-  same mouse deltas. The external mod stays active; Herzium never disables
-  another mod's mixins or threads.
+- The single exception is Raw Input Buffer, which reads the Win32 raw stream
+  alongside GLFW's. With it installed Herzium leaves raw mouse motion off so
+  two paths do not deliver the same movement.
+- Ixeris is not that case, despite looking like it. It intercepts
+  `glfwSetInputMode` for `GLFW_RAW_MOUSE_MOTION` and forwards the value to its
+  own handler, so that flag is not a competing setting -- it is the switch
+  Ixeris listens to. Herzium turns it on and lets Ixeris take it. Earlier
+  releases turned it off, which armed nothing and left the pointer on the
+  operating system's accelerated path with no raw input at all.
 - Smooth Camera is not touched. Herzium used to overwrite it every frame, which
   made cinematic camera impossible to enable and left the value behind after
   uninstalling.

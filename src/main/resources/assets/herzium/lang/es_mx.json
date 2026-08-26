@@ -6,7 +6,7 @@
   "herzium.warning.accept": "Entendido",
   "herzium.warning.dont_show": "No mostrar de nuevo",
   "herzium.warning.notice.raw_input_buffer": "Tienes Raw Input Buffer. Herzium deja el Raw Input de Vanilla apagado para que los dos no alimenten los mismos deltas. No hace falta quitar nada.",
-  "herzium.warning.notice.ixeris": "Tienes Ixeris. Herzium deja el Raw Input de Vanilla apagado mientras Ixeris lleva su propio hilo de entrada. No hace falta quitar nada.",
+  "herzium.warning.notice.ixeris": "Tienes Ixeris. Herzium deja el raw mouse motion activado, que es el interruptor con el que Ixeris arranca su propio raw input. No hace falta quitar nada.",
   "herzium.warning.notice.both_pipelines": "Tienes Raw Input Buffer e Ixeris a la vez. Sus pipelines de raton se solapan y ninguno soporta al otro. Quita uno de los dos.",
   "herzium.warning.notice.exordium": "Tienes Exordium. Herzium se salta su cache de HUD, asi que esa parte no hace nada aqui.",
   "herzium.warning.tip.0": "Sin VSync, sin limite de FPS, sin esperas.",

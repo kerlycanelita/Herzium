@@ -72,13 +72,13 @@ public final class HerziumWarningScreen extends Screen {
     /**
      * Builds the per-mod notices, each with the accuracy it actually deserves.
      *
-     * <p>Herzium supports Raw Input Buffer and Ixeris: when either is installed
-     * it stops forcing Vanilla Raw Input so two implementations do not feed the
-     * same mouse deltas. Telling the player to uninstall a mod Herzium is built
-     * to coexist with would be wrong, so those two are stated, not condemned.
-     * The one genuine "remove one of these" case is the two of them together,
-     * which neither supports, and that is the only notice marked as a
-     * problem.</p>
+     * <p>Herzium supports Raw Input Buffer and Ixeris, so neither is presented
+     * as something to uninstall. They are not the same case, though: Raw Input
+     * Buffer reads the Win32 raw stream alongside GLFW's, so Herzium leaves raw
+     * mouse motion off for it, while Ixeris uses that same flag as the switch
+     * for its own handler and needs it on. The one genuine "remove one of
+     * these" case is the two of them together, which neither supports, and that
+     * is the only notice marked as a problem.</p>
      *
      * <p>Exordium is a third case: nothing breaks, but Herzium bypasses its HUD
      * cache, so the part of Exordium the player installed it for is not doing

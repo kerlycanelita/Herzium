@@ -37,21 +37,24 @@ public final class HerziumClient implements ClientModInitializer {
                             + "Cursor Landing put it, this is why.");
         }
 
-        // Raw Input Buffer and Ixeris are a different case from the two above.
-        // They drive their own low-level mouse pipeline, so turning Vanilla's on
-        // as well means two implementations feeding the same deltas. That is not
-        // deference, so it survives the change.
+        // Raw Input Buffer is the one mod Herzium still stands down for, and not
+        // out of deference: it reads the Win32 raw stream alongside GLFW's.
+        // Ixeris is reported separately because it is the opposite case -- it
+        // needs raw mouse motion switched on, not off.
         if (ExternalInputCompatibility.competingExternalPipelinesPresent()) {
             Herzium.LOGGER.warn(
-                    "Raw Input Buffer and Ixeris are both loaded. Herzium disabled only Vanilla Raw Input; "
-                            + "the two external pipelines still overlap and one of them should be removed.");
+                    "Raw Input Buffer and Ixeris are both loaded. Herzium left raw mouse motion off for Raw "
+                            + "Input Buffer, which also stops Ixeris from arming its own handler; the two "
+                            + "still overlap and one of them should be removed.");
         } else if (ExternalInputCompatibility.rawInputBufferPresent()) {
             Herzium.LOGGER.warn(
-                    "Raw Input Buffer detected. Vanilla Raw Input is disabled to avoid two implementations "
-                            + "owning the same mouse deltas; Raw Input Buffer keeps its own pipeline.");
+                    "Raw Input Buffer detected. Raw mouse motion is left off so two implementations do not "
+                            + "deliver the same movement; Raw Input Buffer keeps its own pipeline.");
         } else if (ExternalInputCompatibility.ixerisPresent()) {
-            Herzium.LOGGER.warn(
-                    "Ixeris detected. Vanilla Raw Input is disabled while Ixeris owns its external input pipeline.");
+            Herzium.LOGGER.info(
+                    "Ixeris detected. Raw mouse motion is enabled, which is the switch Ixeris listens to for "
+                            + "its own buffered raw input. Herzium used to disable it here, which left the "
+                            + "pointer on the operating system's accelerated path with no raw input at all.");
         }
 
         if (ExternalInputCompatibility.rawInputBufferPresent()

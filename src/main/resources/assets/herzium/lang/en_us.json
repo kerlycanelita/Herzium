@@ -6,7 +6,7 @@
   "herzium.warning.accept": "I understand",
   "herzium.warning.dont_show": "Don't show again",
   "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer is installed. Herzium leaves Vanilla Raw Input off so both do not feed the same mouse deltas. Nothing to remove.",
-  "herzium.warning.notice.ixeris": "Ixeris is installed. Herzium leaves Vanilla Raw Input off while Ixeris owns its input thread. Nothing to remove.",
+  "herzium.warning.notice.ixeris": "Ixeris is installed. Herzium keeps raw mouse motion on, which is the switch Ixeris uses to arm its own buffered raw input. Nothing to remove.",
   "herzium.warning.notice.both_pipelines": "Raw Input Buffer and Ixeris are both installed. They own overlapping mouse pipelines and neither supports the other. Remove one of them.",
   "herzium.warning.notice.exordium": "Exordium is installed. Herzium bypasses its HUD cache, so that part of it does nothing here.",
   "herzium.warning.tip.0": "No VSync, no frame limit, no waiting.",
