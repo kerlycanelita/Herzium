@@ -4,7 +4,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.zymekoh.herzium.Herzium;
 import dev.zymekoh.herzium.config.HerziumConfig;
-import dev.zymekoh.herzium.gui.FrameLimitToast;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
@@ -22,31 +21,6 @@ abstract class MinecraftMixin {
     @Unique
     private static int herzium$sessionId;
 
-    /**
-     * Applies Herzium's policy at the window and device level, once, on start-up.
-     *
-     * <p>Nothing here writes to {@link net.minecraft.client.Options}. Those
-     * values are persisted to {@code options.txt}, so writing them made
-     * Herzium's policy outlive the mod's own installation, froze the Video
-     * Settings screen (every edit bounced back on the next frame) and made
-     * cinematic camera permanently unreachable. The enforcement is redundant
-     * anyway: {@code WindowMixin} and {@code GlDeviceMixin} force the swap
-     * interval to zero whatever value is requested, and
-     * {@code FramerateLimiterMixin} plus {@code FramerateLimitTrackerMixin}
-     * bypass the pacing while the window is active. The user's stored
-     * preferences are left exactly as they are -- including any value a
-     * previous Herzium session already overwrote, which is deliberately not
-     * restored because the original is no longer knowable.</p>
-     */
-    @Inject(method = "run", at = @At("HEAD"))
-    private void herzium$applyWindowPolicy(CallbackInfo ci) {
-        Minecraft minecraft = (Minecraft) (Object) this;
-        minecraft.getWindow().updateVsync(false);
-        // Raw Input and cursor placement are deliberately absent here. Vanilla
-        // or an installed input mod owns both; Herzium never changes the
-        // running window mode and never writes the player's saved preference.
-    }
-
     @Inject(method = "runTick", at = @At("HEAD"))
     private void herzium$onFrameStart(boolean advanceGameTime, CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
@@ -59,9 +33,7 @@ abstract class MinecraftMixin {
             // moment anything derived from item tags stops being trustworthy.
             CombatItemClassifier.invalidate();
             ImmediateHotbarInput.resetSession();
-            FrameLimitToast.resetSession();
-        }
-        FrameLimitToast.maybeAnnounce(minecraft);
+            }
         // Runs on every frame, including frames without a level, so a preview
         // left behind by a disconnect cannot retain the player it captured.
         ImmediateHotbarInput.releaseStalePreview(minecraft);

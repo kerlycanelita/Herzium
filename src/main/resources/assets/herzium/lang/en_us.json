@@ -2,7 +2,7 @@
   "modmenu.summaryTranslation.herzium": "Priority Hotbar, uncapped rendering, and high-refresh visuals.",
   "modmenu.descriptionTranslation.herzium": "Makes Priority Hotbar the primary input feature, removes active-window VSync and FPS limits, and leaves Raw Input and cursor placement entirely to Vanilla or other mods.",
   "herzium.warning.title": "HERZIUM WARNING",
-  "herzium.warning.message": "Herzium removes active-window frame-rate limits and prioritizes minimum input latency. Depending on your hardware, drivers, settings, and other mods, it may cause instability, FPS drops, uneven frame times, high GPU or CPU usage, extra heat, or increased power consumption. Use it at your own risk.",
+  "herzium.warning.message": "Herzium shows the hotbar slot you pressed one client tick sooner than Vanilla would, removes the equip dip for ordinary items, and cuts the decorative waits out of start-up. It does not raise your frame rate. VSync, your frame limit, Raw Input and cursor placement are left alone.",
   "herzium.warning.accept": "I understand",
   "herzium.warning.dont_show": "Don't show again",
   "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer is installed. Herzium does not change its pipeline or Vanilla Raw Input.",
@@ -10,12 +10,10 @@
   "herzium.warning.notice.inventory_tweaks": "KoHs Inventory Tweaks owns Cursor Landing. Herzium never changes Raw Input or cursor placement.",
   "herzium.warning.notice.both_pipelines": "Raw Input Buffer and Ixeris are both installed. Their external mouse pipelines overlap; Herzium does not mediate them. Remove one.",
   "herzium.warning.notice.exordium": "Exordium is installed. Herzium bypasses its HUD cache, so that part of it does nothing here.",
-  "herzium.warning.tip.0": "No VSync, no frame limit, no waiting.",
+  "herzium.warning.tip.0": "Herzium removes waiting, not work. It adds no frames.",
   "herzium.warning.tip.1": "Your display refresh rate still decides what you actually see.",
   "herzium.warning.tip.2": "Herzium never speeds up the 20 ticks per second the server runs on.",
   "herzium.warning.tip.3": "The hotbar preview shows the slot early. It never writes it.",
   "herzium.warning.tip.4": "Combat items keep Vanilla's equip animation, on purpose.",
-  "herzium.warning.tip.5": "Uncapped means uncapped. Watch your temperatures.",
-  "herzium.toast.fps_limit.title": "Frame limit: %s fps",
-  "herzium.toast.fps_limit.message": "Herzium is honouring your setting, but it is not what this mod is for."
+  "herzium.warning.tip.5": "VSync and your frame limit stay exactly where you set them."
 }

@@ -2,7 +2,7 @@
   "modmenu.summaryTranslation.herzium": "Priority Hotbar, renderizado sin límite y visuales de alta frecuencia.",
   "modmenu.descriptionTranslation.herzium": "Hace de Priority Hotbar su función principal de entrada, elimina VSync y límites de FPS con la ventana activa y deja Raw Input y el cursor completamente a Vanilla u otros mods.",
   "herzium.warning.title": "ADVERTENCIA DE HERZIUM",
-  "herzium.warning.message": "Herzium elimina los límites de fotogramas con la ventana activa y prioriza una latencia de entrada mínima. Dependiendo de tu hardware, controladores, configuración y otros mods, puede causar inestabilidad, bajones de FPS, tiempos de fotograma irregulares, uso elevado de GPU o CPU, más calor o mayor consumo de energía. Úsalo bajo tu propia responsabilidad.",
+  "herzium.warning.message": "Herzium ensena la ranura del hotbar que pulsaste un tick antes de lo que lo haria Vanilla, quita la bajada de equipado de los items ordinarios y elimina las esperas decorativas del arranque. No sube los FPS. El VSync, tu limite de frames, el Raw Input y la colocacion del cursor se quedan como estan.",
   "herzium.warning.accept": "Entendido",
   "herzium.warning.dont_show": "No mostrar de nuevo",
   "herzium.warning.notice.raw_input_buffer": "Tienes Raw Input Buffer. Herzium no cambia su pipeline ni el Raw Input de Vanilla.",
@@ -10,12 +10,10 @@
   "herzium.warning.notice.inventory_tweaks": "KoHs Inventory Tweaks controla Cursor Landing. Herzium nunca cambia Raw Input ni la posición del cursor.",
   "herzium.warning.notice.both_pipelines": "Tienes Raw Input Buffer e Ixeris a la vez. Sus pipelines externos de ratón se solapan; Herzium no los administra. Quita uno.",
   "herzium.warning.notice.exordium": "Tienes Exordium. Herzium se salta su cache de HUD, asi que esa parte no hace nada aqui.",
-  "herzium.warning.tip.0": "Sin VSync, sin limite de FPS, sin esperas.",
+  "herzium.warning.tip.0": "Herzium quita esperas, no trabajo. No anade frames.",
   "herzium.warning.tip.1": "La frecuencia de tu monitor sigue decidiendo lo que ves de verdad.",
   "herzium.warning.tip.2": "Herzium nunca acelera los 20 ticks por segundo del servidor.",
   "herzium.warning.tip.3": "La preview de hotbar ensena la ranura antes. Nunca la escribe.",
   "herzium.warning.tip.4": "Los items de combate conservan la animacion de Vanilla, a proposito.",
-  "herzium.warning.tip.5": "Sin limite es sin limite. Vigila las temperaturas.",
-  "herzium.toast.fps_limit.title": "Limite de FPS: %s",
-  "herzium.toast.fps_limit.message": "Herzium respeta tu ajuste, pero no es para lo que esta este mod."
+  "herzium.warning.tip.5": "El VSync y tu limite de FPS se quedan donde tu los pusiste."
 }

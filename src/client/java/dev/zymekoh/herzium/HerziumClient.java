@@ -11,9 +11,9 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized. Priority Hotbar is its primary input feature; uncapped rendering while "
-                        + "the window is active, instant equip for ordinary items, and fast safe start-up "
-                        + "transitions remain active. Raw Input and cursor placement are Vanilla-owned.");
+                "Herzium initialized. Priority Hotbar, instant equip for ordinary items and fast start-up "
+                        + "transitions are active. Herzium does not change the frame rate: VSync, the frame "
+                        + "limit, Raw Input and cursor placement are Vanilla-owned.");
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");

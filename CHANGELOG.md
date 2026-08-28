@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.9.4
+
+Reworked after Modrinth moderation feedback. Herzium is no longer an FPS mod.
+
+### Removed
+- Forced VSync off. Minecraft already exposes that setting, and overriding it
+  left the Video Settings toggle showing something that was not true.
+- All frame-limit handling. `Max Framerate` and `Reduce FPS when inactive` are
+  Minecraft's to apply; Herzium was duplicating them.
+- The start-up advisory no longer claims uncapped operation, because there is
+  none to warn about.
+
+### Fixed
+- Combat items lost Vanilla's equip animation on servers whose item tags had
+  not synced when the first frame rendered.
+- The hotbar highlight moved instantly while the hand was still mid-animation,
+  which read as the hotbar not responding.
+
+### Changed
+- Priority Hotbar checks itself against Vanilla every tick and stops previewing
+  for the rest of the world after three disagreements, so a mod that owns
+  hotbar selection takes over without Herzium knowing its name.
+
 ## 1.9.3
 
 - Honours a frame limit the player set themselves. Herzium still removes the

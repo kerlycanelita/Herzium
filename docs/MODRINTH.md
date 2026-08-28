@@ -4,38 +4,41 @@
 
 # Herzium
 
-Herzium is a client-side Fabric optimization mod focused on Priority Hotbar, uncapped rendering, lower visual latency, and faster safe transitions. It keeps gameplay and server authority Vanilla while allowing HUDs, inventories, containers, TAB, and the hotbar to render at the full frame rate of the game.
+Herzium removes visual latency that Minecraft adds on purpose, and nothing else.
+It is not an FPS mod: it does not raise your frame rate and does not claim to.
 
-## Highlights
+## What it does
 
-- Removes active-window VSync and internal Minecraft FPS limits.
-- Leaves inactive, minimized, menu, and AFK frame pacing to Minecraft's existing policy.
-- Previews the hotbar slot you pressed in the HUD and hand before Vanilla's tick commits it, without consuming clicks, writing the selected slot, or sending packets. The preview compares itself against Vanilla every tick and suspends itself after three disagreements, so a mod that owns hotbar selection wins automatically.
-- Keeps inventories and containers live at the active-window frame rate while omitting the expensive 3D world rendered behind them.
-- Removes the delayed first-person equip dip for ordinary items while combat items retain Vanilla's visible equip transition.
-- Removes safe decorative loading waits while preserving required resource reload, validation, model baking, shader compilation, chunk readiness, and error handling.
-- Has no options and no Mod Menu entry: every feature is core and always on. The only interface is the one-time startup advisory.
-- Supports English, Spanish (Spain), and Spanish (Mexico).
-- Disables Exordium's HUD cache when both mods are installed so HUD elements render every frame.
-- Leaves Raw Input, Smooth Camera, mouse grabbing, and cursor placement completely to Vanilla or the player's installed input mod. Herzium never calls a cursor-position API or changes the running Raw Input mode.
+- **Priority Hotbar.** Pressing 1-9 updates the HUD and your hand on the next
+  rendered frame instead of waiting for the next client tick, which is up to
+  50 ms sooner. Herzium never writes the selected slot, never consumes the
+  click and never sends a packet; Vanilla still resolves the selection exactly
+  as before. If the preview ever disagrees with what Vanilla commits, three
+  times in a row, it suspends itself for the rest of that world.
+- **Instant equip.** Ordinary items appear in hand with no equip dip. Swords,
+  axes, pickaxes, spears, maces, bows, crossbows, tridents and shields keep
+  Vanilla's animation.
+- **Faster start-up transitions.** Removes the two-second loading fade, the
+  two-second title fade and the 500 ms hold after creating a world. The
+  underlying work is untouched.
 
-## Important
+## When it helps, and when it does not
 
-Uncapped rendering can increase GPU usage, power consumption, temperature, and frame-time instability. Herzium does not change Minecraft's 20 TPS simulation, invent packets, or bypass server-side rules.
+Helps on high refresh-rate displays and with fast item switching, mainly PvP,
+where one client tick of delay is visible. Does nothing if you are GPU or CPU
+bound: it will not add frames.
 
-## Español
+## What it does not touch
 
-Herzium es un mod de optimización para Fabric del lado del cliente cuya función principal de entrada es Priority Hotbar. Elimina VSync y los límites internos de FPS mientras la ventana está activa y acelera transiciones seguras sin modificar los ticks, paquetes, alcance, cooldowns ni la autoridad del servidor.
+VSync, `Max Framerate`, `Reduce FPS when inactive`, Raw Input, Smooth Camera
+and cursor placement are all yours or another mod's. Herzium does not write to
+`options.txt`. Ticks, reach, cooldowns, hitboxes, attack and use timing and
+every packet stay Vanilla.
 
-La preview de hotbar muestra la ranura pulsada antes de que el tick de Vanilla la confirme, sin consumir clics, sin escribir la selección real y sin enviar paquetes; si se equivoca tres veces seguidas se suspende sola. Raw Input, Smooth Camera y la posición del cursor quedan completamente en manos de Vanilla u otros mods. Los inventarios y contenedores se dibujan a la frecuencia de frames activa y su fondo lo pinta Vanilla, no Herzium. Al perder el foco, minimizar, estar en menús o AFK, Minecraft conserva su propia política de FPS. El mod no tiene opciones: todo es core. El aviso inicial está en inglés, español de España y español de México.
+There are no options: everything above is always on. The only interface is a
+one-time start-up notice.
 
-## Compatibility
+## Requirements
 
-- Minecraft 1.21-1.21.11 and 26.1-26.2
-- Fabric Loader 0.19.3+
-- Java 21 for Minecraft 1.21.x
-- Java 25 for Minecraft 26.x
-- Fabric API is not required at runtime
-- Mod Menu is not used
-
-Herzium is licensed under MIT and created by **zymekoh**.
+- Minecraft 26.1.2, Fabric Loader 0.19.3 or newer, Java 25
+- Client-side only. No Fabric API needed.

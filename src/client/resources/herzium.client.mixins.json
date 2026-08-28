@@ -4,9 +4,6 @@
   "plugin": "dev.zymekoh.herzium.mixin.HerziumMixinPlugin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "FramerateLimitTrackerMixin",
-    "FramerateLimiterMixin",
-    "GlDeviceMixin",
     "GuiMixin",
     "HotbarVisualMixin",
     "ItemInHandRendererMixin",
@@ -16,7 +13,6 @@
     "MinecraftMixin",
     "MouseHandlerMixin",
     "TitleScreenMixin",
-    "WindowMixin",
     "compat.ExordiumBufferInstanceMixin"
   ],
   "injectors": {

@@ -9,54 +9,35 @@
   <img src="src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
 </p>
 
-Herzium is a client-side Fabric mod for Minecraft 1.21 through 26.2 that removes
-internal FPS limits while its window is active, forces VSync to remain disabled,
-uses Priority Hotbar as its primary input feature, and removes safe decorative waits from startup
-and world entry. Background, minimized, menu, and AFK pacing remain owned by Minecraft.
+Herzium is a client-side Fabric mod for Minecraft 26.1.2 that removes visual
+latency Minecraft adds on purpose, and nothing else. It does not raise your
+frame rate, and it no longer touches VSync, the frame limit, Raw Input or the
+cursor: every one of those is either a setting Minecraft already exposes or
+another mod's to own.
 
-## Ownership
+**When it helps:** high refresh-rate displays and fast item switching, mainly
+PvP. **When it does not:** if you are GPU or CPU bound, this changes nothing.
 
-Herzium owns VSync, its active-window frame policy, and its render-only Priority
-Hotbar preview. It does not own mouse movement, Raw Input, Smooth Camera, or
-cursor placement. It never calls `updateRawMouseInput`, never changes the saved
-Raw Input option, and contains no cursor-position call.
+## Compatibility
 
-Vanilla therefore remains authoritative when no mouse mod is installed. KoHs
-Inventory Tweaks retains Cursor Landing, while Raw Input Buffer, Ixeris, and
-KoHsium retain their own settings and pipelines. Herzium may report a detected
-overlap, but it never activates, disables, or mediates those systems.
+Herzium does not write to `options.txt`, does not change the Raw Input window
+mode, and does not place the cursor. KoHsium, Raw Input Buffer, Ixeris and
+KoHs Inventory Tweaks keep everything they own; Herzium only reports what it
+detects so a player can tell who is doing what.
 
-KoHsium keeps everything else it owns: its late-event sample, section
-scheduling, render-work reduction, PvP visual safety and diagnostics. Its
-adaptive cadence is based on actual render work rather than raw frame count, so
-Herzium's uncapped rendering does not make those tasks run hundreds of times a
-second.
-
-The Herzium warning still appears first, because it owns the initial-screen
-runnable. KoHsium waits for the real title screen before showing its own notice.
+When Exordium is installed, Herzium bypasses its HUD cache so the hotbar and
+the rest of the HUD are extracted every frame. That is the one place where the
+two mods disagree, and it is reported at start-up.
 
 ## What it removes
 
-- The OpenGL `swap interval` (VSync) is forced to `0`.
-- Minecraft's general FPS limiter becomes a no-op while the window is active.
-- The configured frame-rate limit remains on vanilla's `Unlimited` value.
-- A frame limit you set yourself is honoured. Herzium removes the throttles
-  Minecraft applies on its own, not the number you chose; when a limit is in
-  place it says so with a toast the first time you are back at the controls,
-  because an uncapping mod that appears to do nothing should explain itself.
-- Vanilla's own throttles are left intact where they cost nothing that can be
-  seen: a minimized window, a menu with no level behind it, and ten minutes
-  without a single input. Handing those back is what keeps a long session from
-  ending slower than it started.
-- The exception is Vanilla's sixty-second AFK throttle, which Herzium ignores
-  while a level is loaded. A minute without input is still playing -- standing in
-  a queue, reading chat -- and dropping to 30 fps there makes the next mouse
-  movement land as one lump rather than a sweep.
-- When Exordium is installed, Herzium disables its HUD cache so the hotbar, TAB
-  list, and the rest of the HUD are extracted and rendered every frame again.
+- The two-second fade at the end of the loading overlay.
+- The two-second title-screen fade.
+- The 500 ms hold after a new world is created, once chunk readiness and the
+  compiled player section are already satisfied. The work itself is untouched.
 
-Every one of these is permanently active. There is nothing to configure and no
-screen that reports it.
+Nothing here is exposed as a Vanilla setting. Resource reloading, validation,
+model baking, shader compilation and error recovery are not modified.
 
 ## Low-latency input
 
@@ -68,9 +49,10 @@ screen that reports it.
   Vanilla or another installed mod rather than Herzium.
 - Raw Input Buffer and Ixeris are detected only to report their unsupported
   overlap. Detection never changes either pipeline or Vanilla's setting.
-- VSync and the frame-rate limit are bypassed at the window and pacing level,
-  not by editing saved settings, so Video Settings shows what you chose rather
-  than what Herzium enforces.
+- VSync, `Max Framerate` and `Reduce FPS when inactive` are yours. Herzium used
+  to override all three; it no longer touches any of them, because Minecraft
+  already exposes them and overriding a setting silently is worse than not
+  having the feature.
 - Priority Hotbar is Herzium's primary input feature. Mouse movement remains
   outside its scope; end-to-end mouse latency depends on Vanilla, installed
   input mods, polling rate, display refresh, the GPU queue, and the compositor.
@@ -109,8 +91,7 @@ screen that reports it.
 - A lightweight dark-purple loading screen displays a pixel spiral, real reload
   progress, and randomized English tips while the required work is running.
 - After the initial resource load, a responsive English or Spanish advisory
-  explains the possible instability, FPS drops, frame-time spikes, hardware
-  usage, heat, and power cost of uncapped operation. It must be acknowledged
+  explains what the mod does and does not do. It must be acknowledged
   once before the normal title, onboarding, or Quick Play flow continues, and
   the acknowledgement is then persisted in `config/herzium.json`.
 - The advisory includes fast right-moving purple particles. Particles near the
@@ -127,30 +108,17 @@ the instability, FPS drops, frame-time spikes, hardware usage, heat and power
 cost of uncapped operation. Acknowledging it is stored in `config/herzium.json`,
 which is the only thing that file now contains.
 
-## High-refresh improvements
+## What it changes on screen
 
-- The HUD is not capped at 240 FPS: it renders at the game's full frame rate.
-  When the game delivers 240 FPS, the HUD, hotbar, TAB list, and inventories
-  update at 240 Hz; if the game runs faster, they can exceed that rate too.
-- Inventories and containers remain on the active uncapped rendering cadence.
-  Their world background is left completely to Vanilla or another installed
-  visual mod; Herzium does not replace it with a black or custom backdrop.
-- The crosshair and hotbar attack-strength indicators interpolate only toward
-  vanilla combat's `0.5` partial-tick sample. They never display a stronger
-  value than the one used by the attack calculation.
 - Ordinary items adopt the current first-person model on the next frame with no
-  equip dip. Combat-capable items -- swords, axes, pickaxes, spears, maces, bows,
+  equip dip. Combat items -- swords, axes, pickaxes, spears, maces, bows,
   crossbows, tridents and shields -- keep Vanilla's visible equip transition.
-  Swing and held-item use animations remain Vanilla.
-- That classification is decided from item tags, which arrive from the server
-  after the world does. Until they have arrived Herzium answers "combat", so an
-  unclassifiable item keeps Vanilla's animation rather than losing it. The
-  answer is only cached once the tag set is demonstrably live.
-- Eating, bows, crossbows, held item use, gameplay cooldowns, and server tick
-  rates are not accelerated or falsified.
-- Players, hitboxes, raycasts, packet contents, block textures, and entity
-  animation timers are never modified. Attack and use/place timing remains
-  entirely Vanilla.
+- That classification comes from item tags, which arrive from the server after
+  the world does. Until they have arrived Herzium answers "combat", so an
+  unclassifiable item keeps Vanilla's animation rather than losing it.
+- The crosshair and hotbar attack-strength indicators interpolate only toward
+  Vanilla combat's `0.5` partial-tick sample. They never display a stronger
+  value than the one the attack calculation uses.
 
 ## What it does not change
 
