@@ -2,18 +2,25 @@
 
 ## 1.9.3
 
-- Stops disabling raw mouse motion when Ixeris is installed. Ixeris
-  intercepts `glfwSetInputMode` for `GLFW_RAW_MOUSE_MOTION` and forwards the
-  value to its own buffered handler, so turning that flag off did not prevent a
-  duplicate: it disarmed Ixeris too and left the pointer on the operating
-  system's accelerated path with no raw input at all, which players reported as
-  a slight delay in mouse movement. Raw Input Buffer still suppresses it.
-- Forces Vanilla Raw Input at start-up unconditionally. Herzium no longer stands
-  down for KoHsium or for KoHs Inventory Tweaks, and can therefore race Cursor
-  Landing's pointer placement; the start-up log reports it when that mod is
-  present. Raw Input Buffer and Ixeris still suppress it, because two
-  implementations feeding the same mouse deltas is a broken state rather than a
-  contested one.
+- Stops previewing the hotbar slot when the item in it keeps Vanilla's equip
+  transition. The HUD highlight used to move instantly for every item while the
+  hand could only follow for ordinary ones, so selecting a sword left the
+  highlight on the new slot and the hand still holding the old item, mid-dip.
+  Players read that as the hotbar failing to respond, and it happened on roughly
+  every other press in combat. Now both surfaces obey the same rule: ordinary
+  items are instant everywhere, combat items are Vanilla everywhere, and which
+  one applies is predictable from the item.
+
+- Removes every Herzium write to Raw Input, Smooth Camera, and the running mouse
+  window mode. Cursor placement is now entirely Vanilla-owned or controlled by
+  the player's installed mouse mod, with no per-mod exception path.
+- Removes the confirmed GLFW Raw Input rewrite that could replace Cursor Landing
+  with a centred pointer when an inventory opened.
+- Keeps Raw Input Buffer, Ixeris, KoHsium, and KoHs Inventory Tweaks detection
+  informational only; Herzium no longer activates, disables, or mediates any of
+  their mouse pipelines.
+- Establishes Priority Hotbar as Herzium's primary input feature. FPS/VSync and
+  the remaining loading/equip improvements stay in the rendering core.
 - Removes the configuration screen and the Mod Menu entry. Every feature is core
   and always on, so `config/herzium.json` now holds nothing but the start-up
   advisory acknowledgement.

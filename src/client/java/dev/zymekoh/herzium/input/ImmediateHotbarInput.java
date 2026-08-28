@@ -2,6 +2,7 @@ package dev.zymekoh.herzium.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
+import dev.zymekoh.herzium.render.CombatItemClassifier;
 import dev.zymekoh.herzium.Herzium;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,7 +99,22 @@ public final class ImmediateHotbarInput {
             clearPreview(state);
             return vanillaSlot;
         }
-        return vanillaSlot == state.selectedSlotAtInput() ? state.slot() : vanillaSlot;
+        if (vanillaSlot != state.selectedSlotAtInput()) {
+            return vanillaSlot;
+        }
+
+        // The hand cannot honour a preview for a combat item: it is mid-way
+        // through Vanilla's equip transition, which this mod deliberately keeps.
+        // Moving the HUD anyway would put the two surfaces in different states
+        // -- highlight already on the new slot, hand still holding the old item
+        // and dipping -- and that reads as the hotbar failing to respond.
+        // Previewing only what the hand can follow keeps them in agreement:
+        // ordinary items are instant everywhere, combat items are Vanilla
+        // everywhere, and which one you get is predictable from the item.
+        if (CombatItemClassifier.preservesVanillaEquipTransition(inventory.getItem(state.slot()))) {
+            return vanillaSlot;
+        }
+        return state.slot();
     }
 
     public static ItemStack visualMainHandItem(LocalPlayer player) {

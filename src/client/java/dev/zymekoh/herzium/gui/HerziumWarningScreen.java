@@ -72,13 +72,11 @@ public final class HerziumWarningScreen extends Screen {
     /**
      * Builds the per-mod notices, each with the accuracy it actually deserves.
      *
-     * <p>Herzium supports Raw Input Buffer and Ixeris, so neither is presented
-     * as something to uninstall. They are not the same case, though: Raw Input
-     * Buffer reads the Win32 raw stream alongside GLFW's, so Herzium leaves raw
-     * mouse motion off for it, while Ixeris uses that same flag as the switch
-     * for its own handler and needs it on. The one genuine "remove one of
-     * these" case is the two of them together, which neither supports, and that
-     * is the only notice marked as a problem.</p>
+     * <p>Raw Input Buffer, Ixeris, and KoHs Inventory Tweaks are reported only
+     * so the player can identify who owns the mouse pipeline. Herzium does not
+     * change Raw Input or cursor placement for any combination. The one genuine
+     * "remove one of these" case is Raw Input Buffer plus Ixeris, whose external
+     * pipelines overlap independently of Herzium.</p>
      *
      * <p>Exordium is a third case: nothing breaks, but Herzium bypasses its HUD
      * cache, so the part of Exordium the player installed it for is not doing
@@ -89,6 +87,7 @@ public final class HerziumWarningScreen extends Screen {
         this.notices.clear();
         boolean rawInputBuffer = ExternalInputCompatibility.rawInputBufferPresent();
         boolean ixeris = ExternalInputCompatibility.ixerisPresent();
+        boolean cursorOwner = ExternalInputCompatibility.cursorPipelineOwnerPresent();
 
         if (rawInputBuffer && ixeris) {
             this.notices.add(new Notice(
@@ -105,6 +104,13 @@ public final class HerziumWarningScreen extends Screen {
                     "ixeris",
                     Component.translatable("herzium.warning.notice.ixeris"),
                     HerziumTheme.TEXT_WARN));
+        }
+
+        if (cursorOwner) {
+            this.notices.add(new Notice(
+                    "kohs_inventory_tweaks",
+                    Component.translatable("herzium.warning.notice.inventory_tweaks"),
+                    HerziumTheme.TEXT_GOOD));
         }
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {

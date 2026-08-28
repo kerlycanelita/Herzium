@@ -1,10 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
-import com.mojang.blaze3d.platform.InputConstants;
-import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
-import dev.zymekoh.herzium.compat.KoHsiumIntegration;
 import dev.zymekoh.herzium.config.HerziumConfig;
-import dev.zymekoh.herzium.diagnostics.CoreDiagnostics;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -23,14 +19,10 @@ abstract class MinecraftMixin {
         Minecraft minecraft = (Minecraft) (Object) this;
         herzium$enforceCoreOptions(minecraft);
         minecraft.getWindow().updateVsync(false);
-        if (!KoHsiumIntegration.present() && InputConstants.isRawMouseInputSupported()) {
-            minecraft.getWindow().updateRawMouseInput(!ExternalInputCompatibility.externalRawInputPresent());
-        }
     }
 
     @Inject(method = "runTick", at = @At("HEAD"))
     private void herzium$keepCoreOptionsOptimized(boolean advanceGameTime, CallbackInfo ci) {
-        CoreDiagnostics.recordCoreFrameHook();
         herzium$enforceCoreOptions((Minecraft) (Object) this);
     }
 
@@ -54,14 +46,6 @@ abstract class MinecraftMixin {
         }
         if (minecraft.options.framerateLimit().get() != Options.UNLIMITED_FRAMERATE_CUTOFF) {
             minecraft.options.framerateLimit().set(Options.UNLIMITED_FRAMERATE_CUTOFF);
-        }
-        if (!KoHsiumIntegration.present()) {
-            boolean vanillaRawInput = !ExternalInputCompatibility.externalRawInputPresent();
-            if (InputConstants.isRawMouseInputSupported()
-                    && minecraft.options.rawMouseInput().get() != vanillaRawInput) {
-                minecraft.options.rawMouseInput().set(vanillaRawInput);
-            }
-            minecraft.options.smoothCamera = false;
         }
     }
 }

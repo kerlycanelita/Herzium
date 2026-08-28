@@ -11,50 +11,37 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized. Always on, with no in-game options: uncapped rendering while the "
-                        + "window is active, forced Vanilla Raw Input, instant equip for ordinary items, "
-                        + "Priority Hotbar preview, and a start-up with no decorative waits.");
+                "Herzium initialized. Priority Hotbar is its primary input feature; uncapped rendering while "
+                        + "the window is active, instant equip for ordinary items, and fast safe start-up "
+                        + "transitions remain active. Raw Input and cursor placement are Vanilla-owned.");
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");
         }
 
-        // Herzium no longer stands down for either of these. Both are still
-        // reported, because a player whose cursor or camera behaves differently
-        // than it used to deserves to find the reason in the log rather than
-        // guess at it.
         if (KoHsiumIntegration.present()) {
             Herzium.LOGGER.info(
-                    "KoHsium detected. Herzium now takes the Vanilla Raw Input window mode regardless, so "
-                            + "KoHsium's editable input controls no longer decide it. KoHsium keeps everything "
-                            + "else it owns.");
+                    "KoHsium detected. Herzium does not change Raw Input, Smooth Camera, or cursor placement; "
+                            + "KoHsium and Vanilla retain their normal ownership.");
         }
         if (ExternalInputCompatibility.cursorPipelineOwnerPresent()) {
-            Herzium.LOGGER.warn(
-                    "KoHs Inventory Tweaks detected. Herzium rewrites the Vanilla Raw Input window mode at "
-                            + "start-up and no longer yields that decision, so it can race Cursor Landing's "
-                            + "placement when a screen opens. If the pointer lands centred instead of where "
-                            + "Cursor Landing put it, this is why.");
+            Herzium.LOGGER.info(
+                    "KoHs Inventory Tweaks detected. Herzium never calls a Raw Input or cursor-position API; "
+                            + "Cursor Landing and Vanilla retain exclusive cursor ownership.");
         }
 
-        // Raw Input Buffer is the one mod Herzium still stands down for, and not
-        // out of deference: it reads the Win32 raw stream alongside GLFW's.
-        // Ixeris is reported separately because it is the opposite case -- it
-        // needs raw mouse motion switched on, not off.
+        // These detections are informational only. Herzium does not attempt to
+        // arm, disarm, mediate, or repair any mouse-input pipeline.
         if (ExternalInputCompatibility.competingExternalPipelinesPresent()) {
             Herzium.LOGGER.warn(
-                    "Raw Input Buffer and Ixeris are both loaded. Herzium left raw mouse motion off for Raw "
-                            + "Input Buffer, which also stops Ixeris from arming its own handler; the two "
-                            + "still overlap and one of them should be removed.");
+                    "Raw Input Buffer and Ixeris are both loaded. Their external pipelines overlap and one "
+                            + "should be removed; Herzium did not change either pipeline or Vanilla Raw Input.");
         } else if (ExternalInputCompatibility.rawInputBufferPresent()) {
-            Herzium.LOGGER.warn(
-                    "Raw Input Buffer detected. Raw mouse motion is left off so two implementations do not "
-                            + "deliver the same movement; Raw Input Buffer keeps its own pipeline.");
+            Herzium.LOGGER.info(
+                    "Raw Input Buffer detected. Herzium did not change its pipeline or Vanilla Raw Input.");
         } else if (ExternalInputCompatibility.ixerisPresent()) {
             Herzium.LOGGER.info(
-                    "Ixeris detected. Raw mouse motion is enabled, which is the switch Ixeris listens to for "
-                            + "its own buffered raw input. Herzium used to disable it here, which left the "
-                            + "pointer on the operating system's accelerated path with no raw input at all.");
+                    "Ixeris detected. Herzium did not change its pipeline or Vanilla Raw Input.");
         }
 
         if (ExternalInputCompatibility.rawInputBufferPresent()

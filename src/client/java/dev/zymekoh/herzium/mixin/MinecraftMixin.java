@@ -2,9 +2,7 @@ package dev.zymekoh.herzium.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.Herzium;
-import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
@@ -43,14 +41,9 @@ abstract class MinecraftMixin {
     private void herzium$applyWindowPolicy(CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
         minecraft.getWindow().updateVsync(false);
-        // Herzium owns the raw mouse motion mode outright: it does not stand
-        // down for KoHsium or for the mod that owns Cursor Landing. The single
-        // mod it leaves it off for is Raw Input Buffer, which reads the Win32
-        // raw stream in parallel with GLFW's. See rawMouseMotionOwnedElsewhere.
-        if (InputConstants.isRawMouseInputSupported()) {
-            minecraft.getWindow()
-                    .updateRawMouseInput(!ExternalInputCompatibility.rawMouseMotionOwnedElsewhere());
-        }
+        // Raw Input and cursor placement are deliberately absent here. Vanilla
+        // or an installed input mod owns both; Herzium never changes the
+        // running window mode and never writes the player's saved preference.
     }
 
     @Inject(method = "runTick", at = @At("HEAD"))

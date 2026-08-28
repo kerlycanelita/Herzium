@@ -11,29 +11,20 @@
 
 Herzium is a client-side Fabric mod for Minecraft 1.21 through 26.2 that removes
 internal FPS limits while its window is active, forces VSync to remain disabled,
-reduces mouse latency, and removes safe decorative waits from startup
+uses Priority Hotbar as its primary input feature, and removes safe decorative waits from startup
 and world entry. Background, minimized, menu, and AFK pacing remain owned by Minecraft.
 
 ## Ownership
 
-Herzium takes what it needs and does not negotiate for it. It is the sole writer
-of VSync, of the active-window frame policy, and of the Vanilla Raw Input window
-mode. Earlier releases stood down from that last one for KoHsium and for KoHs
-Inventory Tweaks; they no longer do.
+Herzium owns VSync, its active-window frame policy, and its render-only Priority
+Hotbar preview. It does not own mouse movement, Raw Input, Smooth Camera, or
+cursor placement. It never calls `updateRawMouseInput`, never changes the saved
+Raw Input option, and contains no cursor-position call.
 
-That has a cost worth stating plainly rather than burying. KoHs Inventory Tweaks
-owns Cursor Landing, which places the pointer when a screen opens and verifies
-the placement afterwards. Herzium rewrites the Raw Input window mode at start-up,
-and a GLFW mode change can move the pointer, so the two can race. If your cursor
-lands centred instead of where Cursor Landing put it, that is this decision and
-the start-up log says so.
-
-Raw Input Buffer and Ixeris are treated differently, and not out of courtesy.
-Each drives its own low-level mouse pipeline; enabling Vanilla's as well would
-mean two implementations feeding the same deltas, which is a broken state rather
-than a contested one. When either is installed Herzium leaves Vanilla Raw Input
-off. Installing both at once is unsupported by either of them, and Herzium only
-reports the overlap.
+Vanilla therefore remains authoritative when no mouse mod is installed. KoHs
+Inventory Tweaks retains Cursor Landing, while Raw Input Buffer, Ixeris, and
+KoHsium retain their own settings and pipelines. Herzium may report a detected
+overlap, but it never activates, disables, or mediates those systems.
 
 KoHsium keeps everything else it owns: its late-event sample, section
 scheduling, render-work reduction, PvP visual safety and diagnostics. Its
@@ -65,30 +56,20 @@ screen that reports it.
 
 ## Low-latency input
 
-- Vanilla Raw Input is forced on at start-up whenever GLFW and the operating
-  system support it, regardless of what any other mod would prefer. It is
-  applied to the window directly and is never written to `options.txt`, so the
-  value stored in your settings is left alone even though the running window
-  ignores it.
-- The single exception is Raw Input Buffer, which reads the Win32 raw stream
-  alongside GLFW's. With it installed Herzium leaves raw mouse motion off so
-  two paths do not deliver the same movement.
-- Ixeris is not that case, despite looking like it. It intercepts
-  `glfwSetInputMode` for `GLFW_RAW_MOUSE_MOTION` and forwards the value to its
-  own handler, so that flag is not a competing setting -- it is the switch
-  Ixeris listens to. Herzium turns it on and lets Ixeris take it. Earlier
-  releases turned it off, which armed nothing and left the pointer on the
-  operating system's accelerated path with no raw input at all.
-- Smooth Camera is not touched. Herzium used to overwrite it every frame, which
-  made cinematic camera impossible to enable and left the value behind after
-  uninstalling.
+- Raw Input, Smooth Camera, mouse grabbing, and cursor placement are completely
+  Vanilla-owned unless another installed mod changes them. Herzium neither
+  reads ahead nor writes these controls.
+- Opening an inventory or container invokes no Herzium cursor operation. If a
+  pointer still moves or centres with this build, that movement comes from
+  Vanilla or another installed mod rather than Herzium.
+- Raw Input Buffer and Ixeris are detected only to report their unsupported
+  overlap. Detection never changes either pipeline or Vanilla's setting.
 - VSync and the frame-rate limit are bypassed at the window and pacing level,
   not by editing saved settings, so Video Settings shows what you chose rather
   than what Herzium enforces.
-- Mouse events are accumulated without discarding samples and applied before the
-  next rendered frame. End-to-end latency still depends on polling rate, frame
-  rate, refresh rate, GPU queue and compositor; no mod can promise a number
-  here, and Herzium does not.
+- Priority Hotbar is Herzium's primary input feature. Mouse movement remains
+  outside its scope; end-to-end mouse latency depends on Vanilla, installed
+  input mods, polling rate, display refresh, the GPU queue, and the compositor.
 - `Priority Hotbar` previews the slot you pressed in the HUD and in the
   first-person hand before Vanilla's next tick commits it. It never consumes a
   click, never writes the selected slot, and never sends a packet: Vanilla

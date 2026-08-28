@@ -4,7 +4,7 @@
 
 # Herzium
 
-Herzium is a client-side Fabric optimization mod focused on uncapped rendering, lower visual latency, and faster safe transitions. It keeps gameplay and server authority Vanilla while allowing HUDs, inventories, containers, TAB, and the hotbar to render at the full frame rate of the game.
+Herzium is a client-side Fabric optimization mod focused on Priority Hotbar, uncapped rendering, lower visual latency, and faster safe transitions. It keeps gameplay and server authority Vanilla while allowing HUDs, inventories, containers, TAB, and the hotbar to render at the full frame rate of the game.
 
 ## Highlights
 
@@ -17,7 +17,7 @@ Herzium is a client-side Fabric optimization mod focused on uncapped rendering, 
 - Has no options and no Mod Menu entry: every feature is core and always on. The only interface is the one-time startup advisory.
 - Supports English, Spanish (Spain), and Spanish (Mexico).
 - Disables Exordium's HUD cache when both mods are installed so HUD elements render every frame.
-- Forces Vanilla Raw Input at start-up and does not yield that decision to other mods. It is left off only when Raw Input Buffer or Ixeris is installed, because two implementations feeding the same mouse deltas is a broken state.
+- Leaves Raw Input, Smooth Camera, mouse grabbing, and cursor placement completely to Vanilla or the player's installed input mod. Herzium never calls a cursor-position API or changes the running Raw Input mode.
 
 ## Important
 
@@ -25,9 +25,9 @@ Uncapped rendering can increase GPU usage, power consumption, temperature, and f
 
 ## Español
 
-Herzium es un mod de optimización para Fabric del lado del cliente. Elimina VSync y los límites internos de FPS mientras la ventana está activa, reduce la latencia del mouse y acelera transiciones seguras sin modificar los ticks, paquetes, alcance, cooldowns ni la autoridad del servidor.
+Herzium es un mod de optimización para Fabric del lado del cliente cuya función principal de entrada es Priority Hotbar. Elimina VSync y los límites internos de FPS mientras la ventana está activa y acelera transiciones seguras sin modificar los ticks, paquetes, alcance, cooldowns ni la autoridad del servidor.
 
-La preview de hotbar muestra la ranura pulsada antes de que el tick de Vanilla la confirme, sin consumir clics, sin escribir la selección real y sin enviar paquetes; si se equivoca tres veces seguidas se suspende sola. Los inventarios y contenedores se dibujan a la frecuencia de frames activa y su fondo lo pinta Vanilla, no Herzium. Al perder el foco, minimizar, estar en menús o AFK, Minecraft conserva su propia política de FPS. El mod no tiene opciones: todo es core. El aviso inicial está en inglés, español de España y español de México.
+La preview de hotbar muestra la ranura pulsada antes de que el tick de Vanilla la confirme, sin consumir clics, sin escribir la selección real y sin enviar paquetes; si se equivoca tres veces seguidas se suspende sola. Raw Input, Smooth Camera y la posición del cursor quedan completamente en manos de Vanilla u otros mods. Los inventarios y contenedores se dibujan a la frecuencia de frames activa y su fondo lo pinta Vanilla, no Herzium. Al perder el foco, minimizar, estar en menús o AFK, Minecraft conserva su propia política de FPS. El mod no tiene opciones: todo es core. El aviso inicial está en inglés, español de España y español de México.
 
 ## Compatibility
 

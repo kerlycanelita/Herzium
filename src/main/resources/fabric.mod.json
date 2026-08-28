@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Removes VSync and FPS limits, reduces mouse latency, and adds safe high-refresh visual improvements while leaving hotbar input Vanilla-owned.",
+  "description": "Makes Priority Hotbar its primary input feature, removes active-window VSync and FPS limits, and leaves Raw Input and cursor placement entirely Vanilla-owned.",
   "authors": [
     "zymekoh"
   ],
