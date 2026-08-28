@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.zymekoh.herzium.Herzium;
 import dev.zymekoh.herzium.config.HerziumConfig;
+import dev.zymekoh.herzium.gui.FrameLimitToast;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
@@ -58,7 +59,9 @@ abstract class MinecraftMixin {
             // moment anything derived from item tags stops being trustworthy.
             CombatItemClassifier.invalidate();
             ImmediateHotbarInput.resetSession();
+            FrameLimitToast.resetSession();
         }
+        FrameLimitToast.maybeAnnounce(minecraft);
         // Runs on every frame, including frames without a level, so a preview
         // left behind by a disconnect cannot retain the player it captured.
         ImmediateHotbarInput.releaseStalePreview(minecraft);

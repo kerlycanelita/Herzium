@@ -2,6 +2,16 @@
 
 ## 1.9.3
 
+- Honours a frame limit the player set themselves. Herzium still removes the
+  throttles Minecraft applies without asking -- the 60 fps menu cap and the AFK
+  caps -- but it no longer overrules an explicit number: overriding a setting
+  the player typed is the same mistake as writing to `options.txt`, only less
+  visible. Leaving the limit on Unlimited behaves exactly as before.
+- Announces that with a toast the first time the player is back at the controls
+  with a limit in place, so an uncapping mod that appears to be doing nothing
+  has a reason on screen. Pixel-drawn warning glyph in the mod's palette, a
+  settle animation, and a bar that drains over the three seconds it stays up.
+
 - Stops previewing the hotbar slot when the item in it keeps Vanilla's equip
   transition. The HUD highlight used to move instantly for every item while the
   hand could only follow for ordinary ones, so selecting a sword left the

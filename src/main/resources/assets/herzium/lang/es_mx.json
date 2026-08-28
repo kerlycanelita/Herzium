@@ -15,5 +15,7 @@
   "herzium.warning.tip.2": "Herzium nunca acelera los 20 ticks por segundo del servidor.",
   "herzium.warning.tip.3": "La preview de hotbar ensena la ranura antes. Nunca la escribe.",
   "herzium.warning.tip.4": "Los items de combate conservan la animacion de Vanilla, a proposito.",
-  "herzium.warning.tip.5": "Sin limite es sin limite. Vigila las temperaturas."
+  "herzium.warning.tip.5": "Sin limite es sin limite. Vigila las temperaturas.",
+  "herzium.toast.fps_limit.title": "Limite de FPS: %s",
+  "herzium.toast.fps_limit.message": "Herzium respeta tu ajuste, pero no es para lo que esta este mod."
 }

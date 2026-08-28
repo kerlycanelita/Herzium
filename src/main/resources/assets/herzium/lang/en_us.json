@@ -15,5 +15,7 @@
   "herzium.warning.tip.2": "Herzium never speeds up the 20 ticks per second the server runs on.",
   "herzium.warning.tip.3": "The hotbar preview shows the slot early. It never writes it.",
   "herzium.warning.tip.4": "Combat items keep Vanilla's equip animation, on purpose.",
-  "herzium.warning.tip.5": "Uncapped means uncapped. Watch your temperatures."
+  "herzium.warning.tip.5": "Uncapped means uncapped. Watch your temperatures.",
+  "herzium.toast.fps_limit.title": "Frame limit: %s fps",
+  "herzium.toast.fps_limit.message": "Herzium is honouring your setting, but it is not what this mod is for."
 }

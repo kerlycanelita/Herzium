@@ -2,6 +2,7 @@ package dev.zymekoh.herzium.render;
 
 import com.mojang.blaze3d.platform.FramerateLimitTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 
 /**
  * The single decision about when Herzium removes the frame limit.
@@ -11,6 +12,20 @@ import net.minecraft.client.Minecraft;
  */
 public final class FramePolicy {
     private FramePolicy() {
+    }
+
+    /**
+     * Whether the player typed a frame limit of their own.
+     *
+     * <p>Herzium removes the throttles Minecraft applies without asking. It does
+     * not overrule a number the player chose: overriding an explicit setting is
+     * the same mistake as writing to {@code options.txt}, just less visible.
+     * {@link dev.zymekoh.herzium.gui.FrameLimitToast} tells them it is being
+     * honoured, so an uncapping mod that appears to do nothing has a reason on
+     * screen.</p>
+     */
+    public static boolean playerChoseALimit(Minecraft minecraft) {
+        return minecraft.options.framerateLimit().get() < Options.UNLIMITED_FRAMERATE_CUTOFF;
     }
 
     /**

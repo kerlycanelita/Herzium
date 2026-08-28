@@ -24,9 +24,12 @@ abstract class FramerateLimiterMixin {
     @Inject(method = "limitDisplayFPS", at = @At("HEAD"), cancellable = true)
     private static void herzium$skipFramePacing(int framerateLimit, CallbackInfo ci) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (FramePolicy.shouldRunUncapped(
-                minecraft,
-                minecraft.getFramerateLimitTracker().getThrottleReason())) {
+        // Skipping the pacing outright would defeat a limit the player chose,
+        // so this only fires when they asked for no limit at all.
+        if (!FramePolicy.playerChoseALimit(minecraft)
+                && FramePolicy.shouldRunUncapped(
+                        minecraft,
+                        minecraft.getFramerateLimitTracker().getThrottleReason())) {
             ci.cancel();
         }
     }

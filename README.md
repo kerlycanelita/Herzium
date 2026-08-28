@@ -40,6 +40,10 @@ runnable. KoHsium waits for the real title screen before showing its own notice.
 - The OpenGL `swap interval` (VSync) is forced to `0`.
 - Minecraft's general FPS limiter becomes a no-op while the window is active.
 - The configured frame-rate limit remains on vanilla's `Unlimited` value.
+- A frame limit you set yourself is honoured. Herzium removes the throttles
+  Minecraft applies on its own, not the number you chose; when a limit is in
+  place it says so with a toast the first time you are back at the controls,
+  because an uncapping mod that appears to do nothing should explain itself.
 - Vanilla's own throttles are left intact where they cost nothing that can be
   seen: a minimized window, a menu with no level behind it, and ten minutes
   without a single input. Handing those back is what keeps a long session from

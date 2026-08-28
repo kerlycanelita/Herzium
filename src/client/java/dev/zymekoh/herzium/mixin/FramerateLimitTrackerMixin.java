@@ -52,7 +52,11 @@ abstract class FramerateLimitTrackerMixin {
     @Inject(method = "getFramerateLimit", at = @At("HEAD"), cancellable = true)
     private void herzium$useUnlimitedFramerate(CallbackInfoReturnable<Integer> cir) {
         if (FramePolicy.shouldRunUncapped(this.minecraft, this.getThrottleReason())) {
-            cir.setReturnValue(Options.UNLIMITED_FRAMERATE_CUTOFF);
+            // The player's own value, not a forced "unlimited". When they left
+            // it on Unlimited this is the cutoff and nothing is capped; when
+            // they typed 120 they get 120, with Vanilla's menu and AFK throttles
+            // still out of the way.
+            cir.setReturnValue(this.minecraft.options.framerateLimit().get());
         }
     }
 }
