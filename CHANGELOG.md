@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.9.5
+
+### Changed
+- Rewrote player-facing descriptions and messages so they describe the current
+  render-only behavior without presenting Herzium as an FPS optimizer.
+- The resource-independent loading overlay now selects neutral Spanish for any
+  `es_*` language code and English for every other language.
+- Added complete runtime translations for every Spanish locale shipped by
+  Minecraft 26.1.2: Argentina, Chile, Ecuador, Spain, Mexico, Uruguay and
+  Venezuela.
+- The start-up information screen now has one `Continue` button. Continuing
+  records the acknowledgement, so the screen is shown only once.
+- Documentation now explicitly says that neither Fabric API nor Mod Menu is
+  required.
+
+### Fixed
+- Removed obsolete loading messages about uncapped FPS, high-frequency HUD
+  rendering and lifted frame limits.
+- Qualified the hotbar feature as an ordinary non-combat item preview: Vanilla
+  still owns the real selection, input resolution, actions and packets.
+
 ## 1.9.4
 
 Reworked after Modrinth moderation feedback. Herzium is no longer an FPS mod.

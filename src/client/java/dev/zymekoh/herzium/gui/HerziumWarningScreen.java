@@ -14,15 +14,14 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 
 /**
- * Start-up advisory, shown once after the initial resource reload.
+ * Start-up information screen, shown once after the initial resource reload.
  *
- * <p>There is no panel. The warning sits directly on the particle field, so
- * the first thing Herzium shows is the thing Herzium is: the field moving at
- * whatever rate the machine can manage, with the text on top of it.</p>
+ * <p>There is no panel. The information sits directly on the particle field so
+ * the scope and limitations of the mod are readable before normal play.</p>
  *
  * <p>Everything fades in on a timeline, and the buttons deliberately arrive two
- * seconds late. A warning that can be dismissed on the same reflex that
- * launched the game is not a warning, and this one is about hardware.</p>
+ * seconds late, preventing the same input that launched the game from
+ * dismissing the explanation accidentally.</p>
  */
 public final class HerziumWarningScreen extends Screen {
     private static final Component TITLE = Component.translatable("herzium.warning.title");
@@ -41,7 +40,6 @@ public final class HerziumWarningScreen extends Screen {
 
     private List<FormattedCharSequence> messageLines = List.of();
     private AnimatedPurpleButton acceptButton;
-    private AnimatedPurpleButton dismissButton;
     private int contentTop;
     private int contentWidth;
     private int buttonRowY;
@@ -122,12 +120,10 @@ public final class HerziumWarningScreen extends Screen {
     }
 
     private void addButtons() {
-        int gap = this.width < 340 ? 6 : 10;
         int available = Math.max(1, this.width - 32);
-        int buttonWidth = Math.min(190, Math.max(1, (available - gap) / 2));
+        int buttonWidth = Math.min(220, available);
         int buttonHeight = this.height < 260 ? 18 : 22;
-        int totalWidth = buttonWidth * 2 + gap;
-        int x = (this.width - totalWidth) / 2;
+        int x = (this.width - buttonWidth) / 2;
 
         this.acceptButton = this.addRenderableWidget(new AnimatedPurpleButton(
                 x,
@@ -136,15 +132,7 @@ public final class HerziumWarningScreen extends Screen {
                 buttonHeight,
                 Component.translatable("herzium.warning.accept"),
                 () -> true,
-                button -> this.finish(false)));
-        this.dismissButton = this.addRenderableWidget(new AnimatedPurpleButton(
-                x + buttonWidth + gap,
-                this.buttonRowY,
-                buttonWidth,
-                buttonHeight,
-                Component.translatable("herzium.warning.dont_show"),
-                () -> false,
-                button -> this.finish(true)));
+                button -> this.finish()));
 
         // Hidden rather than merely inactive: an invisible-but-present button
         // would still take the keyboard focus ring before it can be used.
@@ -155,8 +143,6 @@ public final class HerziumWarningScreen extends Screen {
     private void setButtonsVisible(boolean visible) {
         this.acceptButton.visible = visible;
         this.acceptButton.active = visible;
-        this.dismissButton.visible = visible;
-        this.dismissButton.active = visible;
         if (visible) {
             this.setInitialFocus(this.acceptButton);
         }
@@ -166,15 +152,13 @@ public final class HerziumWarningScreen extends Screen {
         return System.nanoTime() / 1_000_000L - this.openedAtMillis;
     }
 
-    private void finish(boolean rememberAcknowledgement) {
+    private void finish() {
         if (this.completed) {
             return;
         }
 
         this.completed = true;
-        if (rememberAcknowledgement) {
-            HerziumConfig.get().acknowledgeStartupWarning();
-        }
+        HerziumConfig.get().acknowledgeStartupWarning();
         this.continuation.run();
     }
 
@@ -210,7 +194,6 @@ public final class HerziumWarningScreen extends Screen {
             // than as having been there all along.
             int lift = Math.round(8.0F * (1.0F - ease(elapsed - BUTTON_DELAY_MS, 260L)));
             this.acceptButton.setY(this.buttonRowY + lift);
-            this.dismissButton.setY(this.buttonRowY + lift);
         }
 
         int centerX = this.width / 2;

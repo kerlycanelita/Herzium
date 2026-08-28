@@ -11,9 +11,11 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized. Priority Hotbar, instant equip for ordinary items and fast start-up "
-                        + "transitions are active. Herzium does not change the frame rate: VSync, the frame "
-                        + "limit, Raw Input and cursor placement are Vanilla-owned.");
+                "Herzium initialized. A render-only hotbar preview for ordinary non-combat items, removal "
+                        + "of their equip transition, and shorter decorative start-up transitions are active. "
+                        + "Vanilla retains the real selection, actions and packets. Herzium does not increase "
+                        + "FPS or require Fabric API; VSync, frame limits, Raw Input and cursor placement remain "
+                        + "Vanilla-owned.");
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");

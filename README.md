@@ -9,66 +9,80 @@
   <img src="src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
 </p>
 
-**Switching items feels instant.**
+**Faster visual hotbar feedback for ordinary items, with Vanilla gameplay unchanged.**
 
-Minecraft only registers your hotbar key on its next game tick, so pressing `2`
-can sit there for a fraction of a second before anything moves. Herzium draws
-the slot you pressed straight away, on the very next frame.
+Herzium is a small client-side visual-response mod. When an ordinary
+non-combat hotbar item is requested with a configured hotbar key, Herzium can
+preview that slot in the HUD and in hand on the next rendered frame instead of
+waiting for Vanilla's next client tick. That can make the response visible up
+to one normal client tick (about 50 ms) sooner on a high refresh-rate display.
 
-Client-side, works on any server, and it is not an FPS mod.
+The preview is provisional and render-only. Vanilla still resolves the real
+selected slot, input order, actions and network packets. If repeated previews
+disagree with Vanilla, Herzium suspends the preview for the rest of that world.
 
-## What you get
+## What it changes
 
-- **Instant hotbar.** Press a number and the highlight and the item in your hand
-  move immediately instead of waiting for the next tick. Up to 50 ms sooner.
-- **No equip wobble.** Ordinary items appear in your hand without the little dip
-  animation. Swords, axes, bows, shields and the rest of your combat gear keep
-  it, so nothing about fighting looks different.
-- **A start-up that gets out of the way.** The fade at the end of the loading
-  screen, the fade on the title screen and the short pause after creating a
-  world are gone. Loading itself is untouched.
+- **Ordinary-item hotbar preview.** The requested slot and ordinary item can be
+  shown on the next rendered frame. Combat items wait for Vanilla.
+- **Ordinary-item equip transition.** Removes the decorative equip dip from
+  ordinary main-hand and offhand items. Combat items keep Vanilla's complete
+  equip transition.
+- **Smoother attack indicator.** Interpolates only the displayed attack meter,
+  conservatively within Vanilla's current tick. It does not change cooldowns
+  or attack timing.
+- **Shorter decorative start-up transitions.** Removes the loading-overlay
+  fade, title-screen fade and post-world-creation hold. Resource loading and
+  world creation still perform their real work.
 
-## What it does not do
+## What it does not change
 
-It does not give you more FPS, and it does not pretend to. If your game is
-already struggling, this will not help.
+Herzium does not increase FPS, accelerate game logic or alter server-side
+gameplay. It leaves VSync, `Max Framerate`, `Reduce FPS when inactive`, Raw
+Input, Smooth Camera, sensitivity and cursor placement untouched. It does not
+write those options to `options.txt`.
 
-It also leaves your settings alone. VSync, `Max Framerate`, `Reduce FPS when
-inactive`, Raw Input and mouse sensitivity are exactly where you put them, and
-Herzium never writes to `options.txt`.
+The visual preview itself is not sent to the server. The actual selected slot,
+attack and use actions, reach, cooldowns, hitboxes and packets remain Vanilla.
+Servers may still restrict client mods or identify them through an approved
+client/attestation system, so follow each server's rules.
 
-Nothing it changes reaches the server. Your hotbar selection, attack and use
-timing, reach, cooldowns and hitboxes are all still Minecraft's.
+## When it helps
 
-## Where it makes a difference
-
-Best on a high refresh-rate monitor and when you switch items quickly, which
-mostly means PvP. That fraction of a second is the whole point, so if you never
-notice it, you do not need this mod.
+The difference is easiest to see on high refresh-rate displays while switching
+ordinary items quickly. Herzium does not improve a GPU- or CPU-limited frame
+rate and will not make loading work finish faster.
 
 ## Install
 
-1. [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer, and Java 25.
-2. Drop `herzium-1.9.4.jar` in your `mods` folder.
+1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer and use
+   Java 25.
+2. Put `herzium-1.9.5.jar` in the `mods` folder.
 
-Client-side only, and no Fabric API required. There is nothing to configure:
-everything above is always on, and the only screen Herzium adds is a one-time
-notice the first time you launch it.
+Minecraft **26.1.2** is the supported game version. Herzium is client-side only.
+**Fabric API is not required. Mod Menu is optional and is not required.**
 
-## Compatible with
+There are no gameplay options. A short information screen is shown once; after
+the player chooses **Continue**, its acknowledgement is saved and it will not
+appear again.
 
-Herzium does not touch Raw Input or the cursor, so **KoHsium**, **Raw Input
-Buffer**, **Ixeris** and **KoHs Inventory Tweaks** keep doing their thing. It
-tells you in the log which ones it found.
+## Languages
 
-With **Exordium** installed it skips that mod's HUD cache, so the hotbar is
-drawn every frame. That is the one place the two overlap, and Herzium says so
-at start-up.
+English is the fallback. Minecraft's seven Spanish locales are included:
+Argentina, Chile, Ecuador, Spain, Mexico, Uruguay and Venezuela. The early
+resource-independent loading message also selects Spanish for any `es_*`
+locale and English otherwise.
 
-## Supported version
+## Compatibility
 
-Minecraft **26.1.2** only. Other versions are being worked on but are not
-released yet.
+Herzium does not control Raw Input or the cursor, so KoHsium, Raw Input Buffer,
+Ixeris and KoHs Inventory Tweaks retain ownership of those behaviors. Detected
+input-related mods are reported in the log for troubleshooting.
+
+If Exordium is installed, Herzium bypasses Exordium's HUD frame buffer so the
+hotbar preview can be drawn each frame. Exordium's HUD caching is therefore
+inactive while both mods run. Players who prefer Exordium's caching should not
+combine the two mods.
 
 ## Building
 
@@ -76,9 +90,9 @@ released yet.
 ./gradlew build
 ```
 
-The jar lands in `build/libs/herzium-<mod_version>.jar`, where `mod_version`
-comes from `gradle.properties` — currently `1.9.4`. Ignore the file ending in
-`-sources.jar`.
+The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
+`mod_version` comes from `gradle.properties` — currently `1.9.5`. The file
+ending in `-sources.jar` is not the playable build.
 
 ## License
 
@@ -89,4 +103,4 @@ MIT. See [LICENSE](LICENSE).
 Made by **zymekoh**.
 
 [Exordium](https://github.com/tr7zw/Exordium) was studied as a reference for how
-a HUD cache behaves, which is why Herzium knows to step around it.
+a HUD cache behaves, which is why Herzium explicitly handles that overlap.

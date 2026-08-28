@@ -23,15 +23,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Replaces fixed-duration loading fades with a lightweight Herzium screen.
  * Resource preparation and vanilla error handling are kept intact.
  *
- * <p>The title, subtitle and tips below are English literals on purpose and
- * have no language keys. Two independent reasons, either of which is enough:
- * during the initial reload the language system does not exist yet, and
- * {@link StartupPixelFont} is a hand-written 3x5 glyph table covering ASCII
- * only -- no accents, no {@code n} with tilde, no inverted punctuation -- so a
- * Spanish string would render with holes in it. Drawing this screen with
- * vanilla's {@code Font} instead is exactly the bug 1.8.4 fixed. The unused
- * {@code herzium.loading.*} keys were therefore removed rather than wired up;
- * see M-05 in docs/AUDIT-1.9.3.md.</p>
+ * <p>The initial reload happens before Minecraft's translated font resources
+ * are safe to use. {@link StartupPixelFont} therefore draws resource-free
+ * ASCII text. The selected language code is still available, so every
+ * {@code es_*} locale receives accent-free Spanish literals while every other
+ * locale falls back to English. This keeps the screen bilingual without
+ * reintroducing the missing-glyph and shader failures fixed in 1.8.4.</p>
  */
 @Mixin(value = LoadingOverlay.class, priority = 2000)
 abstract class LoadingOverlayMixin {
@@ -45,22 +42,36 @@ abstract class LoadingOverlayMixin {
     private static final String HERZIUM_TITLE = "HERZIUM";
 
     @Unique
-    private static final String HERZIUM_SUBTITLE = "Loading at full speed";
+    private static final String HERZIUM_SUBTITLE_ENGLISH = "Finishing Vanilla setup";
 
     @Unique
-    private static final List<String> HERZIUM_TIPS = List.of(
+    private static final String HERZIUM_SUBTITLE_SPANISH = "Terminando la configuracion de Vanilla";
+
+    @Unique
+    private static final List<String> HERZIUM_TIPS_ENGLISH = List.of(
             "Removing waiting, not work.",
-            "Herzium keeps your HUD moving at your refresh rate.",
-            "Loading pixels at an unreasonable speed...",
-            "Your FPS cap has left the game.",
-            "Tip: your display refresh rate matters too.",
-            "Fast hands, smooth HUD, vanilla mechanics.",
-            "Warming up the purple engine...",
-            "Mining the loading screen. Almost there.",
-            "Herzium never invents player positions.",
-            "Resource packs still require real work. Magic has limits.",
-            "High refresh rates deserve high-frequency visuals.",
-            "Removing decorative delays one millisecond at a time.");
+            "The hotbar preview is visual only.",
+            "Vanilla still selects the real slot.",
+            "Combat items keep Vanilla's equip animation.",
+            "VSync and frame limits stay in Minecraft.",
+            "Resource packs still require real work.",
+            "No extra packets. No faster attacks.",
+            "Ordinary items can appear on the next frame.",
+            "High refresh displays make the preview easier to see.",
+            "Removing decorative delays.");
+
+    @Unique
+    private static final List<String> HERZIUM_TIPS_SPANISH = List.of(
+            "Herzium elimina esperas, no trabajo.",
+            "La vista previa de hotbar es solo visual.",
+            "Vanilla selecciona la ranura real.",
+            "Los objetos de combate conservan su animacion.",
+            "VSync y el limite de FPS siguen en Minecraft.",
+            "Los paquetes de recursos aun requieren trabajo real.",
+            "No hay paquetes extra ni ataques mas rapidos.",
+            "Los objetos normales aparecen en el siguiente frame.",
+            "Una pantalla rapida hace mas visible la diferencia.",
+            "Quitando retrasos decorativos.");
 
     @Shadow
     @Final
@@ -91,6 +102,12 @@ abstract class LoadingOverlayMixin {
     @Unique
     private List<String> herzium$cachedTipLines = List.of();
 
+    @Unique
+    private String herzium$subtitle = HERZIUM_SUBTITLE_ENGLISH;
+
+    @Unique
+    private List<String> herzium$tips = HERZIUM_TIPS_ENGLISH;
+
     @Inject(method = "<init>", at = @At("TAIL"))
     private void herzium$initializeLoadingScreen(
             Minecraft minecraft,
@@ -99,7 +116,11 @@ abstract class LoadingOverlayMixin {
             boolean fadeIn,
             CallbackInfo ci) {
         long now = System.nanoTime() / 1_000_000L;
-        this.herzium$tipIndex = ThreadLocalRandom.current().nextInt(HERZIUM_TIPS.size());
+        String languageCode = minecraft.getLanguageManager().getSelected();
+        boolean spanish = languageCode != null && languageCode.toLowerCase(java.util.Locale.ROOT).startsWith("es_");
+        this.herzium$subtitle = spanish ? HERZIUM_SUBTITLE_SPANISH : HERZIUM_SUBTITLE_ENGLISH;
+        this.herzium$tips = spanish ? HERZIUM_TIPS_SPANISH : HERZIUM_TIPS_ENGLISH;
+        this.herzium$tipIndex = ThreadLocalRandom.current().nextInt(this.herzium$tips.size());
         this.herzium$tipShownAt = now;
         this.herzium$nextTipAt = now + HERZIUM_TIP_TIME_MS;
     }
@@ -150,7 +171,7 @@ abstract class LoadingOverlayMixin {
         int titleY = Math.max(6, Math.min(16, height / 12));
         StartupPixelFont.drawCentered(graphics, HERZIUM_TITLE, centerX, titleY, 2, 0xFFF6ECFF);
         if (height >= 150) {
-            StartupPixelFont.drawCentered(graphics, HERZIUM_SUBTITLE, centerX, titleY + 14, 1, 0xFFC5A6DF);
+            StartupPixelFont.drawCentered(graphics, this.herzium$subtitle, centerX, titleY + 14, 1, 0xFFC5A6DF);
         }
 
         int maxBarWidth = Math.max(1, width - 32);
@@ -160,7 +181,7 @@ abstract class LoadingOverlayMixin {
         int barX = centerX - barWidth / 2;
         int barY = Math.max(34, height - 18);
 
-        String tip = HERZIUM_TIPS.get(this.herzium$tipIndex);
+        String tip = this.herzium$tips.get(this.herzium$tipIndex);
         int tipWidth = Math.max(24, width - 28);
         List<String> tipLines = this.herzium$tipLines(tip, tipWidth);
         int maxTipLines = height < 150 ? 1 : 2;
@@ -218,9 +239,9 @@ abstract class LoadingOverlayMixin {
         }
 
         int previous = this.herzium$tipIndex;
-        if (HERZIUM_TIPS.size() > 1) {
+        if (this.herzium$tips.size() > 1) {
             do {
-                this.herzium$tipIndex = ThreadLocalRandom.current().nextInt(HERZIUM_TIPS.size());
+                this.herzium$tipIndex = ThreadLocalRandom.current().nextInt(this.herzium$tips.size());
             } while (this.herzium$tipIndex == previous);
         }
 
@@ -253,7 +274,7 @@ abstract class LoadingOverlayMixin {
             int maxRadius,
             int pixelSize,
             long now) {
-        // Keep the uncapped startup overlay cheap enough that it does not
+        // Keep the resource-independent startup overlay cheap enough that it does not
         // compete noticeably with resource-loading workers.
         int points = Mth.clamp(maxRadius / 3 + 16, 20, 32);
         float rotation = (float) (now % 2400L) / 2400.0F * Mth.TWO_PI;

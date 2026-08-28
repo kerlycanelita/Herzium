@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Shows the hotbar slot you pressed one client tick sooner, removes the equip dip for ordinary items, and cuts the decorative waits out of start-up. It does not change your frame rate.",
+  "description": "Visually previews ordinary non-combat hotbar items on the next rendered frame, removes their equip dip, and shortens decorative start-up transitions. It does not increase FPS, alter gameplay, or require Fabric API.",
   "authors": [
     "zymekoh"
   ],
