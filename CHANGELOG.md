@@ -1,5 +1,59 @@
 # Changelog
 
+## 1.9.8
+
+### Fixed
+- The HUD now previews every unambiguous hotbar slot, including combat-item
+  slots; combat items still keep their complete Vanilla first-person hand and
+  equip transition.
+- Distinct slot keys received before the same client tick no longer produce a
+  speculative highlight or hand item. Herzium waits for Vanilla's committed
+  result, preventing a rapid burst from looking like a lost or ignored remap.
+- Single-slot repeats and duplicate bindings still use one preview candidate;
+  there is no Herzium input queue and no duplicated visual state.
+
+### Vanilla input boundary
+- Minecraft 26.1.2 resolves several pending hotbar slots in ascending slot
+  order, then handles Use/Place. Herzium does not replace that with last-key
+  order because doing so changes which item Vanilla can use and is visible to
+  the server.
+- Mouse and keyboard remaps for Use/Place remain on Vanilla's `KeyMapping`,
+  `rightClickDelay`, action and packet paths. Herzium neither consumes nor
+  retries them.
+
+## 1.9.7
+
+### Fixed
+- Preserved Minecraft 26.1.2's exact ascending-slot resolution when several
+  hotbar keys arrive inside one client tick, including repeated and remapped
+  inputs, without adding an input queue of Herzium's own.
+- Moved visual-preview confirmation to the end of the complete client tick so
+  later Vanilla or compatible-mod work is observed before Herzium accepts the
+  result.
+- Made Priority Hotbar fail closed after the first disagreement with Vanilla
+  and coordinated HUD/hand hook health, preventing a missing HUD hook from
+  leaving a hand-only preview.
+- Treats Vanilla wheel selection and late creative save/load modifiers as
+  authoritative superseding input, so neither can falsely trip the mismatch
+  guard during a rapid remapped-key burst.
+- Clears an earlier same-batch preview as soon as a creative toolbar modifier
+  appears, instead of retaining the prefix of a batch Vanilla resolves under
+  different rules.
+- Shortened the English and all shipped Spanish Mod Menu descriptions.
+
+### Security boundary
+- The preview remains render-only. Herzium does not consume clicks, write the
+  selected inventory slot, send packets, or change action/cooldown timing.
+
+## 1.9.6
+
+### Fixed
+- Aligned the description bundled for Mod Menu with Herzium's public Modrinth
+  summary and current feature scope.
+- Updated the English and every shipped Spanish Mod Menu translation together,
+  so the in-game listing no longer appears to describe a different project.
+- Kept Mod Menu's `Website` action linked to Herzium's official Modrinth page.
+
 ## 1.9.5
 
 ### Changed

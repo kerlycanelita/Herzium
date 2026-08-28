@@ -1,8 +1,8 @@
 {
-  "modmenu.summaryTranslation.herzium": "Faster visual hotbar feedback for ordinary items. Vanilla gameplay stays unchanged.",
-  "modmenu.descriptionTranslation.herzium": "Visually previews ordinary non-combat hotbar items on the next rendered frame, removes their equip dip, and shortens decorative start-up transitions. It does not increase FPS, alter gameplay, or require Fabric API.",
+  "modmenu.summaryTranslation.herzium": "Faster visual hotbar feedback. Vanilla gameplay stays unchanged.",
+  "modmenu.descriptionTranslation.herzium": "Render-only hotbar feedback for unambiguous slot presses. Vanilla keeps the real selection, actions and packets. No FPS or gameplay changes.",
   "herzium.warning.title": "ABOUT HERZIUM",
-  "herzium.warning.message": "For ordinary non-combat items, Herzium can preview the pressed hotbar slot on the next rendered frame. The real selection, actions and packets remain Vanilla. It also removes the ordinary-item equip dip and decorative start-up waits. It does not raise FPS or require Fabric API. VSync, frame limits, Raw Input and cursor placement are left alone.",
+  "herzium.warning.message": "Herzium can preview one unambiguous pressed hotbar slot in the HUD on the next rendered frame. Ordinary non-combat items can also appear in hand immediately. Distinct same-tick slot bursts wait for Vanilla. The real selection, use and attack actions, and packets remain Vanilla. It does not raise FPS or change VSync, frame limits, Raw Input or cursor placement.",
   "herzium.warning.accept": "Continue",
   "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer is installed. Herzium does not change its pipeline or Vanilla Raw Input.",
   "herzium.warning.notice.ixeris": "Ixeris is installed. Herzium does not change its pipeline or Vanilla Raw Input.",
@@ -10,9 +10,9 @@
   "herzium.warning.notice.both_pipelines": "Raw Input Buffer and Ixeris are both installed. Their external mouse pipelines overlap; Herzium does not mediate them. Remove one.",
   "herzium.warning.notice.exordium": "Exordium is installed. Herzium bypasses its HUD cache, so that part of Exordium is inactive while both mods run.",
   "herzium.warning.tip.0": "Herzium removes waiting, not work. It adds no frames.",
-  "herzium.warning.tip.1": "The hotbar preview is visual and only applies to ordinary items.",
+  "herzium.warning.tip.1": "The hotbar preview is visual and requires one unambiguous slot.",
   "herzium.warning.tip.2": "Herzium never speeds up the server's 20 ticks per second.",
   "herzium.warning.tip.3": "Vanilla still owns the real selection, actions and packets.",
-  "herzium.warning.tip.4": "Combat items keep Vanilla's hotbar and equip transition.",
+  "herzium.warning.tip.4": "Combat items keep Vanilla's complete hand and equip transition.",
   "herzium.warning.tip.5": "Fabric API is not required. VSync and frame limits remain Vanilla-owned."
 }

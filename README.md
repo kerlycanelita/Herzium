@@ -9,22 +9,26 @@
   <img src="src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
 </p>
 
-**Faster visual hotbar feedback for ordinary items, with Vanilla gameplay unchanged.**
+**Faster visual hotbar feedback, with Vanilla gameplay unchanged.**
 
-Herzium is a small client-side visual-response mod. When an ordinary
-non-combat hotbar item is requested with a configured hotbar key, Herzium can
-preview that slot in the HUD and in hand on the next rendered frame instead of
-waiting for Vanilla's next client tick. That can make the response visible up
-to one normal client tick (about 50 ms) sooner on a high refresh-rate display.
+Herzium is a small client-side visual-response mod. When one unambiguous hotbar
+slot is requested with a configured hotbar key, Herzium can preview its HUD
+highlight on the next rendered frame instead of waiting for Vanilla's next
+client tick. Ordinary non-combat items can also be previewed in hand. That can
+make the response visible up to one normal client tick (about 50 ms) sooner on
+a high refresh-rate display.
 
 The preview is provisional and render-only. Vanilla still resolves the real
-selected slot, input order, actions and network packets. If repeated previews
-disagree with Vanilla, Herzium suspends the preview for the rest of that world.
+selected slot, input order, actions and network packets. Distinct slot keys
+received before the same client tick are not previewed: Vanilla resolves that
+burst by slot order rather than physical arrival order, so Herzium waits for
+Vanilla instead of guessing. Any disagreement suspends previews for that world.
 
 ## What it changes
 
-- **Ordinary-item hotbar preview.** The requested slot and ordinary item can be
-  shown on the next rendered frame. Combat items wait for Vanilla.
+- **Hotbar preview.** One unambiguous requested slot can be highlighted on the
+  next rendered frame. Ordinary items can also appear in hand immediately;
+  combat items keep Vanilla's hand/equip transition.
 - **Ordinary-item equip transition.** Removes the decorative equip dip from
   ordinary main-hand and offhand items. Combat items keep Vanilla's complete
   equip transition.
@@ -50,14 +54,14 @@ client/attestation system, so follow each server's rules.
 ## When it helps
 
 The difference is easiest to see on high refresh-rate displays while switching
-ordinary items quickly. Herzium does not improve a GPU- or CPU-limited frame
-rate and will not make loading work finish faster.
+slots quickly, especially ordinary items. Herzium does not improve a GPU- or
+CPU-limited frame rate and will not make loading work finish faster.
 
 ## Install
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer and use
    Java 25.
-2. Put `herzium-1.9.5.jar` in the `mods` folder.
+2. Put `herzium-1.9.8.jar` in the `mods` folder.
 
 Minecraft **26.1.2** is the supported game version. Herzium is client-side only.
 **Fabric API is not required. Mod Menu is optional and is not required.**
@@ -91,7 +95,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.9.5`. The file
+`mod_version` comes from `gradle.properties` — currently `1.9.8`. The file
 ending in `-sources.jar` is not the playable build.
 
 ## License

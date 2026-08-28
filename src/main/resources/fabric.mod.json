@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Visually previews ordinary non-combat hotbar items on the next rendered frame, removes their equip dip, and shortens decorative start-up transitions. It does not increase FPS, alter gameplay, or require Fabric API.",
+  "description": "Faster visual hotbar feedback. Vanilla keeps the real selection, actions and packets. No FPS or gameplay changes.",
   "authors": [
     "zymekoh"
   ],

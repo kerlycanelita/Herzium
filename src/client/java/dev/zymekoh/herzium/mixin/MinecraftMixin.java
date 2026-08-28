@@ -40,8 +40,8 @@ abstract class MinecraftMixin {
     }
 
     @Inject(method = "handleKeybinds", at = @At("TAIL"))
-    private void herzium$observeVanillaHotbarConfirmation(CallbackInfo ci) {
-        ImmediateHotbarInput.onVanillaHotbarTick((Minecraft) (Object) this);
+    private void herzium$markVanillaHotbarPassCompleted(CallbackInfo ci) {
+        ImmediateHotbarInput.markVanillaHotbarPassCompleted((Minecraft) (Object) this);
     }
 
     /**

@@ -17,6 +17,10 @@ abstract class HotbarVisualMixin {
                     target = "Lnet/minecraft/world/entity/player/Inventory;getSelectedSlot()I"),
             require = 0)
     private int herzium$renderVanillaResolvableHotbarInput(int vanillaSlot) {
+        // If this optional expression hook disappears because mappings changed
+        // or another renderer replaced the hotbar, hand previewing fails closed
+        // too instead of allowing the HUD and hand to show different slots.
+        ImmediateHotbarInput.observeHudHook();
         Minecraft minecraft = Minecraft.getInstance();
         return minecraft.player == null
                 ? vanillaSlot

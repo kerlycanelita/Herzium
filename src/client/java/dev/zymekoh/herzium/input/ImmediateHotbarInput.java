@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import dev.zymekoh.herzium.Herzium;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -20,31 +20,19 @@ import net.minecraft.world.item.ItemStack;
  * committing the selection and emitting any carried-item packet. Herzium only
  * lets the HUD and first-person renderer display one unambiguous logical
  * binding while Vanilla reaches its next input tick. If distinct hotbar inputs
- * share that window, the single preview state follows Vanilla's exact
- * ascending-slot resolution instead of physical arrival order. This prevents a
- * provisional block or hand item from disagreeing with the untouched click
- * queue.</p>
+ * share that window, Herzium withholds the preview: Vanilla resolves that burst
+ * in ascending slot order rather than physical arrival order, so showing either
+ * interpretation early would make a rapid remap appear to disobey the player.
+ * The untouched click queue remains the only authority.</p>
  */
 public final class ImmediateHotbarInput {
     private static final long FAIL_SAFE_PREVIEW_NANOS = 2_000_000_000L;
-
-    /**
-     * How many times in a row the preview may disagree with Vanilla before it
-     * stops previewing for the rest of the world session.
-     *
-     * <p>A disagreement is not cosmetic: it means the HUD and the hand showed a
-     * slot Vanilla did not end up selecting, so for up to one tick the player
-     * saw an item they did not have. One-off disagreements are possible without
-     * anything being wrong -- another mod can legitimately move the selection in
-     * the same tick as the keypress -- so a single miss only drops that preview.
-     * A run of them means something else owns hotbar selection and Herzium's
-     * model of it is not valid here, and the honest response is to stop
-     * guessing rather than keep being wrong quietly.</p>
-     */
-    private static final int MAX_CONSECUTIVE_MISMATCHES = 3;
+    private static final long HUD_HOOK_TIMEOUT_NANOS = 1_000_000_000L;
 
     private static final AtomicReference<PreviewState> PREVIEW = new AtomicReference<>();
-    private static final AtomicInteger CONSECUTIVE_MISMATCHES = new AtomicInteger();
+    private static final AtomicReference<PreviewState> PENDING_CONFIRMATION =
+            new AtomicReference<>();
+    private static final AtomicLong LAST_HUD_HOOK_NANOS = new AtomicLong();
     private static volatile boolean suspended;
 
     private ImmediateHotbarInput() {
@@ -52,7 +40,7 @@ public final class ImmediateHotbarInput {
 
     /** Called after Vanilla has registered exactly one logical KeyMapping click. */
     public static void previewLogicalKey(InputConstants.Key logicalKey) {
-        if (suspended) {
+        if (suspended || !hudHookIsHealthy()) {
             return;
         }
 
@@ -69,15 +57,22 @@ public final class ImmediateHotbarInput {
                 && (minecraft.options.keyLoadHotbarActivator.isDown()
                         || minecraft.options.keySaveHotbarActivator.isDown());
 
+        if (creativeHotbarAction) {
+            // The modifier may arrive after another hotbar key in the same
+            // platform event batch. Retaining that earlier candidate would
+            // predict only the prefix of a batch Vanilla treats as a creative
+            // toolbar action. Drop the whole visual candidate immediately.
+            clearPreview();
+            return;
+        }
+
         int matchedSlot = -1;
-        if (!creativeHotbarAction) {
-            for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
-                KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
-                if (((KeyMappingAccessor) mapping).herzium$getBoundKey().equals(logicalKey)) {
-                    // When duplicate bindings exist, Vanilla resolves hotbar slots
-                    // in ascending order, so the highest matching slot is final.
-                    matchedSlot = slot;
-                }
+        for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
+            KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
+            if (((KeyMappingAccessor) mapping).herzium$getBoundKey().equals(logicalKey)) {
+                // When duplicate bindings exist, Vanilla resolves hotbar slots
+                // in ascending order, so the highest matching slot is final.
+                matchedSlot = slot;
             }
         }
         if (matchedSlot < 0) {
@@ -95,7 +90,7 @@ public final class ImmediateHotbarInput {
         }
         // Checked here too, so a suspension takes effect on the very next
         // frame instead of leaving a preview on screen until the deadline.
-        if (suspended || !previewIsValid(state, inventory)) {
+        if (suspended || !hudHookIsHealthy() || !previewIsValid(state, inventory)) {
             clearPreview(state);
             return vanillaSlot;
         }
@@ -103,15 +98,10 @@ public final class ImmediateHotbarInput {
             return vanillaSlot;
         }
 
-        // The hand cannot honour a preview for a combat item: it is mid-way
-        // through Vanilla's equip transition, which this mod deliberately keeps.
-        // Moving the HUD anyway would put the two surfaces in different states
-        // -- highlight already on the new slot, hand still holding the old item
-        // and dipping -- and that reads as the hotbar failing to respond.
-        // Previewing only what the hand can follow keeps them in agreement:
-        // ordinary items are instant everywhere, combat items are Vanilla
-        // everywhere, and which one you get is predictable from the item.
-        if (CombatItemClassifier.preservesVanillaEquipTransition(inventory.getItem(state.slot()))) {
+        // A burst containing distinct slots has two reasonable meanings: the
+        // last physical key, and Vanilla's highest-numbered pending slot. Do not
+        // guess on screen. Vanilla commits the real value later in this tick.
+        if (state.ambiguous()) {
             return vanillaSlot;
         }
         return state.slot();
@@ -120,14 +110,52 @@ public final class ImmediateHotbarInput {
     public static ItemStack visualMainHandItem(LocalPlayer player) {
         int vanillaSlot = player.getInventory().getSelectedSlot();
         int visualSlot = visualSelectedSlot(player.getInventory(), vanillaSlot);
-        return visualSlot == vanillaSlot
+        if (visualSlot == vanillaSlot) {
+            return player.getMainHandItem();
+        }
+
+        ItemStack previewedItem = player.getInventory().getItem(visualSlot);
+        // The hotbar highlight may respond for every unambiguous slot, but a
+        // combat item keeps its complete Vanilla hand/equip transition. This
+        // separates input feedback from the animation policy instead of making
+        // combat slots look as if their hotbar binding was ignored.
+        return CombatItemClassifier.preservesVanillaEquipTransition(previewedItem)
                 ? player.getMainHandItem()
-                : player.getInventory().getItem(visualSlot);
+                : previewedItem;
     }
 
-    /** Reads Vanilla's result after its ordinary hotbar loop and clears the preview. */
-    public static void onVanillaHotbarTick(Minecraft minecraft) {
+    /** Records that Vanilla has had a chance to consume its ordinary key queue. */
+    public static void markVanillaHotbarPassCompleted(Minecraft minecraft) {
         PreviewState state = PREVIEW.get();
+        LocalPlayer player = minecraft.player;
+        if (state == null || player == null || state.player() != player) {
+            return;
+        }
+
+        // Creative save/load modifiers are sampled by Vanilla when the whole
+        // hotbar pass runs, not when the first key event arrives. A modifier
+        // can therefore arrive later in the same very fast event batch. Such a
+        // batch is a toolbar action, not a slot selection, so it supersedes the
+        // render preview without counting as a disagreement.
+        if (player.hasInfiniteMaterials()
+                && (minecraft.options.keyLoadHotbarActivator.isDown()
+                        || minecraft.options.keySaveHotbarActivator.isDown())) {
+            clearPreview(state);
+            return;
+        }
+        PENDING_CONFIRMATION.set(state);
+    }
+
+    /**
+     * Confirms against the final slot at the end of the complete client tick.
+     *
+     * <p>The captured state is important for extremely rapid input. If another
+     * click arrives after the keybind pass, it belongs to the next Vanilla pass
+     * and replaces {@link #PREVIEW}; confirming the captured instance clears
+     * only the input Vanilla actually had a chance to resolve.</p>
+     */
+    public static void confirmAfterClientTick(Minecraft minecraft) {
+        PreviewState state = PENDING_CONFIRMATION.getAndSet(null);
         LocalPlayer player = minecraft.player;
         if (state == null) {
             return;
@@ -142,39 +170,52 @@ public final class ImmediateHotbarInput {
         clearPreview(state);
 
         if (matched) {
-            CONSECUTIVE_MISMATCHES.set(0);
             return;
         }
-        if (CONSECUTIVE_MISMATCHES.incrementAndGet() >= MAX_CONSECUTIVE_MISMATCHES) {
-            suspended = true;
-            Herzium.LOGGER.warn(
-                    "Priority Hotbar disagreed with Vanilla's selection {} times in a row and has "
-                            + "suspended itself for this world. Something else owns hotbar selection "
-                            + "here; the hotbar now follows Vanilla exactly, one tick later.",
-                    MAX_CONSECUTIVE_MISMATCHES);
-        }
+
+        // One mismatch is enough: displaying a slot Vanilla did not commit is
+        // precisely the ghost state this feature exists to avoid. From here on
+        // the current world follows Vanilla with no speculative rendering.
+        suspended = true;
+        PREVIEW.set(null);
+        Herzium.LOGGER.warn(
+                "Priority Hotbar expected slot {} from Vanilla's queued bindings but the final "
+                        + "selection was slot {} (started on {}). It has suspended itself for this "
+                        + "world; Herzium will now render Vanilla's committed slot only.",
+                state.slot() + 1,
+                vanillaSlot + 1,
+                state.selectedSlotAtInput() + 1);
+    }
+
+    /** Marks the optional HUD expression hook as alive for coordinated rendering. */
+    public static void observeHudHook() {
+        LAST_HUD_HOOK_NANOS.set(System.nanoTime());
     }
 
     /** A real Vanilla wheel change supersedes any provisional key preview. */
     public static void onVanillaScrollFinished(Minecraft minecraft, int selectedSlotBeforeScroll) {
-        PreviewState state = PREVIEW.get();
         LocalPlayer player = minecraft.player;
-        if (state == null || player == null || state.player() != player) {
+        if (player == null) {
             return;
         }
         if (player.getInventory().getSelectedSlot() != selectedSlotBeforeScroll) {
-            clearPreview(state);
+            // A wheel selection is already the final Vanilla value. It wins
+            // over both a visible candidate and a candidate captured for
+            // end-of-tick confirmation, even if those references differ.
+            clearPreview();
         }
     }
 
     public static void clearPreview() {
         PREVIEW.set(null);
+        PENDING_CONFIRMATION.set(null);
     }
 
     /** Called when the client enters a different world; see the suspension note. */
     public static void resetSession() {
         PREVIEW.set(null);
-        CONSECUTIVE_MISMATCHES.set(0);
+        PENDING_CONFIRMATION.set(null);
+        LAST_HUD_HOOK_NANOS.set(0L);
         suspended = false;
     }
 
@@ -215,8 +256,8 @@ public final class ImmediateHotbarInput {
             boolean previousIsCurrent = previous != null
                     && previous.player() == player
                     && now - previous.startedNanos() <= FAIL_SAFE_PREVIEW_NANOS;
-            boolean newlyAmbiguous = previousIsCurrent && previous.slot() != slot && !previous.ambiguous();
-            boolean ambiguous = previousIsCurrent && (previous.ambiguous() || previous.slot() != slot);
+            boolean ambiguous = previousIsCurrent
+                    && (previous.ambiguous() || previous.slot() != slot);
             int vanillaResolvedSlot = previousIsCurrent ? Math.max(previous.slot(), slot) : slot;
             int selectedSlotAtInput = previousIsCurrent
                     ? previous.selectedSlotAtInput()
@@ -229,8 +270,6 @@ public final class ImmediateHotbarInput {
                     startedNanos,
                     ambiguous);
             if (PREVIEW.compareAndSet(previous, replacement)) {
-                if (newlyAmbiguous) {
-                }
                 return;
             }
         }
@@ -239,7 +278,14 @@ public final class ImmediateHotbarInput {
     private static void clearPreview(PreviewState expected) {
         if (expected != null) {
             PREVIEW.compareAndSet(expected, null);
+            PENDING_CONFIRMATION.compareAndSet(expected, null);
         }
+    }
+
+    private static boolean hudHookIsHealthy() {
+        long observedNanos = LAST_HUD_HOOK_NANOS.get();
+        return observedNanos != 0L
+                && System.nanoTime() - observedNanos <= HUD_HOOK_TIMEOUT_NANOS;
     }
 
     private static boolean previewIsValid(PreviewState state, Inventory inventory) {

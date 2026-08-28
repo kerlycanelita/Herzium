@@ -19,9 +19,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * complete Vanilla transition whenever a combat item appears. Inventory state,
  * actions, cooldowns, and packets remain untouched.
  *
- * <p>Hotbar selection is never read ahead here. The current main-hand stack is
- * taken from the player only after Vanilla commits the selected slot, leaving
- * remaps, duplicate bindings and other hotbar mods completely authoritative.</p>
+ * <p>The optional visual hotbar preview can be reflected here only while its
+ * HUD hook is healthy. Vanilla still owns the real selection and click queue;
+ * remaps, duplicate bindings and other hotbar mods remain authoritative.</p>
  */
 @Mixin(value = ItemInHandRenderer.class, priority = 2000)
 abstract class ItemInHandRendererMixin {

@@ -1,8 +1,8 @@
 {
-  "modmenu.summaryTranslation.herzium": "Respuesta visual más rápida de la hotbar para objetos ordinarios. La jugabilidad Vanilla no cambia.",
-  "modmenu.descriptionTranslation.herzium": "Previsualiza objetos ordinarios que no son de combate en el siguiente frame, elimina su bajada visual al equiparlos y acorta transiciones decorativas del inicio. No aumenta los FPS, no altera la jugabilidad y no requiere Fabric API.",
+  "modmenu.summaryTranslation.herzium": "Respuesta visual más rápida de la hotbar. La jugabilidad Vanilla no cambia.",
+  "modmenu.descriptionTranslation.herzium": "Respuesta visual de hotbar para pulsaciones inequívocas. Vanilla conserva la selección real, las acciones y los paquetes. No cambia los FPS ni la jugabilidad.",
   "herzium.warning.title": "SOBRE HERZIUM",
-  "herzium.warning.message": "Para objetos ordinarios que no son de combate, Herzium puede previsualizar la ranura pulsada en el siguiente frame. La selección real, las acciones y los paquetes siguen siendo Vanilla. También elimina la bajada visual al equipar objetos ordinarios y algunas esperas decorativas del inicio. No aumenta los FPS ni requiere Fabric API. No cambia VSync, el límite de FPS, Raw Input ni el cursor.",
+  "herzium.warning.message": "Herzium puede previsualizar en el HUD una ranura pulsada inequívoca en el siguiente frame. Los objetos ordinarios también pueden aparecer inmediatamente en la mano. Las ráfagas de varias ranuras esperan a Vanilla. La selección real, las acciones de uso y ataque y los paquetes siguen siendo Vanilla. No aumenta los FPS ni cambia VSync, los límites, Raw Input o el cursor.",
   "herzium.warning.accept": "Continuar",
   "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer está instalado. Herzium no cambia su pipeline ni el Raw Input de Vanilla.",
   "herzium.warning.notice.ixeris": "Ixeris está instalado. Herzium no cambia su pipeline ni el Raw Input de Vanilla.",
@@ -10,9 +10,9 @@
   "herzium.warning.notice.both_pipelines": "Raw Input Buffer e Ixeris están instalados. Sus pipelines externos del ratón se solapan; Herzium no los administra. Quita uno.",
   "herzium.warning.notice.exordium": "Exordium está instalado. Herzium omite su caché de HUD, así que esa parte de Exordium queda inactiva mientras ambos mods funcionan.",
   "herzium.warning.tip.0": "Herzium elimina esperas, no trabajo. No añade frames.",
-  "herzium.warning.tip.1": "La previsualización de la hotbar es visual y solo se aplica a objetos ordinarios.",
+  "herzium.warning.tip.1": "La previsualización de la hotbar es visual y requiere una ranura inequívoca.",
   "herzium.warning.tip.2": "Herzium nunca acelera los 20 ticks por segundo del servidor.",
   "herzium.warning.tip.3": "Vanilla conserva la selección real, las acciones y los paquetes.",
-  "herzium.warning.tip.4": "Los objetos de combate conservan la hotbar y la transición de equipado de Vanilla.",
+  "herzium.warning.tip.4": "Los objetos de combate conservan la transición completa de mano y equipado de Vanilla.",
   "herzium.warning.tip.5": "Fabric API no es necesaria. VSync y los límites de FPS siguen bajo control de Vanilla."
 }

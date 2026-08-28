@@ -52,11 +52,11 @@ abstract class LoadingOverlayMixin {
             "Removing waiting, not work.",
             "The hotbar preview is visual only.",
             "Vanilla still selects the real slot.",
-            "Combat items keep Vanilla's equip animation.",
+            "Combat items keep Vanilla's hand animation.",
             "VSync and frame limits stay in Minecraft.",
             "Resource packs still require real work.",
             "No extra packets. No faster attacks.",
-            "Ordinary items can appear on the next frame.",
+            "A clear hotbar press can appear next frame.",
             "High refresh displays make the preview easier to see.",
             "Removing decorative delays.");
 
@@ -65,11 +65,11 @@ abstract class LoadingOverlayMixin {
             "Herzium elimina esperas, no trabajo.",
             "La vista previa de hotbar es solo visual.",
             "Vanilla selecciona la ranura real.",
-            "Los objetos de combate conservan su animacion.",
+            "Los objetos de combate conservan la animacion de mano.",
             "VSync y el limite de FPS siguen en Minecraft.",
             "Los paquetes de recursos aun requieren trabajo real.",
             "No hay paquetes extra ni ataques mas rapidos.",
-            "Los objetos normales aparecen en el siguiente frame.",
+            "Una pulsacion clara aparece en el siguiente frame.",
             "Una pantalla rapida hace mas visible la diferencia.",
             "Quitando retrasos decorativos.");
 

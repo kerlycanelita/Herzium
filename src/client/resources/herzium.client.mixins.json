@@ -10,6 +10,7 @@
     "KeyMappingAccessor",
     "KeyMappingMixin",
     "LoadingOverlayMixin",
+    "MinecraftHotbarConfirmationMixin",
     "MinecraftMixin",
     "MouseHandlerMixin",
     "TitleScreenMixin",
