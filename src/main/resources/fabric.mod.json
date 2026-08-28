@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Makes Priority Hotbar its primary input feature, removes active-window VSync and FPS limits, and leaves Raw Input and cursor placement entirely Vanilla-owned.",
+  "description": "Shows the hotbar slot you pressed one client tick sooner, removes the equip dip for ordinary items, and cuts the decorative waits out of start-up. It does not change your frame rate.",
   "authors": [
     "zymekoh"
   ],

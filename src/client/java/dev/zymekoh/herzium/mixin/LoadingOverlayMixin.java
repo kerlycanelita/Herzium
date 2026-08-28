@@ -49,7 +49,7 @@ abstract class LoadingOverlayMixin {
 
     @Unique
     private static final List<String> HERZIUM_TIPS = List.of(
-            "No VSync. No waiting. Just frames.",
+            "Removing waiting, not work.",
             "Herzium keeps your HUD moving at your refresh rate.",
             "Loading pixels at an unreasonable speed...",
             "Your FPS cap has left the game.",

@@ -1,6 +1,6 @@
 {
-  "modmenu.summaryTranslation.herzium": "Priority Hotbar, renderizado sin límite y visuales de alta frecuencia.",
-  "modmenu.descriptionTranslation.herzium": "Hace de Priority Hotbar su función principal de entrada, elimina VSync y límites de FPS con la ventana activa y deja Raw Input y el cursor completamente a Vanilla u otros mods.",
+  "modmenu.summaryTranslation.herzium": "Menos latencia visual al cambiar de item y al arrancar. No es un mod de FPS.",
+  "modmenu.descriptionTranslation.herzium": "Ensena la ranura del hotbar que pulsaste un tick antes, quita la bajada de equipado de los items ordinarios y elimina las esperas decorativas del arranque. No cambia tus FPS.",
   "herzium.warning.title": "ADVERTENCIA DE HERZIUM",
   "herzium.warning.message": "Herzium ensena la ranura del hotbar que pulsaste un tick antes de lo que lo haria Vanilla, quita la bajada de equipado de los items ordinarios y elimina las esperas decorativas del arranque. No sube los FPS. El VSync, tu limite de frames, el Raw Input y la colocacion del cursor se quedan como estan.",
   "herzium.warning.accept": "Entendido",

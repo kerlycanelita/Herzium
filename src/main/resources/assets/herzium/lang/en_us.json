@@ -1,6 +1,6 @@
 {
-  "modmenu.summaryTranslation.herzium": "Priority Hotbar, uncapped rendering, and high-refresh visuals.",
-  "modmenu.descriptionTranslation.herzium": "Makes Priority Hotbar the primary input feature, removes active-window VSync and FPS limits, and leaves Raw Input and cursor placement entirely to Vanilla or other mods.",
+  "modmenu.summaryTranslation.herzium": "Lower visual latency for hotbar switching and start-up. Not an FPS mod.",
+  "modmenu.descriptionTranslation.herzium": "Shows the hotbar slot you pressed one client tick sooner, removes the equip dip for ordinary items, and cuts the decorative waits out of start-up. It does not change your frame rate.",
   "herzium.warning.title": "HERZIUM WARNING",
   "herzium.warning.message": "Herzium shows the hotbar slot you pressed one client tick sooner than Vanilla would, removes the equip dip for ordinary items, and cuts the decorative waits out of start-up. It does not raise your frame rate. VSync, your frame limit, Raw Input and cursor placement are left alone.",
   "herzium.warning.accept": "I understand",

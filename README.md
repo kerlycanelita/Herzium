@@ -105,7 +105,7 @@ Mod Menu entry.
 
 The only interface it shows is the one-time start-up advisory, which explains
 the instability, FPS drops, frame-time spikes, hardware usage, heat and power
-cost of uncapped operation. Acknowledging it is stored in `config/herzium.json`,
+does and does not do. Acknowledging it is stored in `config/herzium.json`,
 which is the only thing that file now contains.
 
 ## What it changes on screen
@@ -177,9 +177,10 @@ for 1.21, every 1.21.x release through 1.21.11, and 26.1 through 26.2.
 
 ## Warning
 
-While the Minecraft window is active, uncapped rendering may keep the GPU at
-100% usage, consume more power, and generate more heat. Inactive, minimized,
-menu, and AFK frame pacing is provided by Minecraft itself.
+Herzium changes when things are drawn, never what the server is told. It does
+not raise your frame rate, so if your bottleneck is the GPU or the CPU it will
+not help. Hotbar selection, attack and use timing, reach, cooldowns, hitboxes
+and every packet stay exactly as Vanilla resolves them.
 
 ## License
 
