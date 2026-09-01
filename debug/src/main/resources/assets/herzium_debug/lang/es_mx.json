@@ -1,0 +1,14 @@
+{
+  "modmenu.summaryTranslation.herzium_debug": "Diagnóstico local en vivo para Herzium.",
+  "modmenu.descriptionTranslation.herzium_debug": "Observa entradas, renderizado y confirmaciones de Herzium y Vanilla sin cambiar la jugabilidad ni los paquetes.",
+  "herzium_debug.screen.title": "Herzium Debug",
+  "herzium_debug.screen.subtitle": "Diagnóstico observacional en vivo — no modifica entradas ni jugabilidad",
+  "herzium_debug.screen.copy": "Copiar informe completo",
+  "herzium_debug.screen.copied": "Informe copiado",
+  "herzium_debug.screen.marker": "Añadir marcador",
+  "herzium_debug.screen.freeze": "Congelar vista",
+  "herzium_debug.screen.live": "Reanudar en vivo",
+  "herzium_debug.screen.close": "Cerrar",
+  "herzium_debug.screen.empty": "Esperando eventos de diagnóstico...",
+  "herzium_debug.screen.privacy": "Nunca se registran textos del chat ni caracteres escritos."
+}

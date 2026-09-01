@@ -11,10 +11,11 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized. A render-only HUD preview for unambiguous hotbar presses, ordinary-item "
+                "Herzium initialized. A render-only HUD preview that follows Vanilla's queued hotbar resolution, next-frame "
+                        + "Attack/Use press acknowledgement for normal and remapped bindings, ordinary-item "
                         + "hand preview, removal of their equip transition, and shorter decorative start-up "
-                        + "transitions are active. Distinct same-tick slot bursts wait for Vanilla. Vanilla "
-                        + "retains the real selection, use/attack actions and packets. Herzium does not increase "
+                        + "transitions are active. Distinct same-tick slot bursts preview Vanilla's ascending slot result. Vanilla "
+                        + "retains the real selection, click queue, use/attack actions and packets. Herzium does not increase "
                         + "FPS or require Fabric API; VSync, frame limits, Raw Input and cursor placement remain "
                         + "Vanilla-owned.");
 

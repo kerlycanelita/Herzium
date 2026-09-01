@@ -1,0 +1,129 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+}
+
+def targetMinecraft = project.minecraft_version.toString()
+
+version = project.mod_version
+group = project.maven_group
+
+layout.buildDirectory = layout.projectDirectory.dir("${targetMinecraft}/build")
+
+base {
+    archivesName = "herzium-debug-${targetMinecraft}"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        'herzium_debug' {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+def generatedClientSources = layout.buildDirectory.dir('generated/sources/herzium-debug/client')
+
+tasks.register('generateHerziumDebugClientSources', Sync) {
+    from('../src/client/java') {
+        filteringCharset = 'UTF-8'
+        filter { String line ->
+            line
+                    .replace('GuiGraphicsExtractor', 'GuiGraphics')
+                    .replace('extractBackground', 'renderBackground')
+                    .replace('extractRenderState', 'render')
+                    .replace('graphics.centeredText(', 'graphics.drawCenteredString(')
+                    .replace('graphics.text(', 'graphics.drawString(')
+                    .replace('net.minecraft.world.inventory.ContainerInput', 'net.minecraft.world.inventory.ClickType')
+                    .replace('ContainerInput input', 'ClickType input')
+                    .replace('handleContainerInput', 'handleInventoryMouseClick')
+                    .replace('click.containerInput()', 'click.clickType()')
+        }
+    }
+    into(generatedClientSources)
+}
+
+sourceSets {
+    main {
+        resources.srcDirs = ['../src/main/resources']
+    }
+    client {
+        java.srcDirs = [generatedClientSources]
+        resources.srcDirs = ['../src/client/resources']
+    }
+}
+
+repositories {
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${targetMinecraft}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modCompileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") {
+        transitive = false
+    }
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', targetMinecraft
+    inputs.property 'java_version', 21
+
+    filesMatching('fabric.mod.json') {
+        expand(
+                'version': project.version,
+                'minecraft_version': targetMinecraft,
+                'java_version': 21
+        )
+    }
+}
+
+tasks.named('processClientResources') {
+    filesMatching('herzium-debug.client.mixins.json') {
+        filteringCharset = 'UTF-8'
+        filter { String line ->
+            line.replace('"compatibilityLevel": "JAVA_25"', '"compatibilityLevel": "JAVA_21"')
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+tasks.named('compileClientJava') {
+    dependsOn tasks.named('generateHerziumDebugClientSources')
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()
+}
+
+tasks.named('sourcesJar') {
+    dependsOn tasks.named('generateHerziumDebugClientSources')
+}
+
+jar {
+    from('../../LICENSE') {
+        rename { 'LICENSE_herzium_debug' }
+    }
+    manifest {
+        attributes(
+                'Implementation-Title': 'Herzium Debug',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'zymekoh',
+                'Minecraft-Version': targetMinecraft
+        )
+    }
+}

@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Faster visual hotbar feedback. Vanilla keeps the real selection, actions and packets. No FPS or gameplay changes.",
+  "description": "Faster visual hotbar and input feedback. Vanilla keeps the real selection, actions and packets. No FPS or gameplay changes.",
   "authors": [
     "zymekoh"
   ],

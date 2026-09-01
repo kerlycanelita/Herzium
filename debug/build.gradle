@@ -1,0 +1,138 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+def targetMinecraft = project.minecraft_version.toString()
+def minecraft262 = targetMinecraft == '26.2'
+
+layout.buildDirectory = layout.projectDirectory.dir("version/${targetMinecraft}/build")
+
+base {
+    archivesName = "herzium-debug-${targetMinecraft}"
+}
+
+def generatedClientSources = layout.buildDirectory.dir('generated/sources/herzium-debug/client')
+
+tasks.register('generateHerziumDebugClientSources', Sync) {
+    from('src/client/java') {
+        if (minecraft262) {
+            exclude '**/MinecraftTraceMixin.java'
+        }
+        filteringCharset = 'UTF-8'
+        filter { String line ->
+            if (!minecraft262) {
+                return line
+            }
+            return line
+                    .replace('renderHandsWithItems', 'submitHandsWithItems')
+                    .replace('minecraft.screen', 'minecraft.gui.screen()')
+                    .replace('minecraft.getOverlay()', 'minecraft.gui.overlay()')
+                    .replace('this.minecraft.setScreen(', 'this.minecraft.gui.setScreen(')
+        }
+    }
+    if (minecraft262) {
+        from('src/client/26.2')
+    }
+    into(generatedClientSources)
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "herzium_debug" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+sourceSets {
+    main {
+        resources.srcDirs = ['src/main/resources']
+    }
+    client {
+        java.srcDirs = [generatedClientSources]
+        resources.srcDirs = ['src/client/resources']
+    }
+}
+
+repositories {
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/releases/'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    compileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") {
+        transitive = false
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "java_version", project.java_version
+
+    filesMatching("fabric.mod.json") {
+        expand(
+                "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "java_version": project.java_version
+        )
+    }
+}
+
+tasks.named('processClientResources') {
+    if (minecraft262) {
+        filesMatching('herzium-debug.client.mixins.json') {
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                line.contains('"MinecraftTraceMixin",')
+                        ? line + System.lineSeparator() + '    "GuiTraceMixin",'
+                        : line
+            }
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+tasks.named('compileClientJava') {
+    dependsOn tasks.named('generateHerziumDebugClientSources')
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.named('sourcesJar') {
+    dependsOn tasks.named('generateHerziumDebugClientSources')
+}
+
+jar {
+    from("../LICENSE") {
+        rename { "LICENSE_herzium_debug" }
+    }
+    manifest {
+        attributes(
+                'Implementation-Title': 'Herzium Debug',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor': 'zymekoh'
+        )
+    }
+}

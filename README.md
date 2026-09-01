@@ -9,26 +9,40 @@
   <img src="src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
 </p>
 
-**Faster visual hotbar feedback, with Vanilla gameplay unchanged.**
+**Faster visual hotbar and input feedback, with Vanilla gameplay unchanged.**
 
-Herzium is a small client-side visual-response mod. When one unambiguous hotbar
-slot is requested with a configured hotbar key, Herzium can preview its HUD
-highlight on the next rendered frame instead of waiting for Vanilla's next
-client tick. Ordinary non-combat items can also be previewed in hand. That can
+Herzium is a small client-side visual-response mod. When a hotbar slot is
+requested with a configured hotbar key, Herzium can preview Vanilla's currently
+resolvable HUD highlight on the next rendered frame instead of waiting for
+Vanilla's next client tick. Ordinary non-combat items can also be previewed in hand. That can
 make the response visible up to one normal client tick (about 50 ms) sooner on
 a high refresh-rate display.
 
+Attack and Use presses also receive a small crosshair acknowledgement on the
+next rendered frame. It observes Vanilla's logical binding, so the default
+mouse buttons, keyboard bindings, scancodes and remapped mouse/keyboard buttons
+all take the same path. The mark acknowledges the input only; it does not claim
+that a hit, use or placement was accepted.
+
+The simplest way to see that is to swing at empty air: the mark appears exactly
+the same. It answers the button, not the outcome, so it is not and cannot be a
+hit indicator.
+
 The preview is provisional and render-only. Vanilla still resolves the real
 selected slot, input order, actions and network packets. Distinct slot keys
-received before the same client tick are not previewed: Vanilla resolves that
-burst by slot order rather than physical arrival order, so Herzium waits for
-Vanilla instead of guessing. Any disagreement suspends previews for that world.
+received before the same client tick are previewed using Vanilla's ascending
+slot resolution, so the highest numbered pending slot is shown without an
+old-slot flash. Any disagreement suspends previews for that world.
 
 ## What it changes
 
-- **Hotbar preview.** One unambiguous requested slot can be highlighted on the
-  next rendered frame. Ordinary items can also appear in hand immediately;
+- **Hotbar preview.** Vanilla's currently resolvable requested slot can be
+  highlighted on the next rendered frame. Ordinary items can also appear in hand immediately;
   combat items keep Vanilla's hand/equip transition.
+- **Immediate input acknowledgement.** A brief crosshair mark responds to a
+  normal or remapped Attack/Use press on the next frame. It never calls the
+  action early and is not an action-success indicator: it appears unchanged
+  when the swing hits nothing.
 - **Ordinary-item equip transition.** Removes the decorative equip dip from
   ordinary main-hand and offhand items. Combat items keep Vanilla's complete
   equip transition.
@@ -46,8 +60,9 @@ gameplay. It leaves VSync, `Max Framerate`, `Reduce FPS when inactive`, Raw
 Input, Smooth Camera, sensitivity and cursor placement untouched. It does not
 write those options to `options.txt`.
 
-The visual preview itself is not sent to the server. The actual selected slot,
-attack and use actions, reach, cooldowns, hitboxes and packets remain Vanilla.
+The visual previews and acknowledgement are not sent to the server. The actual
+selected slot, logical click queue, attack and use actions, reach, cooldowns,
+hitboxes, packet timing and packet count remain Vanilla.
 Servers may still restrict client mods or identify them through an approved
 client/attestation system, so follow each server's rules.
 
@@ -61,7 +76,7 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer and use
    Java 25.
-2. Put `herzium-1.9.8.jar` in the `mods` folder.
+2. Put `herzium-1.10.1.jar` in the `mods` folder.
 
 Minecraft **26.1.2** is the supported game version. Herzium is client-side only.
 **Fabric API is not required. Mod Menu is optional and is not required.**
@@ -95,7 +110,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.9.8`. The file
+`mod_version` comes from `gradle.properties` — currently `1.10.1`. The file
 ending in `-sources.jar` is not the playable build.
 
 ## License

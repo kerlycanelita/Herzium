@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.zymekoh.herzium.input.ImmediateActionFeedback;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import net.minecraft.client.KeyMapping;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,5 +21,6 @@ abstract class KeyMappingMixin {
             InputConstants.Key logicalKey,
             CallbackInfo ci) {
         ImmediateHotbarInput.previewLogicalKey(logicalKey);
+        ImmediateActionFeedback.observeLogicalKey(logicalKey);
     }
 }

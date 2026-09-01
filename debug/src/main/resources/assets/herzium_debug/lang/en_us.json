@@ -1,0 +1,14 @@
+{
+  "modmenu.summaryTranslation.herzium_debug": "Live local diagnostics for Herzium.",
+  "modmenu.descriptionTranslation.herzium_debug": "Observes Herzium and Vanilla input, rendering and confirmations without changing gameplay or packets.",
+  "herzium_debug.screen.title": "Herzium Debug",
+  "herzium_debug.screen.subtitle": "Live observational diagnostics — no input or gameplay modification",
+  "herzium_debug.screen.copy": "Copy full report",
+  "herzium_debug.screen.copied": "Report copied",
+  "herzium_debug.screen.marker": "Add marker",
+  "herzium_debug.screen.freeze": "Freeze view",
+  "herzium_debug.screen.live": "Resume live",
+  "herzium_debug.screen.close": "Done",
+  "herzium_debug.screen.empty": "Waiting for diagnostic events...",
+  "herzium_debug.screen.privacy": "Chat text and typed characters are never recorded."
+}

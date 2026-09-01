@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.10.1
+
+### Fixed
+- Restored the complete hotbar-preview lifecycle on Minecraft 1.21.11. That
+  variant now hands each preview to Vanilla's hotbar pass and releases stale
+  render state like the 26.x variants do.
+- Separated hotbar input received after Vanilla's current hotbar pass into a
+  new visual generation. A late input can no longer be merged with the slot
+  waiting for confirmation from the previous pass.
+- Kept Vanilla authoritative: Herzium still does not consume the key click,
+  write the selected slot, invoke Use/Attack, or create or reorder packets.
+
+### Debugging
+- Added Herzium Debug 0.2.0 builds for Minecraft 1.21.11, 26.1, 26.1.1,
+  26.1.2 and 26.2.
+- The debugger now correlates active and confirmation hotbar bursts separately,
+  avoiding false ghost reports when very rapid input crosses a Vanilla pass.
+
 ## 1.9.8
 
 ### Fixed

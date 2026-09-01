@@ -1,9 +1,10 @@
 package dev.zymekoh.herzium.mixin;
 
+import dev.zymekoh.herzium.input.ImmediateActionFeedback;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.Options;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -11,19 +12,27 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** 1.21.x core option ownership without newer world-load tracker APIs. */
+/** 1.21.x lifecycle hooks without the newer world-load tracker APIs. */
 @Mixin(value = Minecraft.class, priority = 2000)
 abstract class MinecraftMixin {
-    @Inject(method = "run", at = @At("HEAD"))
-    private void herzium$applyUncappedOptions(CallbackInfo ci) {
-        Minecraft minecraft = (Minecraft) (Object) this;
-        herzium$enforceCoreOptions(minecraft);
-        minecraft.getWindow().updateVsync(false);
-    }
+    @Unique
+    private static int herzium$sessionId;
 
     @Inject(method = "runTick", at = @At("HEAD"))
-    private void herzium$keepCoreOptionsOptimized(boolean advanceGameTime, CallbackInfo ci) {
-        herzium$enforceCoreOptions((Minecraft) (Object) this);
+    private void herzium$onFrameStart(boolean advanceGameTime, CallbackInfo ci) {
+        Minecraft minecraft = (Minecraft) (Object) this;
+        int sessionId = minecraft.level == null ? 0 : System.identityHashCode(minecraft.level);
+        if (sessionId != 0 && sessionId != herzium$sessionId) {
+            herzium$sessionId = sessionId;
+            ImmediateHotbarInput.resetSession();
+            ImmediateActionFeedback.reset();
+        }
+        ImmediateHotbarInput.releaseStalePreview(minecraft);
+    }
+
+    @Inject(method = "handleKeybinds", at = @At("TAIL"))
+    private void herzium$markVanillaHotbarPassCompleted(CallbackInfo ci) {
+        ImmediateHotbarInput.markVanillaHotbarPassCompleted((Minecraft) (Object) this);
     }
 
     @Redirect(
@@ -37,15 +46,5 @@ abstract class MinecraftMixin {
 
         Minecraft minecraft = (Minecraft) (Object) this;
         minecraft.setScreen(new HerziumWarningScreen(showInitialScreen));
-    }
-
-    @Unique
-    private static void herzium$enforceCoreOptions(Minecraft minecraft) {
-        if (minecraft.options.enableVsync().get()) {
-            minecraft.options.enableVsync().set(false);
-        }
-        if (minecraft.options.framerateLimit().get() != Options.UNLIMITED_FRAMERATE_CUTOFF) {
-            minecraft.options.framerateLimit().set(Options.UNLIMITED_FRAMERATE_CUTOFF);
-        }
     }
 }

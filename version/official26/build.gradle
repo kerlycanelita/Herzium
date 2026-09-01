@@ -30,10 +30,6 @@ def generatedClientSources = layout.buildDirectory.dir('generated/sources/herziu
 
 tasks.register('generateHerzium26ClientSources', Sync) {
     from('../../src/client/java') {
-        if (minecraft262) {
-            exclude '**/GlDeviceMixin.java'
-            exclude '**/WindowMixin.java'
-        }
         filteringCharset = 'UTF-8'
         filter { String line ->
             String transformed = line
@@ -60,9 +56,6 @@ tasks.register('generateHerzium26ClientSources', Sync) {
                     .replace('minecraft.screen', 'minecraft.gui.screen()')
         }
     }
-    if (minecraft262) {
-        from('src/client/26.2')
-    }
     into(generatedClientSources)
 }
 
@@ -87,9 +80,8 @@ repositories {
 dependencies {
     minecraft "com.mojang:minecraft:${targetMinecraft}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
-    if (minecraft262) {
-        compileOnly 'net.fabricmc.fabric-api:fabric-api:0.155.2+26.2'
+    compileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") {
+        transitive = false
     }
 }
 
@@ -106,17 +98,6 @@ processResources {
                 'java_version': 25,
                 'modmenu_version': project.modmenu_version
         )
-    }
-}
-
-tasks.named('processClientResources') {
-    if (minecraft262) {
-        filesMatching('herzium.client.mixins.json') {
-            filteringCharset = 'UTF-8'
-            filter { String line ->
-                line.contains('"GlDeviceMixin"') ? null : line
-            }
-        }
     }
 }
 

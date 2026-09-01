@@ -18,12 +18,11 @@ import net.minecraft.world.item.ItemStack;
  * <p>The class never consumes a {@link KeyMapping} click and never changes the
  * selected inventory slot. Vanilla therefore remains solely responsible for
  * committing the selection and emitting any carried-item packet. Herzium only
- * lets the HUD and first-person renderer display one unambiguous logical
- * binding while Vanilla reaches its next input tick. If distinct hotbar inputs
- * share that window, Herzium withholds the preview: Vanilla resolves that burst
- * in ascending slot order rather than physical arrival order, so showing either
- * interpretation early would make a rapid remap appear to disobey the player.
- * The untouched click queue remains the only authority.</p>
+ * lets the HUD and first-person renderer display Vanilla's currently resolvable
+ * logical binding while Vanilla reaches its next input tick. If distinct hotbar
+ * inputs share that window, the preview follows Vanilla's ascending slot pass:
+ * the highest numbered pending slot is the value Vanilla will commit. The
+ * untouched click queue remains the only authority.</p>
  */
 public final class ImmediateHotbarInput {
     private static final long FAIL_SAFE_PREVIEW_NANOS = 2_000_000_000L;
@@ -98,12 +97,9 @@ public final class ImmediateHotbarInput {
             return vanillaSlot;
         }
 
-        // A burst containing distinct slots has two reasonable meanings: the
-        // last physical key, and Vanilla's highest-numbered pending slot. Do not
-        // guess on screen. Vanilla commits the real value later in this tick.
-        if (state.ambiguous()) {
-            return vanillaSlot;
-        }
+        // registerPreviewCandidate already mirrors Vanilla's ascending hotbar
+        // pass. Keeping that resolved candidate visible prevents the old-slot
+        // flash that used to occur when a second key landed in the same tick.
         return state.slot();
     }
 
@@ -181,7 +177,8 @@ public final class ImmediateHotbarInput {
         Herzium.LOGGER.warn(
                 "Priority Hotbar expected slot {} from Vanilla's queued bindings but the final "
                         + "selection was slot {} (started on {}). It has suspended itself for this "
-                        + "world; Herzium will now render Vanilla's committed slot only.",
+                        + "world and Herzium will now render Vanilla's committed slot only; the preview "
+                        + "re-arms by itself when you join another world.",
                 state.slot() + 1,
                 vanillaSlot + 1,
                 state.selectedSlotAtInput() + 1);
@@ -222,8 +219,8 @@ public final class ImmediateHotbarInput {
     /**
      * Frame-level safety net that also releases the retained {@link LocalPlayer}.
      *
-     * <p>{@link #onVanillaHotbarTick(Minecraft)} is the only other place that
-     * drops the preview, and it only runs while Vanilla is processing keybinds,
+     * <p>The Vanilla hotbar pass is the only other place that advances the
+     * preview lifecycle, and it only runs while Vanilla is processing keybinds,
      * which it does not do without a loaded level. Letting the fail-safe
      * deadline merely make {@code previewIsValid} return {@code false} would
      * keep a strong reference to the player alive -- and through it the level,
@@ -253,11 +250,18 @@ public final class ImmediateHotbarInput {
         long now = System.nanoTime();
         while (true) {
             PreviewState previous = PREVIEW.get();
+            // Once handleKeybinds has completed, that state belongs to the
+            // Vanilla pass which is waiting for end-of-tick confirmation. A
+            // GLFW event may still enqueue another hotbar click before that
+            // confirmation runs. It belongs to the next Vanilla pass and must
+            // start a fresh preview generation instead of being merged with
+            // the already-consumed slots from the previous pass.
+            boolean previousPassedToVanilla = previous != null
+                    && PENDING_CONFIRMATION.get() == previous;
             boolean previousIsCurrent = previous != null
+                    && !previousPassedToVanilla
                     && previous.player() == player
                     && now - previous.startedNanos() <= FAIL_SAFE_PREVIEW_NANOS;
-            boolean ambiguous = previousIsCurrent
-                    && (previous.ambiguous() || previous.slot() != slot);
             int vanillaResolvedSlot = previousIsCurrent ? Math.max(previous.slot(), slot) : slot;
             int selectedSlotAtInput = previousIsCurrent
                     ? previous.selectedSlotAtInput()
@@ -267,8 +271,7 @@ public final class ImmediateHotbarInput {
                     player,
                     vanillaResolvedSlot,
                     selectedSlotAtInput,
-                    startedNanos,
-                    ambiguous);
+                    startedNanos);
             if (PREVIEW.compareAndSet(previous, replacement)) {
                 return;
             }
@@ -303,7 +306,6 @@ public final class ImmediateHotbarInput {
             LocalPlayer player,
             int slot,
             int selectedSlotAtInput,
-            long startedNanos,
-            boolean ambiguous) {
+            long startedNanos) {
     }
 }

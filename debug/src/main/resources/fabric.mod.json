@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "herzium_debug",
+  "version": "${version}",
+  "name": "Herzium Debug",
+  "description": "Local diagnostic companion for Herzium. Observes input, visual previews, Vanilla confirmations, hand rendering, screens and relevant packets without changing gameplay.",
+  "authors": [
+    "zymekoh"
+  ],
+  "icon": "assets/herzium_debug/icon.png",
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.zymekoh.herzium.debug.HerziumDebugClient"
+    ],
+    "modmenu": [
+      "dev.zymekoh.herzium.debug.gui.HerziumDebugModMenu"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "herzium-debug.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "${minecraft_version}",
+    "java": ">=${java_version}",
+    "herzium": ">=1.10.1"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

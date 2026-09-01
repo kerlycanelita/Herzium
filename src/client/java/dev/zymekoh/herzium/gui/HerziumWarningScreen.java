@@ -26,7 +26,7 @@ import net.minecraft.util.Mth;
 public final class HerziumWarningScreen extends Screen {
     private static final Component TITLE = Component.translatable("herzium.warning.title");
     private static final Component MESSAGE = Component.translatable("herzium.warning.message");
-    private static final int TIP_COUNT = 6;
+    private static final int TIP_COUNT = 7;
 
     /** How long after the advisory appears before it can be dismissed. */
     private static final long BUTTON_DELAY_MS = 2_000L;

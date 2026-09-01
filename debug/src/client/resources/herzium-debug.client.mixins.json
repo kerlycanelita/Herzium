@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "dev.zymekoh.herzium.debug.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ClientCommonPacketListenerTraceMixin",
+    "ClientPacketListenerTraceMixin",
+    "HerziumImmediateHotbarTraceMixin",
+    "ItemInHandRendererTraceMixin",
+    "KeyMappingTraceMixin",
+    "MinecraftTraceMixin",
+    "MouseHandlerTraceMixin",
+    "MultiPlayerGameModeTraceMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
