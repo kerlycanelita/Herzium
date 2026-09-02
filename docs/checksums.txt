@@ -3,4 +3,4 @@
 # Multiversion jars are not listed here: they are produced by
 # version/build-all.ps1, which is a separate build.
 
-4941bee6ce524837dc84e9959b6e2d0017ac8a6de2163432eba1f56d7e958442  herzium-1.10.1.jar
+614b6c9836003009bb508eb8933c7df2d25983f451601454e10167cac46f4330  herzium-1.10.1.jar

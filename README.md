@@ -28,6 +28,11 @@ The simplest way to see that is to swing at empty air: the mark appears exactly
 the same. It answers the button, not the outcome, so it is not and cannot be a
 hit indicator.
 
+The one press it stays quiet for is the press Vanilla ignores. While an item is
+in use — eating, drawing a bow, holding a shield — Vanilla discards each queued
+Attack and Use click rather than deferring it, so the mark is withheld there
+too. A miss is not a discard: the action still ran, and it is still marked.
+
 The preview is provisional and render-only. Vanilla still resolves the real
 selected slot, input order, actions and network packets. Distinct slot keys
 received before the same client tick are previewed using Vanilla's ascending
@@ -42,7 +47,8 @@ old-slot flash. Any disagreement suspends previews for that world.
 - **Immediate input acknowledgement.** A brief crosshair mark responds to a
   normal or remapped Attack/Use press on the next frame. It never calls the
   action early and is not an action-success indicator: it appears unchanged
-  when the swing hits nothing.
+  when the swing hits nothing. It is withheld only while an item is in use,
+  where Vanilla discards the click outright.
 - **Ordinary-item equip transition.** Removes the decorative equip dip from
   ordinary main-hand and offhand items. Combat items keep Vanilla's complete
   equip transition.

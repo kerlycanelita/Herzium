@@ -26,14 +26,34 @@ public final class ImmediateActionFeedback {
     private ImmediateActionFeedback() {
     }
 
-    /** Called after Vanilla has queued a physical key/button as a logical click. */
+    /**
+     * Called after Vanilla has queued a physical key/button as a logical click.
+     *
+     * <p>Nothing is acknowledged while the player is using an item. Vanilla's
+     * {@code handleKeybinds} opens with {@code if (player.isUsingItem())} and,
+     * inside it, drains the queued attack, use and pick clicks through empty
+     * loop bodies: the presses are not deferred, they are thrown away. Drawing
+     * a mark for one of those would report a registration the game is about to
+     * discard, which reads as latency and is the opposite of what the mark is
+     * for. So it is withheld exactly where Vanilla is silent.</p>
+     *
+     * <p>A miss is not a discard, and stays marked. Swinging at empty air still
+     * runs the action; it simply hits nothing. Only inputs the game never acts
+     * on at all are withheld.</p>
+     *
+     * <p>{@link net.minecraft.world.entity.LivingEntity#isUsingItem()} reads a
+     * synchronized entity flag, so this remains a read-only render decision:
+     * no click is consumed, no delay or cooldown is touched, and no packet is
+     * added, removed or retimed.</p>
+     */
     public static void observeLogicalKey(InputConstants.Key logicalKey) {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player == null
                 || player.isSpectator()
                 || minecraft.screen != null
-                || minecraft.getOverlay() != null) {
+                || minecraft.getOverlay() != null
+                || player.isUsingItem()) {
             return;
         }
 
