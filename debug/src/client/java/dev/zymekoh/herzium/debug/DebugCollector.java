@@ -38,6 +38,7 @@ import net.minecraft.network.protocol.game.ServerboundInteractPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.world.InteractionHand;
@@ -768,6 +769,45 @@ public final class DebugCollector {
 
     public static void onActionCall(String action, String details) {
         trace("VANILLA_ACTION", action + (details == null || details.isBlank() ? "" : "; " + details));
+        reportActionOnPreviewedSlot(action);
+    }
+
+    /**
+     * Reports an action that ran while the HUD was previewing a different slot.
+     *
+     * <p>Herzium never moves the action to the previewed slot: Vanilla acts with
+     * the slot it has committed. So between the preview becoming visible and
+     * Vanilla committing it, a press acts with the previous item while the next
+     * one is already on screen. Whether a player can actually land a press
+     * inside that window is a question worth measuring rather than assuming,
+     * which is what this records: the slot shown, the slot used, and both
+     * items.</p>
+     *
+     * <p>A live preview is the only condition checked, because confirmation
+     * clears {@code lastPreviewedSlot}. The elapsed-time guard only discards
+     * stale state left behind by a preview that was never confirmed.</p>
+     */
+    private static void reportActionOnPreviewedSlot(String action) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) {
+            return;
+        }
+
+        int previewed = lastPreviewedSlot;
+        if (previewed < 0 || System.nanoTime() - lastPreviewNanos >= HOTBAR_WINDOW_NANOS) {
+            return;
+        }
+
+        int committed = player.getInventory().getSelectedSlot();
+        if (previewed == committed) {
+            return;
+        }
+
+        issue("ACTION_ON_PREVIEWED_SLOT", action + " ran with " + slot(committed)
+                + " while the HUD was already showing " + slot(previewed)
+                + "; used " + stack(player.getInventory().getItem(committed))
+                + " but displayed " + stack(player.getInventory().getItem(previewed))
+                + "; sinceInput=" + hotbarLatencyMicros() + "us");
     }
 
     public static void onActionResult(String action, Object result) {
@@ -803,6 +843,11 @@ public final class DebugCollector {
             detail = "CreativeSlot slot=" + creative.slotNum() + "; item=" + stack(creative.itemStack());
         } else if (packet instanceof ServerboundInteractPacket) {
             detail = "InteractEntity";
+        } else if (packet instanceof ServerboundSwingPacket swing) {
+            // Traced so that a swing at empty air is visible as one arm swing
+            // and nothing else. Without it the log merely omits the miss, which
+            // proves less than showing exactly what Vanilla did send.
+            detail = "Swing hand=" + swing.getHand();
         } else {
             return;
         }
