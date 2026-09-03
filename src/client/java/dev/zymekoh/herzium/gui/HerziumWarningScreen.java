@@ -111,6 +111,13 @@ public final class HerziumWarningScreen extends Screen {
                     HerziumTheme.TEXT_GOOD));
         }
 
+        if (ExternalInputCompatibility.hotbarResolutionOwnerPresent()) {
+            this.notices.add(new Notice(
+                    "kohs_anchors",
+                    Component.translatable("herzium.warning.notice.anchors"),
+                    HerziumTheme.TEXT_MUTED));
+        }
+
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             this.notices.add(new Notice(
                     "exordium",

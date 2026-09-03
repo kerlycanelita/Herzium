@@ -8,6 +8,7 @@ public final class ExternalInputCompatibility {
     private static final boolean RAW_INPUT_BUFFER_PRESENT = LOADER.isModLoaded("rawinputbuffer");
     private static final boolean IXERIS_PRESENT = LOADER.isModLoaded("ixeris");
     private static final boolean INVENTORY_TWEAKS_PRESENT = LOADER.isModLoaded("kohs_inventory_tweaks");
+    private static final boolean HOTBAR_RESOLUTION_OWNER_PRESENT = LOADER.isModLoaded("kohs_anchors");
 
     private ExternalInputCompatibility() {
     }
@@ -32,6 +33,18 @@ public final class ExternalInputCompatibility {
      */
     public static boolean cursorPipelineOwnerPresent() {
         return INVENTORY_TWEAKS_PRESENT;
+    }
+
+    /**
+     * Returns whether another mod decides which slot a hotbar burst commits.
+     *
+     * <p>KoHs Anchor's consumes the queued hotbar clicks before Vanilla's own
+     * loop and resolves them by item category instead of Vanilla's ascending
+     * slot pass. Herzium's preview predicts the ascending result, so the two
+     * rules disagree by design rather than by fault.</p>
+     */
+    public static boolean hotbarResolutionOwnerPresent() {
+        return HOTBAR_RESOLUTION_OWNER_PRESENT;
     }
 
     public static boolean competingExternalPipelinesPresent() {

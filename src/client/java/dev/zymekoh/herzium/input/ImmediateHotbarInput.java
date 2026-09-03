@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.input;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.zymekoh.herzium.compat.ExternalInputCompatibility;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import dev.zymekoh.herzium.Herzium;
@@ -23,6 +24,11 @@ import net.minecraft.world.item.ItemStack;
  * inputs share that window, the preview follows Vanilla's ascending slot pass:
  * the highest numbered pending slot is the value Vanilla will commit. The
  * untouched click queue remains the only authority.</p>
+ *
+ * <p>When a mod that resolves the hotbar by its own rule is installed, the
+ * preview is not produced at all. Predicting Vanilla's ascending pass while
+ * another rule decides the commit would mispredict on purpose, and the
+ * self-suspension that follows reports it as a Herzium fault.</p>
  */
 public final class ImmediateHotbarInput {
     private static final long FAIL_SAFE_PREVIEW_NANOS = 2_000_000_000L;
@@ -34,12 +40,22 @@ public final class ImmediateHotbarInput {
     private static final AtomicLong LAST_HUD_HOOK_NANOS = new AtomicLong();
     private static volatile boolean suspended;
 
+    /**
+     * Whether another mod owns hotbar resolution, decided once at class load.
+     *
+     * <p>Kept apart from {@link #suspended} because it must never re-arm. A
+     * suspension is a one-off disagreement worth retrying in the next world;
+     * this one is structural, so re-arming would only reproduce the same
+     * mispredict and the same alarming warning every time the player rejoins.</p>
+     */
+    private static final boolean CEDED = ExternalInputCompatibility.hotbarResolutionOwnerPresent();
+
     private ImmediateHotbarInput() {
     }
 
     /** Called after Vanilla has registered exactly one logical KeyMapping click. */
     public static void previewLogicalKey(InputConstants.Key logicalKey) {
-        if (suspended || !hudHookIsHealthy()) {
+        if (CEDED || suspended || !hudHookIsHealthy()) {
             return;
         }
 
