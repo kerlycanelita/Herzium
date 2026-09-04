@@ -9,7 +9,6 @@
   "herzium.warning.notice.inventory_tweaks": "KoHs Inventory Tweaks owns Cursor Landing. Herzium never changes Raw Input or cursor placement.",
   "herzium.warning.notice.both_pipelines": "Raw Input Buffer and Ixeris are both installed. Their external mouse pipelines overlap; Herzium does not mediate them. Remove one.",
   "herzium.warning.notice.exordium": "Exordium is installed. Herzium bypasses its HUD cache, so that part of Exordium is inactive while both mods run.",
-  "herzium.warning.notice.anchors": "KoHs Anchor's is installed. It resolves the hotbar by item, so Herzium hands it the hotbar preview; every other Herzium feature is unaffected.",
   "herzium.warning.tip.0": "Herzium removes waiting, not work. It adds no frames.",
   "herzium.warning.tip.1": "The hotbar preview follows Vanilla's queued slot resolution.",
   "herzium.warning.tip.2": "Herzium never speeds up the server's 20 ticks per second.",

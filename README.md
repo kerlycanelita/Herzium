@@ -104,12 +104,6 @@ Herzium does not control Raw Input or the cursor, so KoHsium, Raw Input Buffer,
 Ixeris and KoHs Inventory Tweaks retain ownership of those behaviors. Detected
 input-related mods are reported in the log for troubleshooting.
 
-If KoHs Anchor's is installed, it resolves simultaneous hotbar clicks by item
-rather than by Vanilla's ascending slot pass, and consumes those clicks before
-Vanilla does. Herzium therefore hands it the hotbar preview and produces none:
-predicting a result another mod decides would mispredict on purpose. Every
-other Herzium feature keeps working.
-
 If Exordium is installed, Herzium bypasses Exordium's HUD frame buffer so the
 hotbar preview can be drawn each frame. Exordium's HUD caching is therefore
 inactive while both mods run. Players who prefer Exordium's caching should not

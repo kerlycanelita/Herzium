@@ -19,14 +19,6 @@ public final class HerziumClient implements ClientModInitializer {
                         + "FPS or require Fabric API; VSync, frame limits, Raw Input and cursor placement remain "
                         + "Vanilla-owned.");
 
-        if (ExternalInputCompatibility.hotbarResolutionOwnerPresent()) {
-            Herzium.LOGGER.info(
-                    "KoHs Anchor's detected. It resolves the hotbar by item rather than by Vanilla's "
-                            + "ascending slot pass, so Herzium hands it the hotbar preview instead of "
-                            + "predicting a result it does not decide. Every other Herzium feature is "
-                            + "unaffected.");
-        }
-
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");
         }
