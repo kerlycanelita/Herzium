@@ -22,8 +22,50 @@ abstract class MinecraftMixin {
     @Unique
     private static int herzium$sessionId;
 
+    /**
+     * Frees preview state, on every frame without exception.
+     *
+     * <p>Deliberately at {@code HEAD} rather than beside the session check
+     * below. {@code processQueuedPackets} and {@code runAllTasks} both sit
+     * inside the {@code if (advanceGameTime)} branch that {@code runTick} opens
+     * at offset 89, and {@code run} passes {@code !oom}: after an
+     * {@code OutOfMemoryError} the whole branch is skipped. A release hook
+     * placed after that branch would stop running exactly when the client is
+     * shedding memory, which is the worst possible moment to keep holding a
+     * {@link net.minecraft.client.player.LocalPlayer} and, through it, a whole
+     * {@code ClientLevel}. Reading a screen field one frame stale costs a frame
+     * of cosmetics; not running costs the leak this hook exists to prevent.</p>
+     */
     @Inject(method = "runTick", at = @At("HEAD"))
-    private void herzium$onFrameStart(boolean advanceGameTime, CallbackInfo ci) {
+    private void herzium$releaseStalePreviewEveryFrame(boolean advanceGameTime, CallbackInfo ci) {
+        ImmediateHotbarInput.releaseStalePreview((Minecraft) (Object) this);
+    }
+
+    /**
+     * Notices the world change once the world has actually changed.
+     *
+     * <p>This used to sit at {@code runTick} HEAD, which is offset 0, while the
+     * field it reads is assigned later in the same method: the client's level
+     * arrives through {@code processQueuedPackets} at offset 111 or through a
+     * task drained by {@code runAllTasks} at offset 124, both after HEAD. The
+     * check therefore compared against the previous frame's level and fired one
+     * frame late, leaving a frame in which item classifications cached against
+     * the old world's tags were still being served for the new one.</p>
+     *
+     * <p>Injecting after {@code runAllTasks} covers both routes, because a
+     * packet handler that hands {@code setLevel} to the main thread is drained
+     * there too. The call site names {@code Minecraft} as the owner even though
+     * the method is inherited from {@code BlockableEventLoop}, so that is what
+     * the target has to say.</p>
+     */
+    @Inject(
+            method = "runTick",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/Minecraft;runAllTasks()V",
+                    shift = At.Shift.AFTER),
+            require = 1)
+    private void herzium$onSessionSettled(boolean advanceGameTime, CallbackInfo ci) {
         Minecraft minecraft = (Minecraft) (Object) this;
         // Identity hash rather than the level itself, so nothing here can keep a
         // ClientLevel alive past its disconnect.
@@ -36,9 +78,6 @@ abstract class MinecraftMixin {
             ImmediateHotbarInput.resetSession();
             ImmediateActionFeedback.reset();
         }
-        // Runs on every frame, including frames without a level, so a preview
-        // left behind by a disconnect cannot retain the player it captured.
-        ImmediateHotbarInput.releaseStalePreview(minecraft);
     }
 
     @Inject(method = "handleKeybinds", at = @At("TAIL"))
