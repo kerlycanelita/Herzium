@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.debug;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.zymekoh.herzium.debug.mixin.KeyMappingClickCountAccessor;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,8 +30,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundBlockChangedAckPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClickPacket;
@@ -46,6 +50,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +64,7 @@ import org.slf4j.LoggerFactory;
  * classes relevant to hotbar, hand and container diagnosis.</p>
  */
 public final class DebugCollector {
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.2.2";
     private static final Logger LOGGER = LoggerFactory.getLogger("Herzium Debug");
     private static final int MAX_EVENTS = 6_000;
     private static final int FILE_QUEUE_CAPACITY = 16_384;
@@ -68,6 +73,7 @@ public final class DebugCollector {
     private static final DateTimeFormatter FILE_TIME = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT);
     private static final Object EVENT_LOCK = new Object();
     private static final Object HOTBAR_LOCK = new Object();
+    private static final Object PLACEMENT_LOCK = new Object();
     private static final ArrayDeque<DebugEvent> EVENTS = new ArrayDeque<>(MAX_EVENTS);
     private static final LinkedBlockingQueue<String> FILE_QUEUE = new LinkedBlockingQueue<>(FILE_QUEUE_CAPACITY);
     private static final AtomicLong SEQUENCE = new AtomicLong();
@@ -117,6 +123,7 @@ public final class DebugCollector {
     private static volatile long lastPacketSlotNanos;
     private static volatile long clientTickNumber;
     private static final Map<String, Boolean> KEY_STATES = new HashMap<>();
+    private static final ArrayDeque<PlacementAttempt> PLACEMENT_ATTEMPTS = new ArrayDeque<>();
     private static HotbarBurst hotbarBurst;
     private static HotbarBurst confirmationBurst;
 
@@ -440,6 +447,17 @@ public final class DebugCollector {
             screenTransitionTarget = className(requested);
             info("SCREEN_REQUEST", className(minecraft.screen) + " -> " + screenTransitionTarget
                     + "; cursor=" + mousePosition(minecraft) + "; caller=" + callerSummary());
+            if (requested != null) {
+                synchronized (HOTBAR_LOCK) {
+                    if (hotbarBurst != null || confirmationBurst != null) {
+                        info("HOTBAR_PREVIEW_INVALIDATED", "A screen opened before the pending render preview completed.");
+                    }
+                    hotbarBurst = null;
+                    confirmationBurst = null;
+                    lastPreviewedSlot = -1;
+                    lastHerziumHandPreview = "<none>";
+                }
+            }
         } else {
             info("SCREEN_APPLIED", "current=" + className(minecraft.screen)
                     + "; cursor=" + mousePosition(minecraft)
@@ -451,8 +469,10 @@ public final class DebugCollector {
         Minecraft minecraft = Minecraft.getInstance();
         List<KeyMapping> mappings = mappingsFor(minecraft, key);
         String names = mappingNames(mappings);
+        String queue = hotbarQueueSnapshot(minecraft);
         trace("KEY_CLICK", "physical=" + key.getName() + "; mappings=" + names
-                + "; screen=" + className(minecraft.screen) + "; tick=" + clientTickNumber);
+                + "; hotbarQueue=" + queue + "; screen=" + className(minecraft.screen)
+                + "; tick=" + clientTickNumber);
 
         List<Integer> slots = hotbarSlots(minecraft, key);
         if (slots.isEmpty() || minecraft.player == null || minecraft.screen != null || minecraft.getOverlay() != null) {
@@ -470,14 +490,15 @@ public final class DebugCollector {
             }
             for (int slot : slots) {
                 hotbarBurst.slots.add(slot);
-                hotbarBurst.expectedVanillaSlot = Math.max(hotbarBurst.expectedVanillaSlot, slot);
             }
+            hotbarBurst.expectedVanillaSlot = resolvePendingHotbarSlot(minecraft);
+            hotbarBurst.queueSnapshot = queue;
             hotbarBurst.lastInputNanos = now;
             hotbarBurst.distinct = hotbarBurst.slots.stream().distinct().count() > 1;
             info("HOTBAR_INPUT", "key=" + key.getName() + "; matched=" + slots.stream().map(DebugCollector::slot).toList()
                     + "; " + hotbarBurst.describe());
             if (hotbarBurst.distinct) {
-                info("HOTBAR_BURST", "Distinct same-tick inputs detected; visual candidate should follow Vanilla's highest pending slot. "
+                info("HOTBAR_BURST", "Distinct same-tick inputs detected; order=" + HotbarPolicyProbe.orderName() + ". "
                         + hotbarBurst.describe());
             }
         }
@@ -499,19 +520,54 @@ public final class DebugCollector {
         trace("KEY_STATE", "physical=" + id + "; down=" + state + "; mappings=" + mappingNames(mappings));
     }
 
-    public static void onKeyConsumed(KeyMapping mapping, boolean consumed) {
-        if (!consumed) {
-            return;
+    public static void onKeyConsumed(KeyMapping mapping, boolean consumed, int remainingClicks) {
+        if (consumed) {
+            trace("KEY_CONSUME", "mapping=" + mapping.getName() + "; bound=" + mapping.saveString()
+                    + "; remaining=" + remainingClicks + "; tick=" + clientTickNumber);
         }
-        trace("KEY_CONSUME", "mapping=" + mapping.getName() + "; bound=" + mapping.saveString()
-                + "; tick=" + clientTickNumber);
         if (mapping.getName().startsWith("key.hotbar.")) {
             synchronized (HOTBAR_LOCK) {
-                if (hotbarBurst != null) {
+                if (consumed && hotbarBurst != null) {
                     hotbarBurst.consumedMappings.add(mapping.getName());
+                }
+                if (remainingClicks > 0) {
+                    info("HOTBAR_QUEUE_REMAINS", "mapping=" + mapping.getName()
+                            + "; remaining=" + remainingClicks
+                            + "; Vanilla will consume at most one more on its next client tick.");
                 }
             }
         }
+    }
+
+    private static int resolvePendingHotbarSlot(Minecraft minecraft) {
+        if (minecraft == null || minecraft.options == null) {
+            return -1;
+        }
+        Integer configured = HotbarPolicyProbe.resolve(minecraft);
+        if (configured != null) return configured;
+        int resolved = -1;
+        for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
+            KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
+            if (((KeyMappingClickCountAccessor) mapping).herziumDebug$getPendingClickCount() > 0) {
+                resolved = slot;
+            }
+        }
+        return resolved;
+    }
+
+    private static String hotbarQueueSnapshot(Minecraft minecraft) {
+        if (minecraft == null || minecraft.options == null) {
+            return "[]";
+        }
+        List<String> pending = new ArrayList<>();
+        for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
+            KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
+            int clicks = ((KeyMappingClickCountAccessor) mapping).herziumDebug$getPendingClickCount();
+            if (clicks > 0) {
+                pending.add((slot + 1) + "x" + clicks);
+            }
+        }
+        return pending.toString();
     }
 
     private static List<KeyMapping> mappingsFor(Minecraft minecraft, InputConstants.Key key) {
@@ -551,6 +607,14 @@ public final class DebugCollector {
 
     public static void onHerziumPreviewRequested(InputConstants.Key key) {
         trace("HERZIUM_PREVIEW_REQUEST", "logicalKey=" + key.getName());
+    }
+
+    public static void onHerziumPreviewRegistered() {
+        synchronized (HOTBAR_LOCK) {
+            if (hotbarBurst != null) {
+                hotbarBurst.expectedVanillaSlot = resolvePendingHotbarSlot(Minecraft.getInstance());
+            }
+        }
     }
 
     public static void onHerziumVisualSlot(int vanillaSlot, int returnedSlot) {
@@ -599,6 +663,22 @@ public final class DebugCollector {
                 trace("HERZIUM_HOTBAR_PASS", "Vanilla keybind pass completed; "
                         + confirmationBurst.describe());
             }
+
+            Minecraft minecraft = Minecraft.getInstance();
+            int remainingSlot = resolvePendingHotbarSlot(minecraft);
+            if (remainingSlot >= 0 && minecraft.player != null) {
+                HotbarBurst carried = new HotbarBurst(
+                        SEQUENCE.get(),
+                        clientTickNumber + 1,
+                        System.nanoTime(),
+                        minecraft.player.getInventory().getSelectedSlot());
+                carried.slots.add(remainingSlot);
+                carried.expectedVanillaSlot = remainingSlot;
+                carried.queueSnapshot = hotbarQueueSnapshot(minecraft);
+                hotbarBurst = carried;
+                info("HOTBAR_CARRIED_GENERATION", "Vanilla queue retained clicks for its next pass; "
+                        + carried.describe());
+            }
         }
     }
 
@@ -621,10 +701,10 @@ public final class DebugCollector {
             if (confirmed != null) {
                 int expected = confirmed.expectedVanillaSlot;
                 if (selected != expected) {
-                    issue("HOTBAR_MISMATCH", "Vanilla committed " + slot(selected) + " but queued bindings predicted "
+                    issue("HOTBAR_MISMATCH", "Client committed " + slot(selected) + " but the configured order predicted "
                             + slot(expected) + "; " + confirmed.describe());
                 } else {
-                    info("HOTBAR_CONFIRMED", "Vanilla committed " + slot(selected)
+                    info("HOTBAR_CONFIRMED", "Client committed " + slot(selected)
                             + "; latency=" + ((System.nanoTime() - confirmed.startedNanos) / 1_000L) + "us; "
                             + confirmed.describe());
                 }
@@ -634,17 +714,21 @@ public final class DebugCollector {
                     if (confirmed.lastPreviewNanos >= confirmed.lastInputNanos) {
                         issue("VISIBLE_GHOST", "Last visible Herzium preview="
                                 + slot(confirmed.lastPreviewedSlot)
-                                + " but Vanilla committed=" + slot(selected));
+                                + " but client committed=" + slot(selected));
                     } else {
                         info("PREVIEW_SUPERSEDED_BEFORE_FRAME", "Last visible preview="
                                 + slot(confirmed.lastPreviewedSlot) + "; a newer input selected " + slot(selected)
                                 + " only " + ((System.nanoTime() - confirmed.lastInputNanos) / 1_000L)
-                                + "us before Vanilla committed it, with no intervening HUD frame.");
+                                + "us before the client committed it, with no intervening HUD frame.");
                     }
                 }
                 confirmationBurst = null;
-                lastPreviewedSlot = -1;
-                lastHerziumHandPreview = "<none>";
+                if (hotbarBurst == null) {
+                    lastPreviewedSlot = -1;
+                    lastHerziumHandPreview = "<none>";
+                } else {
+                    lastPreviewedSlot = hotbarBurst.lastPreviewedSlot;
+                }
             }
         }
         if (hadPendingBurst) {
@@ -832,6 +916,7 @@ public final class DebugCollector {
         } else if (packet instanceof ServerboundUseItemOnPacket useOn) {
             detail = "UseItemOn hand=" + useOn.getHand() + "; sequence=" + useOn.getSequence()
                     + "; pos=" + useOn.getHitResult().getBlockPos() + "; face=" + useOn.getHitResult().getDirection();
+            recordPlacementAttempt(useOn);
         } else if (packet instanceof ServerboundPlayerActionPacket action) {
             detail = "PlayerAction action=" + action.getAction() + "; sequence=" + action.getSequence()
                     + "; pos=" + action.getPos() + "; face=" + action.getDirection();
@@ -863,6 +948,85 @@ public final class DebugCollector {
     public static void onContainerContent(ClientboundContainerSetContentPacket packet) {
         info("PACKET_IN", "ContainerContent id=" + packet.containerId() + "; state=" + packet.stateId()
                 + "; slots=" + packet.items().size() + "; carried=" + stack(packet.carriedItem()));
+    }
+
+    public static void onBlockChangedAck(ClientboundBlockChangedAckPacket packet) {
+        PlacementAttempt attempt = findPlacementAttempt(packet.sequence(), null);
+        info("BLOCK_ACK", "sequence=" + packet.sequence()
+                + (attempt == null ? "; no recent traced use" : "; after=" + attempt.ageMicros() + "us; " + attempt.describe()));
+    }
+
+    public static void onBlockUpdate(ClientboundBlockUpdatePacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) {
+            return;
+        }
+        BlockPos pos = packet.getPos();
+        PlacementAttempt attempt = findPlacementAttempt(-1, pos);
+        if (attempt == null) {
+            return;
+        }
+        BlockState clientBefore = minecraft.level.getBlockState(pos);
+        BlockState serverState = packet.getBlockState();
+        if (!clientBefore.equals(serverState)) {
+            issue("BLOCK_STATE_CORRECTION_AFTER_USE", "Server update changed " + pos
+                    + " from client=" + blockState(clientBefore)
+                    + " to server=" + blockState(serverState)
+                    + "; after=" + attempt.ageMicros() + "us; " + attempt.describe()
+                    + ". This proves server reconciliation, not an extra Herzium placement packet.");
+        } else {
+            trace("BLOCK_STATE_CONFIRMED_AFTER_USE", "Server update agreed at " + pos
+                    + "; state=" + blockState(serverState) + "; " + attempt.describe());
+        }
+    }
+
+    private static void recordPlacementAttempt(ServerboundUseItemOnPacket packet) {
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft.player;
+        BlockHitResult hit = packet.getHitResult();
+        PlacementAttempt attempt = new PlacementAttempt(
+                packet.getSequence(),
+                System.nanoTime(),
+                hit.getBlockPos(),
+                hit.getBlockPos().relative(hit.getDirection()),
+                packet.getHand(),
+                player == null ? -1 : player.getInventory().getSelectedSlot(),
+                player == null ? "unknown" : stack(player.getItemInHand(packet.getHand())));
+        synchronized (PLACEMENT_LOCK) {
+            prunePlacementAttempts();
+            while (PLACEMENT_ATTEMPTS.size() >= 128) {
+                PLACEMENT_ATTEMPTS.removeFirst();
+            }
+            PLACEMENT_ATTEMPTS.addLast(attempt);
+        }
+    }
+
+    private static PlacementAttempt findPlacementAttempt(int sequence, BlockPos pos) {
+        synchronized (PLACEMENT_LOCK) {
+            prunePlacementAttempts();
+            PlacementAttempt found = null;
+            for (PlacementAttempt attempt : PLACEMENT_ATTEMPTS) {
+                boolean sequenceMatches = sequence >= 0 && attempt.sequence == sequence;
+                boolean positionMatches = pos != null
+                        && (attempt.clickedPos.equals(pos) || attempt.adjacentPos.equals(pos));
+                if (sequenceMatches || positionMatches) {
+                    found = attempt;
+                }
+            }
+            return found;
+        }
+    }
+
+    private static void prunePlacementAttempts() {
+        long now = System.nanoTime();
+        while (!PLACEMENT_ATTEMPTS.isEmpty()
+                && now - PLACEMENT_ATTEMPTS.peekFirst().sentNanos > 5_000_000_000L) {
+            PLACEMENT_ATTEMPTS.removeFirst();
+        }
+    }
+
+    private static String blockState(BlockState state) {
+        return BuiltInRegistries.BLOCK.getKey(state.getBlock()) + state.getValues().toString();
     }
 
     public static String stack(ItemStack stack) {
@@ -1061,6 +1225,8 @@ public final class DebugCollector {
         private long lastInputNanos;
         private int lastPreviewedSlot = -1;
         private long lastPreviewNanos;
+        private String queueSnapshot = "[]";
+        private final String selectionOrder = HotbarPolicyProbe.orderName();
 
         private HotbarBurst(long eventSequence, long tick, long startedNanos, int selectedBefore) {
             this.eventSequence = eventSequence;
@@ -1076,8 +1242,50 @@ public final class DebugCollector {
                     + " before=" + slot(this.selectedBefore)
                     + " inputs=" + this.slots.stream().map(DebugCollector::slot).toList()
                     + " expected=" + slot(this.expectedVanillaSlot)
+                    + " queue=" + this.queueSnapshot
+                    + " order=" + this.selectionOrder
                     + " distinct=" + this.distinct
                     + " consumed=" + this.consumedMappings;
+        }
+    }
+
+    private static final class PlacementAttempt {
+        private final int sequence;
+        private final long sentNanos;
+        private final BlockPos clickedPos;
+        private final BlockPos adjacentPos;
+        private final InteractionHand hand;
+        private final int slot;
+        private final String item;
+
+        private PlacementAttempt(
+                int sequence,
+                long sentNanos,
+                BlockPos clickedPos,
+                BlockPos adjacentPos,
+                InteractionHand hand,
+                int slot,
+                String item) {
+            this.sequence = sequence;
+            this.sentNanos = sentNanos;
+            this.clickedPos = clickedPos.immutable();
+            this.adjacentPos = adjacentPos.immutable();
+            this.hand = hand;
+            this.slot = slot;
+            this.item = item;
+        }
+
+        private long ageMicros() {
+            return Math.max(0L, System.nanoTime() - this.sentNanos) / 1_000L;
+        }
+
+        private String describe() {
+            return "UseItemOn sequence=" + this.sequence
+                    + " hand=" + this.hand
+                    + " slot=" + slot(this.slot)
+                    + " item=" + this.item
+                    + " clicked=" + this.clickedPos
+                    + " adjacent=" + this.adjacentPos;
         }
     }
 }

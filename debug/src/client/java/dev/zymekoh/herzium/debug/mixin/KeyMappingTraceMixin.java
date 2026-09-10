@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Observes Vanilla's logical input queue without consuming or modifying it. */
 @Mixin(value = KeyMapping.class, priority = 3000)
 abstract class KeyMappingTraceMixin {
-    @Inject(method = "click", at = @At("HEAD"))
+    @Inject(method = "click", at = @At("TAIL"))
     private static void herziumDebug$onClick(InputConstants.Key key, CallbackInfo ci) {
         DebugCollector.onKeyClick(key);
     }
@@ -24,6 +24,9 @@ abstract class KeyMappingTraceMixin {
 
     @Inject(method = "consumeClick", at = @At("RETURN"))
     private void herziumDebug$onConsume(CallbackInfoReturnable<Boolean> cir) {
-        DebugCollector.onKeyConsumed((KeyMapping) (Object) this, cir.getReturnValueZ());
+        DebugCollector.onKeyConsumed(
+                (KeyMapping) (Object) this,
+                cir.getReturnValueZ(),
+                ((KeyMappingClickCountAccessor) this).herziumDebug$getPendingClickCount());
     }
 }

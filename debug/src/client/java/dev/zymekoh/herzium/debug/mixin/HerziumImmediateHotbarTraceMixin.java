@@ -20,6 +20,11 @@ abstract class HerziumImmediateHotbarTraceMixin {
         DebugCollector.onHerziumPreviewRequested(key);
     }
 
+    @Inject(method = "previewLogicalKey", at = @At("RETURN"), remap = false)
+    private static void herziumDebug$previewRegistered(InputConstants.Key key, CallbackInfo ci) {
+        DebugCollector.onHerziumPreviewRegistered();
+    }
+
     @Inject(method = "visualSelectedSlot", at = @At("RETURN"), remap = false)
     private static void herziumDebug$visualSlot(
             Inventory inventory,
