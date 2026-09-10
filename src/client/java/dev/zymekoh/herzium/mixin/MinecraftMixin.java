@@ -5,10 +5,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.zymekoh.herzium.Herzium;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.gui.HerziumWarningScreen;
-import dev.zymekoh.herzium.input.ImmediateActionFeedback;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
+import dev.zymekoh.herzium.input.HotbarOrderController;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.LevelLoadTracker;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -16,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = Minecraft.class, priority = 2000)
 abstract class MinecraftMixin {
@@ -76,13 +78,39 @@ abstract class MinecraftMixin {
             // moment anything derived from item tags stops being trustworthy.
             CombatItemClassifier.invalidate();
             ImmediateHotbarInput.resetSession();
-            ImmediateActionFeedback.reset();
         }
     }
 
     @Inject(method = "handleKeybinds", at = @At("TAIL"))
     private void herzium$markVanillaHotbarPassCompleted(CallbackInfo ci) {
-        ImmediateHotbarInput.markVanillaHotbarPassCompleted((Minecraft) (Object) this);
+        HotbarOrderController.captureRemainingPass((Minecraft) (Object) this);
+    }
+
+    /** Never let a render-only future slot survive into a Vanilla action. */
+    @Inject(method = "startUseItem", at = @At("HEAD"))
+    private void herzium$useOnlyTheCommittedSlot(CallbackInfo ci) {
+        ImmediateHotbarInput.discardDivergentPreviewBeforeAction((Minecraft) (Object) this);
+    }
+
+    /** The same fail-closed boundary applies to attack and block breaking. */
+    @Inject(method = "startAttack", at = @At("HEAD"))
+    private void herzium$attackOnlyWithTheCommittedSlot(CallbackInfoReturnable<Boolean> cir) {
+        ImmediateHotbarInput.discardDivergentPreviewBeforeAction((Minecraft) (Object) this);
+    }
+
+    @Inject(method = "continueAttack", at = @At("HEAD"))
+    private void herzium$continueAttackOnlyWithTheCommittedSlot(boolean leftClick, CallbackInfo ci) {
+        if (leftClick) {
+            ImmediateHotbarInput.discardDivergentPreviewBeforeAction((Minecraft) (Object) this);
+        }
+    }
+
+    /** A newly opened screen invalidates a world-input preview immediately. */
+    @Inject(method = "setScreen", at = @At("HEAD"))
+    private void herzium$clearPreviewBeforeScreen(Screen screen, CallbackInfo ci) {
+        if (screen != null) {
+            ImmediateHotbarInput.clearPreview();
+        }
     }
 
     /**

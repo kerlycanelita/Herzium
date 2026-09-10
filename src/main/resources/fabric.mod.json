@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Faster visual hotbar and input feedback. Vanilla keeps the real selection, actions and packets. No FPS or gameplay changes.",
+  "description": "Responsive hotbar previews with three selection-order preferences. Vanilla order by default; optional orders change real slot priority.",
   "authors": [
     "zymekoh"
   ],
@@ -18,7 +18,8 @@
   "entrypoints": {
     "client": [
       "dev.zymekoh.herzium.HerziumClient"
-    ]
+    ],
+    "modmenu": ["dev.zymekoh.herzium.compat.ModMenuIntegration"]
   },
   "mixins": [
     {
@@ -32,6 +33,7 @@
     "java": ">=${java_version}"
   },
   "suggests": {
-    "kohsium": "*"
+    "kohsium": "*",
+    "modmenu": "*"
   }
 }

@@ -11,13 +11,12 @@ public final class HerziumClient implements ClientModInitializer {
     public void onInitializeClient() {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
-                "Herzium initialized. A render-only HUD preview that follows Vanilla's queued hotbar resolution, next-frame "
-                        + "Attack/Use press acknowledgement for normal and remapped bindings, ordinary-item "
-                        + "hand preview, removal of their equip transition, and shorter decorative start-up "
-                        + "transitions are active. Distinct same-tick slot bursts preview Vanilla's ascending slot result. Vanilla "
-                        + "retains the real selection, click queue, use/attack actions and packets. Herzium does not increase "
-                        + "FPS or require Fabric API; VSync, frame limits, Raw Input and cursor placement remain "
-                        + "Vanilla-owned.");
+                "Herzium initialized. Priority Hotbar sampling is event-driven and unchanged. "
+                        + "Vanilla order is the default; optional Herzium/Vanilla Reversed orders change the real "
+                        + "winning slot during the normal keybind pass and can change server-observable actions. "
+                        + "Ordinary-item equip visuals and the HUD preview follow that selection policy. "
+                        + "Click consumption, attack/use dispatch and cooldown handling retain their normal Vanilla "
+                        + "paths. Herzium does not raise FPS, force VSync/Raw Input, move the cursor or require Fabric API.");
 
         if (FabricLoader.getInstance().isModLoaded("exordium")) {
             Herzium.LOGGER.info("Exordium detected; its HUD frame buffer will be bypassed.");

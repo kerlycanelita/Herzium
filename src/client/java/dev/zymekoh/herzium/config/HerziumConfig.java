@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import dev.zymekoh.herzium.Herzium;
+import dev.zymekoh.herzium.input.HotbarOrder;
+import dev.zymekoh.herzium.input.HotbarOrderController;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -56,6 +59,7 @@ public final class HerziumConfig {
     });
 
     private boolean startupWarningAcknowledged;
+    private volatile HotbarOrder hotbarOrder = HotbarOrder.VANILLA;
 
     public static HerziumConfig get() {
         HerziumConfig current = instance;
@@ -125,6 +129,17 @@ public final class HerziumConfig {
 
     public boolean startupWarningAcknowledged() {
         return this.startupWarningAcknowledged;
+    }
+
+    public HotbarOrder hotbarOrder() {
+        return this.hotbarOrder == null ? HotbarOrder.VANILLA : this.hotbarOrder;
+    }
+
+    public void cycleHotbarOrder() {
+        this.hotbarOrder = hotbarOrder().next();
+        HotbarOrderController.reset();
+        ImmediateHotbarInput.clearPreview();
+        this.save();
     }
 
 

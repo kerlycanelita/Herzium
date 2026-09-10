@@ -6,10 +6,10 @@
   "client": [
     "GuiMixin",
     "HotbarVisualMixin",
+    "HotbarOrderMixin",
     "ItemInHandRendererMixin",
     "KeyMappingAccessor",
     "KeyMappingMixin",
-    "LoadingOverlayMixin",
     "MinecraftHotbarConfirmationMixin",
     "MinecraftMixin",
     "MouseHandlerMixin",

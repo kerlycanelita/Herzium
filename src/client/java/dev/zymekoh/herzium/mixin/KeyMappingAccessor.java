@@ -10,4 +10,14 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface KeyMappingAccessor {
     @Accessor("key")
     InputConstants.Key herzium$getBoundKey();
+
+    /**
+     * Read-only view of Vanilla's pending logical-click counter.
+     *
+     * <p>Herzium uses this only to predict what the next unmodified
+     * {@code handleKeybinds} hotbar pass can resolve. It deliberately exposes
+     * no setter and never consumes or clears the queue.</p>
+     */
+    @Accessor("clickCount")
+    int herzium$getPendingClickCount();
 }

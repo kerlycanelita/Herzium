@@ -41,7 +41,7 @@ dependencies {
     // mod* configurations. Swapping the plugin id is not a local change: the
     // full plugin also demands a Java 25 Gradle daemon and an explicit
     // "mappings" dependency this build has never declared. See M-02 in
-    // docs/AUDIT-1.9.3.md.
+    // docs/audits/AUDIT-1.9.3.md.
     compileOnly("com.terraformersmc:modmenu:${project.modmenu_version}") {
         transitive = false
     }
@@ -114,7 +114,7 @@ jar {
 // 1.9.3. It is generated from the real build output now, so it cannot disagree
 // with what was actually produced. The multiversion jars are not covered here;
 // only version/build-all.ps1 knows how to produce those, and it is outside this
-// build. See M-09 in docs/AUDIT-1.9.3.md.
+// build. See M-09 in docs/audits/AUDIT-1.9.3.md.
 tasks.register("herziumChecksums") {
     group = "verification"
     description = "Writes SHA-256 sums for the jars this build produced."
@@ -155,6 +155,25 @@ tasks.register("herziumChecksums") {
 tasks.named("build") {
     finalizedBy tasks.named("herziumChecksums")
 }
+
+def orderTestClasses = layout.buildDirectory.dir('order-tests/classes')
+tasks.register('compileHotbarOrderTest', JavaCompile) {
+    javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(25) }
+    source = files('tools/order-tests/HotbarOrderTest.java',
+            'src/client/java/dev/zymekoh/herzium/input/HotbarOrder.java',
+            'src/client/java/dev/zymekoh/herzium/input/HotbarOrderPolicy.java',
+            'src/client/java/dev/zymekoh/herzium/gui/HerziumConfigLayout.java')
+    classpath = files()
+    destinationDirectory = orderTestClasses
+}
+tasks.register('hotbarOrderTest', JavaExec) {
+    group = 'verification'
+    dependsOn tasks.named('compileHotbarOrderTest')
+    classpath = files(orderTestClasses)
+    mainClass = 'HotbarOrderTest'
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+}
+tasks.named('check') { dependsOn tasks.named('hotbarOrderTest') }
 
 publishing {
     publications {

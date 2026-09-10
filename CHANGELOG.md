@@ -1,5 +1,53 @@
 # Changelog
 
+## Unreleased
+
+### 1.10.3 — 26.1.2 selection preferences
+
+- Kept the existing input sampling and removed the unproven sampling refinements
+  from this iteration, as requested.
+- Added a compact, English/Spanish Mod Menu selector: Vanilla (default), Herzium
+  (last pending binding pressed), and Vanilla reversed (lowest pending slot).
+- Alternate modes change the real slot at the existing hotbar selection call
+  site. They are explicitly server-observable, not advertised as Vanilla-equivalent.
+- Normal/remapped Attack and Use keep their existing dispatch and cooldown paths.
+- Added preference-policy and GUI-bounds tests; updated Debug 0.2.2 so its
+  expected selection follows the configured order.
+
+
+- Narrowed Herzium to Priority Hotbar and the animation policy that belongs to it. Everything the
+  mod does now serves one question -- which slot is selected and what the hand shows for it -- so
+  the mixin surface can be read in one sitting and its interaction with an input mod reasoned about
+  rather than tested for.
+- Removed the Attack/Use crosshair acknowledgement. It was render-only and never consulted by
+  gameplay, but it is input feedback rather than hotbar state, and it kept `KeyMapping#click`
+  observing bindings that Priority Hotbar has no interest in. `ImmediateActionFeedback` and both
+  crosshair hooks are gone; the attack indicator's within-tick interpolation stays, because that is
+  the hotbar's own animation.
+- Removed the repainted loading overlay and the pixel font it used. The start-up advisory screen
+  stays.
+
+## 1.10.2
+
+### Fixed
+- Replaced the event-only hotbar candidate with a read-only cache of Vanilla's
+  actual pending hotbar click counters. Extremely fast repeats, duplicate
+  bindings and clicks carried into the next client tick now remain visible as
+  the same slot Vanilla is able to resolve.
+- Preserved Vanilla's ascending hotbar order and one-click-per-mapping pass;
+  Herzium still never consumes or rewrites the queue.
+- Added a fail-closed action boundary: any visual slot that differs from the
+  committed inventory slot is discarded before Vanilla starts Use/Place,
+  Attack or block breaking.
+- Invalidated world-input previews immediately when a screen opens, rather
+  than waiting for the following rendered frame.
+
+### Debugging
+- Herzium Debug 0.2.1 records remaining Vanilla click counts and carried input
+  generations.
+- Added server block-ack and block-update correlation after `UseItemOn`, making
+  a real server reconciliation distinguishable from a hotbar rendering issue.
+
 ## 1.10.1
 
 ### Fixed

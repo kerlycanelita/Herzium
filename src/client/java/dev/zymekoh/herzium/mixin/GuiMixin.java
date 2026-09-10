@@ -1,17 +1,12 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import dev.zymekoh.herzium.input.ImmediateActionFeedback;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.player.LocalPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Lets the attack indicator advance inside the current tick instead of only at
@@ -24,41 +19,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = Gui.class, priority = 2000)
 abstract class GuiMixin {
-    /**
-     * A tiny render-only acknowledgement of the logical Attack/Use press.
-     * Left/top marks Attack; right/bottom marks Use. It never represents a
-     * successful hit or placement and is never consulted by gameplay code.
-     */
-    @Inject(method = "extractCrosshair", at = @At("TAIL"), require = 1)
-    private void herzium$renderImmediateActionFeedback(
-            GuiGraphicsExtractor graphics,
-            DeltaTracker deltaTracker,
-            CallbackInfo ci) {
-        ImmediateActionFeedback.FeedbackSample feedback = ImmediateActionFeedback.sample();
-        if (!feedback.visible()) {
-            return;
-        }
-
-        int centerX = graphics.guiWidth() / 2;
-        int centerY = graphics.guiHeight() / 2;
-        if (feedback.attack() > 0.0F) {
-            int attackColor = herzium$feedbackColor(feedback.attack(), 0xC46CFF);
-            graphics.fill(centerX - 10, centerY - 1, centerX - 7, centerY + 1, attackColor);
-            graphics.fill(centerX - 1, centerY - 10, centerX + 1, centerY - 7, attackColor);
-        }
-        if (feedback.use() > 0.0F) {
-            int useColor = herzium$feedbackColor(feedback.use(), 0x8A46FF);
-            graphics.fill(centerX + 7, centerY - 1, centerX + 10, centerY + 1, useColor);
-            graphics.fill(centerX - 1, centerY + 7, centerX + 1, centerY + 10, useColor);
-        }
-    }
-
-    @Unique
-    private static int herzium$feedbackColor(float intensity, int rgb) {
-        int alpha = Math.max(0, Math.min(255, Math.round(210.0F * intensity)));
-        return alpha << 24 | rgb;
-    }
-
     @ModifyExpressionValue(
             method = "extractCrosshair",
             at = @At(

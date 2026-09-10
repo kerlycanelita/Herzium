@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
 import dev.zymekoh.herzium.Herzium;
+import dev.zymekoh.herzium.config.HerziumConfig;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import net.minecraft.client.KeyMapping;
@@ -15,14 +16,15 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Provides a render-only preview for logical hotbar bindings.
  *
- * <p>The class never consumes a {@link KeyMapping} click and never changes the
- * selected inventory slot. Vanilla therefore remains solely responsible for
- * committing the selection and emitting any carried-item packet. Herzium only
+ * <p>This class never consumes a {@link KeyMapping} click or changes the
+ * selected inventory slot. The separate optional order policy can choose a
+ * different winning slot at Vanilla's existing selection call site. This class only
  * lets the HUD and first-person renderer display Vanilla's currently resolvable
- * logical binding while Vanilla reaches its next input tick. If distinct hotbar
- * inputs share that window, the preview follows Vanilla's ascending slot pass:
- * the highest numbered pending slot is the value Vanilla will commit. The
- * untouched click queue remains the only authority.</p>
+ * logical binding while Vanilla reaches its next input tick. The cached value
+ * is derived from Vanilla's actual pending click counters, including duplicate
+ * bindings and clicks left for a later pass. The configured order determines
+ * the predicted winner; the default is Vanilla's highest slot. The untouched click queue
+ * remains the only authority.</p>
  */
 public final class ImmediateHotbarInput {
     private static final long FAIL_SAFE_PREVIEW_NANOS = 2_000_000_000L;
@@ -65,20 +67,14 @@ public final class ImmediateHotbarInput {
             return;
         }
 
-        int matchedSlot = -1;
-        for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
-            KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
-            if (((KeyMappingAccessor) mapping).herzium$getBoundKey().equals(logicalKey)) {
-                // When duplicate bindings exist, Vanilla resolves hotbar slots
-                // in ascending order, so the highest matching slot is final.
-                matchedSlot = slot;
-            }
-        }
-        if (matchedSlot < 0) {
+        if (!isHotbarBinding(minecraft, logicalKey)) {
             return;
         }
 
-        registerPreviewCandidate(player, matchedSlot);
+        int pendingSlot = resolvePendingVanillaSlot(minecraft);
+        if (pendingSlot >= 0) {
+            cacheResolvedPendingSlot(player, pendingSlot);
+        }
     }
 
     /** Returns a provisional render value; it never writes to the inventory. */
@@ -140,6 +136,16 @@ public final class ImmediateHotbarInput {
             return;
         }
         PENDING_CONFIRMATION.set(state);
+
+        // Vanilla consumes at most one click from each hotbar mapping per
+        // client tick. Very fast repeats can therefore leave real clickCount
+        // entries queued for the next pass. Cache that next Vanilla-resolvable
+        // slot as a new generation instead of briefly falling back to the slot
+        // which has just been committed.
+        int remainingSlot = resolvePendingVanillaSlot(minecraft);
+        if (remainingSlot >= 0 && !suspended && hudHookIsHealthy()) {
+            cacheResolvedPendingSlot(player, remainingSlot);
+        }
     }
 
     /**
@@ -175,7 +181,7 @@ public final class ImmediateHotbarInput {
         suspended = true;
         PREVIEW.set(null);
         Herzium.LOGGER.warn(
-                "Priority Hotbar expected slot {} from Vanilla's queued bindings but the final "
+                "Priority Hotbar expected slot {} from the configured queued-slot order but the final "
                         + "selection was slot {} (started on {}). It has suspended itself for this "
                         + "world and Herzium will now render Vanilla's committed slot only; the preview "
                         + "re-arms by itself when you join another world.",
@@ -203,6 +209,26 @@ public final class ImmediateHotbarInput {
         }
     }
 
+    /**
+     * Drops only a misleading render preview before Vanilla performs an action.
+     *
+     * <p>Normally {@code handleKeybinds} commits the hotbar selection before it
+     * reaches attack/use, so the two values already agree. This guard covers a
+     * mod invoking the action entrypoint at another point, or a later input
+     * generation arriving between passes. The gameplay slot is never changed:
+     * the visual cache simply yields to the slot Vanilla has really committed.</p>
+     */
+    public static void discardDivergentPreviewBeforeAction(Minecraft minecraft) {
+        PreviewState state = PREVIEW.get();
+        LocalPlayer player = minecraft.player;
+        if (state == null || player == null || state.player() != player) {
+            return;
+        }
+        if (state.slot() != player.getInventory().getSelectedSlot()) {
+            clearPreview(state);
+        }
+    }
+
     public static void clearPreview() {
         PREVIEW.set(null);
         PENDING_CONFIRMATION.set(null);
@@ -210,6 +236,7 @@ public final class ImmediateHotbarInput {
 
     /** Called when the client enters a different world; see the suspension note. */
     public static void resetSession() {
+        HotbarOrderController.reset();
         PREVIEW.set(null);
         PENDING_CONFIRMATION.set(null);
         LAST_HUD_HOOK_NANOS.set(0L);
@@ -246,7 +273,7 @@ public final class ImmediateHotbarInput {
         }
     }
 
-    private static void registerPreviewCandidate(LocalPlayer player, int slot) {
+    private static void cacheResolvedPendingSlot(LocalPlayer player, int slot) {
         long now = System.nanoTime();
         while (true) {
             PreviewState previous = PREVIEW.get();
@@ -262,20 +289,43 @@ public final class ImmediateHotbarInput {
                     && !previousPassedToVanilla
                     && previous.player() == player
                     && now - previous.startedNanos() <= FAIL_SAFE_PREVIEW_NANOS;
-            int vanillaResolvedSlot = previousIsCurrent ? Math.max(previous.slot(), slot) : slot;
             int selectedSlotAtInput = previousIsCurrent
                     ? previous.selectedSlotAtInput()
                     : player.getInventory().getSelectedSlot();
             long startedNanos = previousIsCurrent ? previous.startedNanos() : now;
             PreviewState replacement = new PreviewState(
                     player,
-                    vanillaResolvedSlot,
+                    slot,
                     selectedSlotAtInput,
                     startedNanos);
             if (PREVIEW.compareAndSet(previous, replacement)) {
                 return;
             }
         }
+    }
+
+    private static boolean isHotbarBinding(Minecraft minecraft, InputConstants.Key logicalKey) {
+        for (KeyMapping mapping : minecraft.options.keyHotbarSlots) {
+            if (((KeyMappingAccessor) mapping).herzium$getBoundKey().equals(logicalKey)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Mirrors the configured winner of the next ordinary hotbar pass. */
+    private static int resolvePendingVanillaSlot(Minecraft minecraft) {
+        if (HerziumConfig.get().hotbarOrder() != HotbarOrder.VANILLA) {
+            return HotbarOrderController.previewPendingSlot(minecraft);
+        }
+        int pendingSlot = -1;
+        for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
+            KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
+            if (((KeyMappingAccessor) mapping).herzium$getPendingClickCount() > 0) {
+                pendingSlot = slot;
+            }
+        }
+        return pendingSlot;
     }
 
     private static void clearPreview(PreviewState expected) {
