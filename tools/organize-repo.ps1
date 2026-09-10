@@ -123,7 +123,7 @@ if (-not (Test-Path $docs)) {
         New-Item -ItemType Directory -Path $docs | Out-Null
     }
 }
-Move-RepoPath 'MODRINTH.md'   'docs\MODRINTH.md'
+Move-RepoPath 'MODRINTH.md'   'docs\releases\MODRINTH.md'
 Move-RepoPath 'checksums.txt' 'docs\checksums.txt'
 Move-RepoPath 'evidence'      'docs\evidence'
 Move-RepoPath 'media'         'docs\media'

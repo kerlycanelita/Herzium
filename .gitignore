@@ -25,3 +25,11 @@ replay_*.log
 *.jfr
 *.launch
 *.DS_Store
+
+# Machine-local settings and diagnostics
+.claude/settings.local.json
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc

@@ -1,4 +1,4 @@
-<!-- Modrinth summary: Faster visual hotbar feedback for ordinary items, with Vanilla gameplay unchanged. -->
+<!-- Modrinth summary: Responsive hotbar previews with three selection-order preferences. -->
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/kerlycanelita/Herzium/main/src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
@@ -12,22 +12,27 @@
 
 # Herzium
 
-**Faster visual hotbar feedback for ordinary items, with Vanilla gameplay unchanged.**
+**Responsive hotbar previews with three selection-order preferences.**
 
 Herzium is a small client-side visual-response mod. It can preview an ordinary
 non-combat hotbar item on the next rendered frame while Vanilla completes the
 real selection on its normal client tick. On a high refresh-rate display, that
 visual response can appear up to one normal client tick (about 50 ms) sooner.
 
-The preview is provisional and render-only. Vanilla still resolves the actual
-selected slot, input order, actions and network packets. If repeated previews
-disagree with Vanilla, Herzium suspends the preview for the rest of that world.
+The preview is provisional. Vanilla order remains the default, and Mod Menu
+provides three preferences: Vanilla (highest pending slot wins), Herzium (last
+pressed binding among pending slots wins), and Vanilla reversed (lowest slot
+wins). Alternative orders change the **real selected slot** and therefore may
+change the item used on a server. They are not Vanilla-equivalent; follow server
+rules. A confirmed preview disagreement suspends previews for that world.
 
 ## Features
 
-- **Ordinary-item hotbar preview:** configured hotbar-key input can update the
-  visible selected slot and ordinary item on the next rendered frame. Combat
-  items wait for Vanilla.
+- **Hotbar preview:** normal/remapped hotbar bindings can update the highlight
+  on the next frame. Ordinary items can also appear in hand; combat items keep
+  their Vanilla hand transition.
+- **Three selection orders:** a compact Mod Menu button saves your preference.
+  This does not increase sampling speed or accelerate click processing.
 - **Ordinary-item equip transition:** removes the decorative equip dip from
   ordinary main-hand and offhand items. Swords, axes, pickaxes, spears, maces,
   bows, crossbows, tridents, shields and other classified combat items keep
@@ -35,8 +40,8 @@ disagree with Vanilla, Herzium suspends the preview for the rest of that world.
 - **Smoother attack indicator:** interpolates only the displayed attack meter,
   conservatively within Vanilla's current tick. Attack timing and cooldowns do
   not change.
-- **Shorter decorative start-up transitions:** removes the loading-overlay
-  fade, title-screen fade and post-world-creation hold. Loading and world
+- **Shorter decorative start-up transitions:** removes the title-screen fade
+  and post-world-creation hold. Loading and world
   creation still perform their real work.
 
 ## Scope and limits
@@ -46,8 +51,11 @@ finish faster. It leaves VSync, `Max Framerate`, `Reduce FPS when inactive`,
 Raw Input, Smooth Camera, mouse sensitivity and cursor placement untouched. It
 does not rewrite these settings in `options.txt`.
 
-The preview itself is not sent to the server. The real selected slot, attack
-and use actions, reach, cooldowns, hitboxes and packets remain Vanilla. Servers
+The preview itself is not sent to the server. Default Vanilla mode retains
+Vanilla selection. The other orders can change carried-slot packets and the
+resulting actions because a different item wins. Normal/remapped click dispatch,
+reach, cooldowns and hitboxes keep their existing paths. Herzium does not add
+packets or retries of its own. Servers
 may have their own client-mod rules or use an approved client/attestation
 system, so players should follow the rules of the server they join.
 

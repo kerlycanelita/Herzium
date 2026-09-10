@@ -9,7 +9,7 @@
   <img src="src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
 </p>
 
-**Faster visual hotbar and input feedback, with Vanilla gameplay unchanged.**
+**Responsive hotbar previews with three selection-order preferences.**
 
 Herzium is a small client-side visual-response mod. When a hotbar slot is
 requested with a configured hotbar key, Herzium can preview Vanilla's currently
@@ -18,57 +18,55 @@ Vanilla's next client tick. Ordinary non-combat items can also be previewed in h
 make the response visible up to one normal client tick (about 50 ms) sooner on
 a high refresh-rate display.
 
-Attack and Use presses also receive a small crosshair acknowledgement on the
-next rendered frame. It observes Vanilla's logical binding, so the default
-mouse buttons, keyboard bindings, scancodes and remapped mouse/keyboard buttons
-all take the same path. The mark acknowledges the input only; it does not claim
-that a hit, use or placement was accepted.
+The existing input sampling is unchanged: Herzium observes logical key events
+as Minecraft registers them, including remapped hotbar bindings. Attack/Use
+continue through their normal Vanilla path with the same cooldown handling.
 
-The simplest way to see that is to swing at empty air: the mark appears exactly
-the same. It answers the button, not the outcome, so it is not and cannot be a
-hit indicator.
+The preview is provisional. Vanilla order remains the default. Mod Menu now
+offers three preferences for multiple slot inputs pending in the same tick:
 
-The one press it stays quiet for is the press Vanilla ignores. While an item is
-in use — eating, drawing a bow, holding a shield — Vanilla discards each queued
-Attack and Use click rather than deferring it, so the mark is withheld there
-too. A miss is not a discard: the action still ran, and it is still marked.
+| Preference | Which slot wins? | Example |
+| --- | --- | --- |
+| Vanilla (default) | Highest numbered slot | 1 + 9 selects 9 |
+| Herzium | Most recently pressed binding among pending slots | 9 then 1 selects 1 |
+| Vanilla reversed | Lowest numbered slot | 1 + 9 selects 1 |
 
-The preview is provisional and render-only. Vanilla still resolves the real
-selected slot, input order, actions and network packets. Distinct slot keys
-received before the same client tick are previewed using Vanilla's ascending
-slot resolution, so the highest numbered pending slot is shown without an
-old-slot flash. Any disagreement suspends previews for that world.
+These are selection preferences, not a higher sampling rate. The alternative
+orders change the **real selected slot**, so the hand, HUD and item used follow
+the same preference. They are not Vanilla-equivalent and may be restricted by
+servers. Repeated presses retain Vanilla's queue and normal tick processing;
+duplicate bindings in Herzium mode use the higher slot as a deterministic tie-break.
+Any confirmed preview disagreement suspends previews for that world.
 
 ## What it changes
 
 - **Hotbar preview.** Vanilla's currently resolvable requested slot can be
   highlighted on the next rendered frame. Ordinary items can also appear in hand immediately;
   combat items keep Vanilla's hand/equip transition.
-- **Immediate input acknowledgement.** A brief crosshair mark responds to a
-  normal or remapped Attack/Use press on the next frame. It never calls the
-  action early and is not an action-success indicator: it appears unchanged
-  when the swing hits nothing. It is withheld only while an item is in use,
-  where Vanilla discards the click outright.
+- **Selection-order preference.** A compact Mod Menu button cycles through the
+  three modes and saves the choice. No restart is needed.
 - **Ordinary-item equip transition.** Removes the decorative equip dip from
   ordinary main-hand and offhand items. Combat items keep Vanilla's complete
   equip transition.
 - **Smoother attack indicator.** Interpolates only the displayed attack meter,
   conservatively within Vanilla's current tick. It does not change cooldowns
   or attack timing.
-- **Shorter decorative start-up transitions.** Removes the loading-overlay
-  fade, title-screen fade and post-world-creation hold. Resource loading and
+- **Shorter decorative start-up transitions.** Removes the title-screen fade
+  and post-world-creation hold. Resource loading and
   world creation still perform their real work.
 
 ## What it does not change
 
-Herzium does not increase FPS, accelerate game logic or alter server-side
-gameplay. It leaves VSync, `Max Framerate`, `Reduce FPS when inactive`, Raw
+Herzium does not increase FPS or accelerate client/server ticks. It leaves
+VSync, `Max Framerate`, `Reduce FPS when inactive`, Raw
 Input, Smooth Camera, sensitivity and cursor placement untouched. It does not
 write those options to `options.txt`.
 
-The visual previews and acknowledgement are not sent to the server. The actual
-selected slot, logical click queue, attack and use actions, reach, cooldowns,
-hitboxes, packet timing and packet count remain Vanilla.
+The visual preview is not sent to the server. In default Vanilla mode, the
+real selection remains Vanilla too. The optional orders can change carried-slot
+packets and the resulting item/block actions because they select a different
+item. Herzium does not dispatch actions early, add retries, send packets itself,
+consume extra clicks or modify reach, cooldowns or hitboxes.
 Servers may still restrict client mods or identify them through an approved
 client/attestation system, so follow each server's rules.
 
@@ -82,21 +80,20 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer and use
    Java 25.
-2. Put `herzium-1.10.1.jar` in the `mods` folder.
+2. Put `herzium-1.10.3.jar` in the `mods` folder.
 
 Minecraft **26.1.2** is the supported game version. Herzium is client-side only.
 **Fabric API is not required. Mod Menu is optional and is not required.**
 
-There are no gameplay options. A short information screen is shown once; after
+Open Herzium's configuration button in Mod Menu to choose a slot order.
+A short information screen is shown once; after
 the player chooses **Continue**, its acknowledgement is saved and it will not
 appear again.
 
 ## Languages
 
 English is the fallback. Minecraft's seven Spanish locales are included:
-Argentina, Chile, Ecuador, Spain, Mexico, Uruguay and Venezuela. The early
-resource-independent loading message also selects Spanish for any `es_*`
-locale and English otherwise.
+Argentina, Chile, Ecuador, Spain, Mexico, Uruguay and Venezuela.
 
 ## Compatibility
 
@@ -116,8 +113,25 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.10.1`. The file
+`mod_version` comes from `gradle.properties` — currently `1.10.3`. The file
 ending in `-sources.jar` is not the playable build.
+
+The build runs `hotbarOrderTest`, which checks the production preference policy
+and logical GUI bounds without launching Minecraft. See the
+[26.1.2 audit](docs/audits/AUDIT-1.10.3-26.1.2.md) for scope and limitations.
+
+## Repository layout
+
+| Location | Contents |
+| --- | --- |
+| `src/` | The main Minecraft 26.1.2 client mod. |
+| `version/` | Separate multi-version build and adapters. |
+| `debug/` | The optional diagnostic companion, built separately. |
+| `docs/` | Audits, release text, checksums and recorded evidence. |
+| `tools/` | Hotbar tests and repository maintenance helpers. |
+
+Start with the [documentation index](docs/README.md). Build output and local
+Minecraft instances remain outside Git; keep installable JARs out of the source tree.
 
 ## License
 
