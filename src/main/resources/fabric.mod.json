@@ -3,7 +3,7 @@
   "id": "herzium",
   "version": "${version}",
   "name": "Herzium",
-  "description": "Responsive hotbar previews with three selection-order preferences. Vanilla order by default; optional orders change real slot priority.",
+  "description": "Responsive hotbar previews with three selection-order preferences. Herzium (last input) order by default; it changes real slot priority, and Vanilla order is one click away.",
   "authors": [
     "zymekoh"
   ],

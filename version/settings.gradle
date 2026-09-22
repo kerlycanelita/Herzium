@@ -6,4 +6,13 @@ pluginManagement {
     }
 }
 
+// The 1.21.x targets compile against Java 21 (see javaRelease in build.gradle),
+// but the only JDK installed on the build machine is the Java 25 one the 26.x
+// targets need. Without a resolver Gradle cannot provision the missing
+// toolchain and :compileJava fails before it reaches Loom. Foojay lets Gradle
+// fetch the Java 21 toolchain on demand and cache it in ~/.gradle/jdks.
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'Herzium-Multiversion'

@@ -105,13 +105,25 @@ abstract class MinecraftMixin {
         }
     }
 
-    /** A newly opened screen invalidates a world-input preview immediately. */
+    // herzium:26.2-drop-start
+    /**
+     * A newly opened screen invalidates a world-input preview immediately.
+     *
+     * <p>26.2 moved this entry point off {@code Minecraft} and onto
+     * {@code Gui.setScreen}, where a {@code Minecraft} mixin cannot reach it.
+     * The multiversion build drops this method for that target and supplies
+     * {@code GuiScreenMixin} instead; see the drop markers in
+     * version/official26/build.gradle. Without that, the injection finds no
+     * target, and because the mixin config declares defaultRequire = 1 the
+     * whole config fails and the game does not launch.</p>
+     */
     @Inject(method = "setScreen", at = @At("HEAD"))
     private void herzium$clearPreviewBeforeScreen(Screen screen, CallbackInfo ci) {
         if (screen != null) {
             ImmediateHotbarInput.clearPreview();
         }
     }
+    // herzium:26.2-drop-end
 
     /**
      * Places the advisory after the initial resource reload, but before

@@ -22,19 +22,21 @@ The existing input sampling is unchanged: Herzium observes logical key events
 as Minecraft registers them, including remapped hotbar bindings. Attack/Use
 continue through their normal Vanilla path with the same cooldown handling.
 
-The preview is provisional. Vanilla order remains the default. Mod Menu now
-offers three preferences for multiple slot inputs pending in the same tick:
+The preview is provisional. Herzium order is the default; Vanilla order is one
+click away in Mod Menu, which offers three preferences for multiple slot inputs
+pending in the same tick:
 
 | Preference | Which slot wins? | Example |
 | --- | --- | --- |
-| Vanilla (default) | Highest numbered slot | 1 + 9 selects 9 |
-| Herzium | Most recently pressed binding among pending slots | 9 then 1 selects 1 |
+| Vanilla | Highest numbered slot | 1 + 9 selects 9 |
+| Herzium (default) | Most recently pressed binding among pending slots | 9 then 1 selects 1 |
 | Vanilla reversed | Lowest numbered slot | 1 + 9 selects 1 |
 
-These are selection preferences, not a higher sampling rate. The alternative
-orders change the **real selected slot**, so the hand, HUD and item used follow
+These are selection preferences, not a higher sampling rate. Herzium and Vanilla
+reversed change the **real selected slot**, so the hand, HUD and item used follow
 the same preference. They are not Vanilla-equivalent and may be restricted by
-servers. Repeated presses retain Vanilla's queue and normal tick processing;
+servers. Because Herzium order is the default, a fresh install is in that state
+from its first session; select Vanilla order to keep Vanilla selection. Repeated presses retain Vanilla's queue and normal tick processing;
 duplicate bindings in Herzium mode use the higher slot as a deterministic tie-break.
 Any confirmed preview disagreement suspends previews for that world.
 
@@ -62,10 +64,10 @@ VSync, `Max Framerate`, `Reduce FPS when inactive`, Raw
 Input, Smooth Camera, sensitivity and cursor placement untouched. It does not
 write those options to `options.txt`.
 
-The visual preview is not sent to the server. In default Vanilla mode, the
-real selection remains Vanilla too. The optional orders can change carried-slot
-packets and the resulting item/block actions because they select a different
-item. Herzium does not dispatch actions early, add retries, send packets itself,
+The visual preview is not sent to the server. Selecting Vanilla order keeps the
+real selection Vanilla too. The default Herzium order and Vanilla reversed can
+change carried-slot packets and the resulting item/block actions because they
+select a different item. Herzium does not dispatch actions early, add retries, send packets itself,
 consume extra clicks or modify reach, cooldowns or hitboxes.
 Servers may still restrict client mods or identify them through an approved
 client/attestation system, so follow each server's rules.
@@ -78,17 +80,32 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 ## Install
 
-1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer and use
-   Java 25.
-2. Put `herzium-1.10.3.jar` in the `mods` folder.
+1. Install [Fabric Loader](https://fabricmc.net/use/) 0.19.3 or newer.
+2. Put the jar that matches your exact Minecraft version in the `mods` folder.
 
-Minecraft **26.1.2** is the supported game version. Herzium is client-side only.
-**Fabric API is not required. Mod Menu is optional and is not required.**
+| Minecraft | Jar | Java |
+| --- | --- | --- |
+| 1.21.10 | `herzium-1.21.10-1.10.3.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.10.3.jar` | 21 |
+| 26.1 | `herzium-26.1-1.10.3.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.10.3.jar` or `herzium-1.10.3.jar` | 25 |
+| 26.2 | `herzium-26.2-1.10.3.jar` | 25 |
 
-Open Herzium's configuration button in Mod Menu to choose a slot order.
-A short information screen is shown once; after
-the player chooses **Continue**, its acknowledgement is saved and it will not
-appear again.
+The root build's `herzium-1.10.3.jar` accepts `>=26.1.2 <26.2`, so it also loads
+on a later 26.1.x patch; the per-version jars pin their exact version.
+
+Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
+two consequences worth knowing:
+
+- Fabric Loader ships no resource-pack support, so **without Fabric API**
+  Minecraft never reads any mod's language files and Herzium's screens show raw
+  keys such as `herzium.warning.title`. Everything still works; only the wording
+  is missing.
+- **Without Mod Menu** there is no button to open the settings screen, so the
+  selection order stays on its default.
+
+A short information screen is shown once; after the player chooses **Continue**,
+its acknowledgement is saved and it will not appear again.
 
 ## Languages
 
@@ -116,16 +133,29 @@ The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
 `mod_version` comes from `gradle.properties` — currently `1.10.3`. The file
 ending in `-sources.jar` is not the playable build.
 
+The other game versions come from a separate build:
+
+```powershell
+version\build-all.ps1
+```
+
+Each target lands in `version/<minecraft_version>/build/libs/`. That script
+needs a Java 25 JDK, which it resolves from `JAVA_HOME`, `PATH` or the usual
+install roots; the 1.21.x targets additionally compile at release 21 through a
+toolchain Gradle downloads on demand.
+
 The build runs `hotbarOrderTest`, which checks the production preference policy
 and logical GUI bounds without launching Minecraft. See the
-[26.1.2 audit](docs/audits/AUDIT-1.10.3-26.1.2.md) for scope and limitations.
+[26.1.2 audit](docs/audits/AUDIT-1.10.3-26.1.2.md) for scope and limitations, and
+the [multiversion audit](docs/audits/AUDIT-1.10.3-multiversion.md) for how the
+per-version builds were checked.
 
 ## Repository layout
 
 | Location | Contents |
 | --- | --- |
-| `src/` | The main Minecraft 26.1.2 client mod. |
-| `version/` | Separate multi-version build and adapters. |
+| `src/` | The shared client mod; the root build targets 26.1.2. |
+| `version/` | Per-game-version builds and the adapters they need. |
 | `debug/` | The optional diagnostic companion, built separately. |
 | `docs/` | Audits, release text, checksums and recorded evidence. |
 | `tools/` | Hotbar tests and repository maintenance helpers. |

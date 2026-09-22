@@ -23,8 +23,8 @@ import net.minecraft.world.item.ItemStack;
  * logical binding while Vanilla reaches its next input tick. The cached value
  * is derived from Vanilla's actual pending click counters, including duplicate
  * bindings and clicks left for a later pass. The configured order determines
- * the predicted winner; the default is Vanilla's highest slot. The untouched click queue
- * remains the only authority.</p>
+ * the predicted winner; the default is Herzium's last pressed binding. The untouched
+ * click queue remains the only authority.</p>
  */
 public final class ImmediateHotbarInput {
     private static final long FAIL_SAFE_PREVIEW_NANOS = 2_000_000_000L;

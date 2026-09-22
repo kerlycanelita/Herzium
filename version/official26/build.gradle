@@ -29,12 +29,29 @@ loom {
 def generatedClientSources = layout.buildDirectory.dir('generated/sources/herzium/client')
 
 tasks.register('generateHerzium26ClientSources', Sync) {
+    // Blocks fenced by herzium:26.2-drop-start / -end are removed for 26.2 and
+    // replaced by a file under src/26.2. A plain string swap cannot express
+    // "this whole hook moved to another class", which is what 26.2 did to
+    // Minecraft.setScreen.
+    def dropping = false
+
     from('../../src/client/java') {
         filteringCharset = 'UTF-8'
         filter { String line ->
             String transformed = line
             if (!minecraft262) {
                 return transformed
+            }
+            if (transformed.contains('herzium:26.2-drop-start')) {
+                dropping = true
+                return null
+            }
+            if (transformed.contains('herzium:26.2-drop-end')) {
+                dropping = false
+                return null
+            }
+            if (dropping) {
+                return null
             }
             if (transformed.contains('minecraft.getWindow().updateVsync(false);')) {
                 return null
@@ -43,6 +60,18 @@ tasks.register('generateHerzium26ClientSources', Sync) {
                     // Mojang renamed the first-person hand submission entry point in 26.2.
                     .replace('renderHandsWithItems', 'submitHandsWithItems')
                     .replace('renderArmWithItem', 'submitArmWithItem')
+                    // Minecraft.handleKeybinds stopped reading keySocialInteractions in
+                    // 26.2: that key (with chat, command, advancements and toggleGui)
+                    // moved into Gui.handleKeybinds, which 26.2 calls BEFORE the hotbar
+                    // slot loop instead of after it. HotbarOrderMixin seals the finished
+                    // slot pass at that field read and declares require = 1, so on 26.2
+                    // the injection finds nothing and the whole mixin config fails at
+                    // launch. keyInventory is the same place in the new order: the first
+                    // screen-opening key handled after Inventory.setSelectedSlot, and it
+                    // appears exactly once in the method.
+                    .replace(
+                            'Lnet/minecraft/client/Options;keySocialInteractions:Lnet/minecraft/client/KeyMapping;',
+                            'Lnet/minecraft/client/Options;keyInventory:Lnet/minecraft/client/KeyMapping;')
                     // The 26.1 HUD implementation moved from Gui into Hud in 26.2.
                     .replace('import net.minecraft.client.gui.Gui;', 'import net.minecraft.client.gui.Hud;')
                     .replace('Gui.class', 'Hud.class')
@@ -56,6 +85,14 @@ tasks.register('generateHerzium26ClientSources', Sync) {
                     .replace('minecraft.screen', 'minecraft.gui.screen()')
         }
     }
+
+    // Not filtered: in 26.2 Gui and Hud are different classes, and the filter
+    // above rewrites Gui to Hud for the HUD mixins. GuiScreenMixin wants the
+    // real Gui.
+    if (minecraft262) {
+        from('src/26.2')
+    }
+
     into(generatedClientSources)
 }
 
@@ -98,6 +135,19 @@ processResources {
                 'java_version': 25,
                 'modmenu_version': project.modmenu_version
         )
+    }
+}
+
+tasks.named('processClientResources') {
+    if (minecraft262) {
+        filesMatching('herzium.client.mixins.json') {
+            filteringCharset = 'UTF-8'
+            filter { String line ->
+                line.contains('"MinecraftMixin"')
+                        ? line + System.lineSeparator() + line.replace('MinecraftMixin', 'GuiScreenMixin')
+                        : line
+            }
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-<!-- Modrinth summary: Responsive hotbar previews with three selection-order preferences. -->
+<!-- Modrinth summary: Your hotbar switches on the very next frame, and you choose which slot wins. -->
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/kerlycanelita/Herzium/main/src/main/resources/assets/herzium/icon.png" alt="Herzium icon" width="220">
@@ -12,82 +12,80 @@
 
 # Herzium
 
-**Responsive hotbar previews with three selection-order preferences.**
+**Your hotbar switches on the very next frame — and you choose which slot wins.**
 
-Herzium is a small client-side visual-response mod. It can preview an ordinary
-non-combat hotbar item on the next rendered frame while Vanilla completes the
-real selection on its normal client tick. On a high refresh-rate display, that
-visual response can appear up to one normal client tick (about 50 ms) sooner.
+Minecraft waits for its next game update to show a hotbar switch. Herzium draws
+it on the next frame: about **50 ms sooner** on a high-refresh monitor.
+Ordinary items appear in hand right away; weapons and tools keep their normal
+animation.
 
-The preview is provisional. Vanilla order remains the default, and Mod Menu
-provides three preferences: Vanilla (highest pending slot wins), Herzium (last
-pressed binding among pending slots wins), and Vanilla reversed (lowest slot
-wins). Alternative orders change the **real selected slot** and therefore may
-change the item used on a server. They are not Vanilla-equivalent; follow server
-rules. A confirmed preview disagreement suspends previews for that world.
+---
 
-## Features
+## Pick how your hotbar chooses
 
-- **Hotbar preview:** normal/remapped hotbar bindings can update the highlight
-  on the next frame. Ordinary items can also appear in hand; combat items keep
-  their Vanilla hand transition.
-- **Three selection orders:** a compact Mod Menu button saves your preference.
-  This does not increase sampling speed or accelerate click processing.
-- **Ordinary-item equip transition:** removes the decorative equip dip from
-  ordinary main-hand and offhand items. Swords, axes, pickaxes, spears, maces,
-  bows, crossbows, tridents, shields and other classified combat items keep
-  Vanilla's complete transition.
-- **Smoother attack indicator:** interpolates only the displayed attack meter,
-  conservatively within Vanilla's current tick. Attack timing and cooldowns do
-  not change.
-- **Shorter decorative start-up transitions:** removes the title-screen fade
-  and post-world-creation hold. Loading and world
-  creation still perform their real work.
+Press two hotbar keys at once and Minecraft has to pick one. One button in Mod
+Menu cycles the three options, no restart.
 
-## Scope and limits
+### Herzium — *last input* · **default**
 
-Herzium does **not** raise FPS, accelerate game logic or make resource loading
-finish faster. It leaves VSync, `Max Framerate`, `Reduce FPS when inactive`,
-Raw Input, Smooth Camera, mouse sensitivity and cursor placement untouched. It
-does not rewrite these settings in `options.txt`.
+![Herzium last input button](https://cdn.modrinth.com/data/cached_images/58b165c1a1985fe8ca852a076d1aaf36e1f216b3.png)
 
-The preview itself is not sent to the server. Default Vanilla mode retains
-Vanilla selection. The other orders can change carried-slot packets and the
-resulting actions because a different item wins. Normal/remapped click dispatch,
-reach, cooldowns and hitboxes keep their existing paths. Herzium does not add
-packets or retries of its own. Servers
-may have their own client-mod rules or use an approved client/attestation
-system, so players should follow the rules of the server they join.
+The key you pressed **last** wins. 9 then 1 → slot 1, the one you meant.
 
-The difference is easiest to see on high refresh-rate displays during quick
-ordinary-item switching. It does not improve a GPU- or CPU-limited frame rate.
+### Vanilla
 
-## Compatibility
+![Vanilla order button](https://cdn.modrinth.com/data/cached_images/dfd0b849c7c08ad91b2bc9485399a1d7444a0bda.png)
 
-Herzium does not control Raw Input or cursor placement. KoHsium, Raw Input
-Buffer, Ixeris and KoHs Inventory Tweaks retain ownership of those behaviors.
-Detected input-related mods are reported in the log for troubleshooting.
+The **highest** slot wins, like unmodded Minecraft. 1 + 9 → slot 9.
 
-When Exordium is installed, Herzium bypasses Exordium's HUD frame buffer so the
-hotbar preview can be drawn each frame. This means Exordium's HUD caching is
-inactive while both mods run. Do not combine them if Exordium's caching is more
-important to you than Herzium's per-frame preview.
+### Vanilla reversed
 
-## Requirements
+![Vanilla reversed button](https://cdn.modrinth.com/data/cached_images/d32fbf7e176c0f4797b0bea692d22f25a52170dc.png)
 
-- Minecraft **26.1.2**
-- Fabric Loader **0.19.3 or newer**
-- Java **25**
-- Client-side only
-- **Fabric API is not required**
-- **Mod Menu is optional and is not required**
+The **lowest** slot wins. 1 + 9 → slot 1.
 
-Herzium includes English and every Spanish locale shipped by Minecraft 26.1.2:
-Argentina, Chile, Ecuador, Spain, Mexico, Uruguay and Venezuela. Its information
-screen is shown once and stays dismissed after choosing **Continue**.
+---
 
-## License
+> ### ⚠️ Read this once
+>
+> **Herzium (last input) is on by default.** It changes the slot you *really*
+> hold, not just what you see — so the item you use can change, and the server
+> sees it. Switch to **Vanilla** in Mod Menu if you don't want that, and check
+> your server's rules on client mods. Herzium also tells you this on first
+> launch.
 
-Herzium is available under the [MIT License](https://github.com/kerlycanelita/Herzium/blob/main/LICENSE).
+---
 
-Made by **zymekoh**.
+## Also included
+
+- **No equip dip** on blocks, food and ordinary tools. Swords, axes, bows,
+  shields and other combat items keep their full animation.
+- **Smoother attack indicator** — the cooldown bar glides instead of stepping.
+  Your real attack timing is untouched.
+- **Snappier start-up** — skips the title fade and the pause after world
+  creation. Nothing real is skipped, only the waiting.
+
+**Not a performance mod.** No FPS gain, and your settings — VSync, max
+framerate, Raw Input, sensitivity, cursor — are never touched.
+
+## Download
+
+Pick the file matching your Minecraft version. **Client-side only.**
+
+| Minecraft | Java |
+| --- | --- |
+| 1.21.10 · 1.21.11 | 21 |
+| 26.1 · 26.1.2 · 26.2 | 25 |
+
+Needs **Fabric Loader 0.19.3+**. Get **Fabric API** too, or Minecraft won't load
+Herzium's text and the screens show raw codes. **Mod Menu** is where the order
+button lives — without it you're stuck on the default.
+
+⚠️ **Exordium:** Herzium skips its HUD cache to redraw the hotbar each frame, so
+that cache stops working. Don't run both if you'd rather keep it.
+
+English + all seven Spanish variants Minecraft ships.
+
+---
+
+Made by **zymekoh** · [MIT License](https://github.com/kerlycanelita/Herzium/blob/main/LICENSE)

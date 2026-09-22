@@ -33,3 +33,6 @@ replay_*.log
 !.env.example
 __pycache__/
 *.pyc
+
+# --- Release staging ---
+dist/

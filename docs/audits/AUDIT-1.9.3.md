@@ -1,6 +1,6 @@
 # Auditoría Herzium 1.9.3 — objetivo Minecraft 26.1.2
 
-**Fecha:** 2026-08-24 · **Auditor:** Claude (Opus 4.6) · **Estado del documento:** vigente
+**Fecha:** 2026-08-24 · **Estado del documento:** vigente
 
 > **Para agentes que lean esto:** esta auditoría ya se hizo. **No la repitas.**
 > Antes de auditar cualquier archivo listado en «Cobertura», lee este documento.

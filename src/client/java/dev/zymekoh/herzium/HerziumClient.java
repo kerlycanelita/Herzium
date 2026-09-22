@@ -12,7 +12,7 @@ public final class HerziumClient implements ClientModInitializer {
         HerziumConfig.loadAsync();
         Herzium.LOGGER.info(
                 "Herzium initialized. Priority Hotbar sampling is event-driven and unchanged. "
-                        + "Vanilla order is the default; optional Herzium/Vanilla Reversed orders change the real "
+                        + "Herzium order (last pressed binding) is the default; it and Vanilla Reversed change the real "
                         + "winning slot during the normal keybind pass and can change server-observable actions. "
                         + "Ordinary-item equip visuals and the HUD preview follow that selection policy. "
                         + "Click consumption, attack/use dispatch and cooldown handling retain their normal Vanilla "

@@ -1,8 +1,8 @@
 {
   "modmenu.summaryTranslation.herzium": "Hotbar con respuesta visual rápida y tres preferencias de orden.",
-  "modmenu.descriptionTranslation.herzium": "Elige prioridad Vanilla, última pulsación o ranura menor. Vanilla viene por defecto; los otros órdenes cambian la selección real. El muestreo y los tiempos de clic se mantienen.",
+  "modmenu.descriptionTranslation.herzium": "Elige prioridad Vanilla, última pulsación o ranura menor. Herzium (última pulsación) viene por defecto y cambia la selección real; el orden Vanilla conserva la selección de Vanilla. El muestreo y los tiempos de clic se mantienen.",
   "herzium.warning.title": "SOBRE HERZIUM",
-  "herzium.warning.message": "Priority Hotbar previsualiza el orden elegido en el siguiente frame. Los objetos ordinarios pueden aparecer sin la transición de equipado; los de combate conservan la transición Vanilla. Mod Menu ofrece Vanilla, Herzium (última pulsación) y Vanilla inverso (ranura menor). Vanilla viene por defecto. Los otros órdenes cambian la selección real y pueden cambiar el objeto usado en un servidor; no son equivalentes a Vanilla. El muestreo, los clics normales o remapeados y los tiempos de reutilización conservan sus rutas actuales.",
+  "herzium.warning.message": "Priority Hotbar previsualiza el orden elegido en el siguiente frame. Los objetos ordinarios pueden aparecer sin la transición de equipado; los de combate conservan la transición Vanilla. Mod Menu ofrece Vanilla, Herzium (última pulsación) y Vanilla inverso (ranura menor). Herzium (última pulsación) viene por defecto: entre las ranuras con clics pendientes gana la última pulsada, lo que cambia la selección real y puede cambiar el objeto usado en un servidor. No equivale a Vanilla; elige el orden Vanilla en Mod Menu para conservar la selección de Vanilla. El muestreo, los clics normales o remapeados y los tiempos de reutilización conservan sus rutas actuales.",
   "herzium.warning.accept": "Continuar",
   "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer está instalado. Herzium no cambia su pipeline ni el Raw Input de Vanilla.",
   "herzium.warning.notice.ixeris": "Ixeris está instalado. Herzium no cambia su pipeline ni el Raw Input de Vanilla.",
@@ -24,6 +24,6 @@
   "herzium.config.order.vanilla.description": "Si varias ranuras tienen pulsaciones pendientes, gana la mayor. Ejemplo: 1 + 9 selecciona 9.",
   "herzium.config.order.herzium.description": "Entre las ranuras con pulsaciones pendientes, gana la última pulsada. Ejemplo: 9 y luego 1 selecciona 1. Si comparten una tecla, gana la ranura mayor.",
   "herzium.config.order.vanilla_reversed.description": "Si varias ranuras tienen pulsaciones pendientes, gana la menor. Ejemplo: 1 + 9 selecciona 1.",
-  "herzium.config.vanilla_note": "Comportamiento predeterminado. El muestreo y los clics normales o remapeados mantienen sus tiempos actuales. Las pulsaciones repetidas conservan la cola de Vanilla.",
+  "herzium.config.vanilla_note": "Comportamiento de Vanilla; no es el predeterminado. El muestreo y los clics normales o remapeados mantienen sus tiempos actuales. Las pulsaciones repetidas conservan la cola de Vanilla.",
   "herzium.config.alternate_note": "Cambia la selección real y puede afectar al objeto usado en un servidor. No equivale a Vanilla; respeta las reglas del servidor. El muestreo, los clics y las colas de ranuras repetidas mantienen sus tiempos."
 }

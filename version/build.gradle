@@ -11,6 +11,14 @@ def classicInputVersions = [
 ] as Set
 def classicInput = classicInputVersions.contains(targetMinecraft)
 def modernButton = ['1.21.9', '1.21.10'].contains(targetMinecraft)
+// ItemTags.SPEARS lands in 1.21.11; before that the constant does not exist and
+// the line that reads it has to go. Spears are WEAPON_ENCHANTABLE on those
+// versions, so the classification is unchanged either way.
+def spearTag = targetMinecraft == '1.21.11'
+// Mojang renamed ResourceLocation to Identifier in 1.21.11. The shared sources
+// use the new name, so every 1.21.x target below that one needs it renamed
+// back; without this the 1.21.10 build never compiled at all.
+def legacyResourceLocation = minecraft121 && targetMinecraft != '1.21.11'
 def javaRelease = minecraft121 ? 21 : 25
 
 version = project.mod_version
@@ -38,7 +46,16 @@ def generatedClientSources = layout.buildDirectory.dir('generated/sources/herziu
 tasks.register('generateHerziumClientSources', Sync) {
     from('../src/client/java') {
         if (minecraft121) {
-            exclude '**/MinecraftMixin.java'
+            // Only CombatItemClassifier is overlaid: 1.21.x has no
+            // ItemStack.typeHolder(). MinecraftMixin used to be overlaid too
+            // and silently rotted two releases behind -- the 1.21.x jars kept
+            // shipping a lifecycle hook that predated the fail-closed action
+            // boundaries and the settled-session world check. Everything it
+            // touches (startUseItem, startAttack, continueAttack, setScreen,
+            // runAllTasks inside runTick, LevelLoadTracker.LEVEL_LOAD_CLOSE_DELAY_MS)
+            // exists on 1.21.10 and 1.21.11, so the shared file is compiled
+            // here directly and a future 26.x-only API breaks this build loudly
+            // instead of quietly downgrading the legacy jars.
             exclude '**/render/CombatItemClassifier.java'
         }
         if (classicInput) {
@@ -69,6 +86,9 @@ tasks.register('generateHerziumClientSources', Sync) {
                 if (modernButton) {
                     transformed = transformed.replace('.screen.init(', '.screen.resize(this.minecraft,')
                 }
+                if (legacyResourceLocation) {
+                    transformed = transformed.replaceAll(/\bIdentifier\b/, 'ResourceLocation')
+                }
                 transformed = transformed
                         .replace('require = 4', 'require = 0')
                         .replace('require = 2', 'require = 0')
@@ -78,7 +98,12 @@ tasks.register('generateHerziumClientSources', Sync) {
     }
 
     if (minecraft121) {
-        from('src/client/common121')
+        from('src/client/common121') {
+            if (!spearTag) {
+                filteringCharset = 'UTF-8'
+                filter { String line -> line.contains('herzium:spears-tag') ? null : line }
+            }
+        }
     }
     if (classicInput) {
         from('src/client/classic')

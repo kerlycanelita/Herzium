@@ -1,8 +1,8 @@
 {
   "modmenu.summaryTranslation.herzium": "Responsive hotbar previews with three selection-order preferences.",
-  "modmenu.descriptionTranslation.herzium": "Choose Vanilla, last-input or lowest-slot priority. Vanilla is the default; alternative orders change real slot selection. Existing input sampling and click timing stay unchanged.",
+  "modmenu.descriptionTranslation.herzium": "Choose Vanilla, last-input or lowest-slot priority. Herzium (last input) is the default and changes real slot selection; Vanilla order keeps Vanilla selection. Existing input sampling and click timing stay unchanged.",
   "herzium.warning.title": "ABOUT HERZIUM",
-  "herzium.warning.message": "Priority Hotbar previews the selected order on the next rendered frame. Ordinary items can appear in hand without the equip dip; combat items keep Vanilla's transition. Mod Menu offers Vanilla order, Herzium (last input), and Vanilla reversed (lowest slot). Vanilla is the default. Alternative orders change the real selected slot and may change the item used on a server; they are not Vanilla-equivalent. Input sampling, normal/remapped click processing and cooldown handling retain their existing paths.",
+  "herzium.warning.message": "Priority Hotbar previews the selected order on the next rendered frame. Ordinary items can appear in hand without the equip dip; combat items keep Vanilla's transition. Mod Menu offers Vanilla order, Herzium (last input), and Vanilla reversed (lowest slot). Herzium (last input) is the default: among slots with pending clicks the last pressed binding wins, which changes the real selected slot and may change the item used on a server. It is not Vanilla-equivalent; choose Vanilla order in Mod Menu to keep Vanilla selection. Input sampling, normal/remapped click processing and cooldown handling retain their existing paths.",
   "herzium.warning.accept": "Continue",
   "herzium.warning.notice.raw_input_buffer": "Raw Input Buffer is installed. Herzium does not change its pipeline or Vanilla Raw Input.",
   "herzium.warning.notice.ixeris": "Ixeris is installed. Herzium does not change its pipeline or Vanilla Raw Input.",
@@ -24,6 +24,6 @@
   "herzium.config.order.vanilla.description": "When several hotbar slots have pending clicks, the highest slot wins. Example: 1 + 9 selects 9.",
   "herzium.config.order.herzium.description": "Among slots with pending clicks, the most recently pressed binding wins. Example: 9 then 1 selects 1. Duplicate bindings use the highest slot as a tie-break.",
   "herzium.config.order.vanilla_reversed.description": "When several hotbar slots have pending clicks, the lowest slot wins. Example: 1 + 9 selects 1.",
-  "herzium.config.vanilla_note": "Default behavior. Input sampling and normal/remapped clicks keep their existing timing. Repeated slot presses retain Vanilla's queue.",
+  "herzium.config.vanilla_note": "Vanilla behavior; not the default. Input sampling and normal/remapped clicks keep their existing timing. Repeated slot presses retain Vanilla's queue.",
   "herzium.config.alternate_note": "This changes real slot selection and can affect which item is used on a server. It is not Vanilla-equivalent; follow the server's mod rules. Sampling, clicks and repeated-slot queues keep their existing timing."
 }

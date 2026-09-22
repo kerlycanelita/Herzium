@@ -5,6 +5,7 @@
 ## Guides
 
 - [1.10.3 audit](audits/AUDIT-1.10.3-26.1.2.md)
+- [1.10.3 multiversion audit](audits/AUDIT-1.10.3-multiversion.md)
 - [Earlier 1.9.3 audit](audits/AUDIT-1.9.3.md)
 - [Modrinth description](releases/MODRINTH.md)
 - [Recorded evidence](evidence/1.9.3-26.1.2/README.md)

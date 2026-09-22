@@ -2,7 +2,42 @@
 
 ## Unreleased
 
-### 1.10.3 — 26.1.2 selection preferences
+## 1.10.3 - 2026-09-22
+
+First release published for more than one game version: 1.21.10, 1.21.11, 26.1,
+26.1.2 and 26.2. On Modrinth this follows 1.10.0, so it also carries everything
+from 1.10.1 and 1.10.2; 1.21.10, 1.21.11, 26.1 and 26.2 are new there.
+
+### Changed
+- The default selection order is now **Herzium (last pressed binding)**, not
+  Vanilla. A fresh install therefore changes the real selected slot from its
+  first session, which is server-observable. Vanilla order stays available in
+  Mod Menu. Existing configs keep whatever they already hold.
+- The first-launch advisory, the Mod Menu description, `fabric.mod.json`, the
+  start-up log line and all eight shipped locales were rewritten to say which
+  order is the default and what it changes.
+
+### Fixed - per-version builds
+- 1.21.x no longer compiles its own older copy of the client lifecycle hook. It
+  had been left behind two releases and lacked the fail-closed action boundary,
+  the preview clear on screen open, classifier invalidation on world change and
+  the settled-session world check. It now compiles the shared file.
+- The 1.21.x combat-item classifier gained the per-item cache, the
+  "tags are not live yet" answer that preserves Vanilla, and `invalidate()`.
+  `ItemTags.SPEARS` is used from 1.21.11 on and omitted below it, where the tag
+  does not exist.
+- 1.21.10 builds at all. `ResourceLocation` became `Identifier` in 1.21.11 and
+  nothing translated it back, so every 1.21.x target below that one failed to
+  compile.
+- 26.2 launches. Two hooks had no target there: the slot-pass seal, because
+  `keySocialInteractions` moved into `Gui.handleKeybinds` and now runs before
+  the hotbar loop, and the preview clear on screen open, because
+  `Minecraft.setScreen` moved to `Gui`. Both are re-anchored for 26.2.
+- `version/build-all.ps1` resolves a Java 25 JDK instead of naming one
+  directory that no longer exists, and the 1.21.x targets can provision their
+  Java 21 toolchain.
+
+### 1.10.3 - 26.1.2 selection preferences
 
 - Kept the existing input sampling and removed the unproven sampling refinements
   from this iteration, as requested.

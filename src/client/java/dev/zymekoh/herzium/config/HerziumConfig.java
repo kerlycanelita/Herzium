@@ -59,7 +59,24 @@ public final class HerziumConfig {
     });
 
     private boolean startupWarningAcknowledged;
-    private volatile HotbarOrder hotbarOrder = HotbarOrder.VANILLA;
+
+    /**
+     * The order a fresh install starts on.
+     *
+     * <p>This is {@link HotbarOrder#HERZIUM}, not Vanilla, which means a new
+     * install changes the <em>real</em> selected slot from its first session:
+     * among slots with pending clicks the last pressed binding wins rather than
+     * the highest slot. That is server-observable, so the advisory shown on
+     * first launch is the only notice a player gets before it applies, and the
+     * setting is one click away in Mod Menu.</p>
+     *
+     * <p>Gson leaves absent keys at their Java default, so a {@code
+     * herzium.json} written before this field existed also lands here. Every
+     * save writes the key, and the first save happens when the advisory is
+     * acknowledged, so in practice that only affects configs from versions
+     * older than the setting itself.</p>
+     */
+    private volatile HotbarOrder hotbarOrder = HotbarOrder.HERZIUM;
 
     public static HerziumConfig get() {
         HerziumConfig current = instance;
@@ -132,7 +149,9 @@ public final class HerziumConfig {
     }
 
     public HotbarOrder hotbarOrder() {
-        return this.hotbarOrder == null ? HotbarOrder.VANILLA : this.hotbarOrder;
+        // A config holding an unreadable order is a config with no answer, and
+        // that is the same question a fresh install asks; it gets the same one.
+        return this.hotbarOrder == null ? HotbarOrder.HERZIUM : this.hotbarOrder;
     }
 
     public void cycleHotbarOrder() {

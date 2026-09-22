@@ -11,8 +11,8 @@ from this iteration were retained.
 
 | Setting | Winning pending slot | Classification |
 | --- | --- | --- |
-| Vanilla, default | Highest slot | L0 visual feature; selection call passes through |
-| Herzium | Last pressed binding among pending slots; highest slot on a tie | L2, server-observable selection change |
+| Vanilla | Highest slot | L0 visual feature; selection call passes through |
+| Herzium, default | Last pressed binding among pending slots; highest slot on a tie | L2, server-observable selection change |
 | Vanilla reversed | Lowest slot | L2, server-observable selection change |
 
 Example: press 9 then 1 before a client tick. Vanilla ends on 9; Herzium and
@@ -60,9 +60,11 @@ preference. HUD/ordinary-item preview reads the same configured winner.
 
 ## Configuration and evidence
 
-- Vanilla is the field-initialized default; missing/null/unrecognized serialized
-  enum values fall back to it. Changing the mode writes through the existing
-  asynchronous config writer.
+- Herzium is the field-initialized default; missing/null/unrecognized serialized
+  enum values fall back to it. A fresh install is therefore in a
+  server-observable order from its first session, with the first-launch advisory
+  as the only notice. Changing the mode writes through the existing asynchronous
+  config writer.
 - Mod Menu remains optional and Fabric API is not required.
 - The explanation scrolls inside bounded logical-screen coordinates; layout
   tests cover widths 64–1920 and heights 64–1080, including small high-scale GUIs.

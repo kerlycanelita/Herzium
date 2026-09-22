@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Optional server-observable slot preference; Vanilla remains the default. */
+/** Server-observable slot preference; Herzium order is the default, Vanilla is one click away. */
 @Mixin(value = Minecraft.class, priority = 1100)
 abstract class HotbarOrderMixin {
     @Inject(method = "handleKeybinds", at = @At("HEAD"))
