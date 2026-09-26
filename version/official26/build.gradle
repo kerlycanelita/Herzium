@@ -4,7 +4,8 @@ plugins {
 }
 
 def targetMinecraft = project.minecraft_version.toString()
-def minecraft262 = targetMinecraft == '26.2'
+def splitGui = ['26.2', '26.3'].contains(targetMinecraft)
+def extractedHands = targetMinecraft == '26.3'
 
 version = project.mod_version
 group = project.maven_group
@@ -36,10 +37,13 @@ tasks.register('generateHerzium26ClientSources', Sync) {
     def dropping = false
 
     from('../../src/client/java') {
+        if (extractedHands) {
+            exclude '**/ItemInHandRendererMixin.java'
+        }
         filteringCharset = 'UTF-8'
         filter { String line ->
             String transformed = line
-            if (!minecraft262) {
+            if (!splitGui) {
                 return transformed
             }
             if (transformed.contains('herzium:26.2-drop-start')) {
@@ -89,8 +93,11 @@ tasks.register('generateHerzium26ClientSources', Sync) {
     // Not filtered: in 26.2 Gui and Hud are different classes, and the filter
     // above rewrites Gui to Hud for the HUD mixins. GuiScreenMixin wants the
     // real Gui.
-    if (minecraft262) {
+    if (splitGui) {
         from('src/26.2')
+    }
+    if (extractedHands) {
+        from('src/26.3')
     }
 
     into(generatedClientSources)
@@ -139,7 +146,7 @@ processResources {
 }
 
 tasks.named('processClientResources') {
-    if (minecraft262) {
+    if (splitGui) {
         filesMatching('herzium.client.mixins.json') {
             filteringCharset = 'UTF-8'
             filter { String line ->
