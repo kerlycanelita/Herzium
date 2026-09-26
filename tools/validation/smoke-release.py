@@ -19,6 +19,28 @@ MC = "net.minecraft.client.Minecraft"
 SCREEN = "net.minecraft.client.gui.screens.Screen"
 TARGETS = [MC, "net.minecraft.client.KeyMapping", "net.minecraft.client.MouseHandler",
            "net.minecraft.client.gui.screens.TitleScreen"]
+GRADLE_MODULES = Path.home() / ".gradle/caches/modules-2/files-2.1"
+# Tick boundaries and carried-slot packets for GameplayOrders, with names resolved per target.
+ORDERS_MIXINS = """package herzium.validation.mixin;
+import herzium.validation.GameplayOrders;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Coerce;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+@Mixin(targets="{mc}", remap=false)
+abstract class OrdersTickMixin {{
+ @Inject(method="{tick}()V", at=@At("HEAD"), remap=false, require=1)
+ private void herziumOrders$tickHead(CallbackInfo ci) {{ GameplayOrders.onTickHead(); }}
+ @Inject(method="{tick}()V", at=@At("RETURN"), remap=false, require=1)
+ private void herziumOrders$tickReturn(CallbackInfo ci) {{ GameplayOrders.onTickReturn(); }}
+}}
+@Mixin(targets="{listener}", remap=false)
+abstract class OrdersPacketMixin {{
+ @Inject(method="{send}(L{packet};)V", at=@At("HEAD"), remap=false, require=1)
+ private void herziumOrders$send(@Coerce Object packet, CallbackInfo ci) {{ GameplayOrders.onSend(packet); }}
+}}
+"""
 
 
 class Names:
@@ -80,7 +102,28 @@ def validate_jar(jar, version):
             "sha256": hashlib.sha256(jar.read_bytes()).hexdigest(), "metadata": "PASS"}
 
 
-def smoke(version, output, gameplay=False, extra_mods=()):
+def module_jar(group, artifact, version):
+    jars = list((GRADLE_MODULES / group / artifact / version).glob(f"*/{artifact}-{version}.jar"))
+    assert jars, f"{group}:{artifact}:{version} is not in the Gradle cache"
+    return jars[0]
+
+
+def remap_to_intermediary(named_jar, remapped_jar, spec, profile):
+    """Remaps the validation classes the way Loom remaps a 1.21.x release JAR."""
+    mapping = next(Path(p) for p in spec["classpath"] if p.endswith("mappings.jar"))
+    tiny = profile / "mappings.tiny"
+    with zipfile.ZipFile(mapping) as archive:
+        tiny.write_bytes(archive.read("mappings/mappings.tiny"))
+    tools = [module_jar("net.fabricmc", "tiny-remapper", "0.14.0"), module_jar("net.fabricmc", "mapping-io", "0.8.0")]
+    tools += [module_jar("org.ow2.asm", name, "9.10.1")
+              for name in ("asm", "asm-commons", "asm-tree", "asm-util", "asm-analysis")]
+    libraries = [p for p in spec["classpath"]
+                 if p.endswith(".jar") and not p.endswith("mappings.jar") and Path(p).is_file()]
+    subprocess.run([spec["java"], "-cp", os.pathsep.join(map(str, tools)), "net.fabricmc.tinyremapper.Main",
+                    str(named_jar), str(remapped_jar), str(tiny), "named", "intermediary", *libraries], check=True)
+
+
+def smoke(version, output, gameplay=False, extra_mods=(), orders=False):
     build = ROOT / "version" / version / "build"
     spec = json.loads((build / "validation/runtime.json").read_text())
     jars = [p for p in (build / "libs").glob("*.jar") if not p.name.endswith("-sources.jar")]
@@ -93,7 +136,13 @@ def smoke(version, output, gameplay=False, extra_mods=()):
     shutil.copy2(jar, profile / "mods" / jar.name)
     for extra in extra_mods:
         shutil.copy2(extra, profile / "mods" / extra.name)
-    (profile / "options.txt").write_text("onboardAccessibility:false\ntutorialStep:none\nfullscreen:false\nmaxFps:60\nguiScale:2\nrenderDistance:3\nsimulationDistance:5\nsoundCategory_master:0.0\n")
+    options = ("onboardAccessibility:false\ntutorialStep:none\nfullscreen:false\nmaxFps:60\nguiScale:2\n"
+               "renderDistance:3\nsimulationDistance:5\nsoundCategory_master:0.0\n")
+    if orders:
+        # Uncapped and never paused, so the harness itself does not limit frame timing.
+        options = (options.replace("maxFps:60", "maxFps:260")
+                   + "enableVsync:false\npauseOnLostFocus:false\ninactivityFpsLimit:minimized\n")
+    (profile / "options.txt").write_text(options)
     names = Names(spec["classpath"])
     split_gui = version in ("26.2", "26.3")
     targets = TARGETS + ["net.minecraft.client.gui.Hud" if split_gui else "net.minecraft.client.gui.Gui",
@@ -118,19 +167,37 @@ abstract class SmokeTickMixin {{
     classes.mkdir()
     compile_cp = os.pathsep.join(spec["classpath"])
     sources = [str(profile / "SmokeTickMixin.java"), str(ROOT / "tools/validation/SmokeChecks.java")]
-    if gameplay:
+    mixin_names = ["SmokeTickMixin"]
+    if orders:
+        listener = "net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl"
+        (profile / "OrdersMixins.java").write_text(ORDERS_MIXINS.format(
+            mc=names.cls(MC), tick=names.member(MC, "tick"), listener=names.cls(listener),
+            send=names.member(listener, "send"),
+            packet=names.cls("net.minecraft.network.protocol.Packet").replace(".", "/")))
+        sources += [str(profile / "OrdersMixins.java"), str(ROOT / "tools/validation/GameplayOrders.java")]
+        mixin_names += ["OrdersTickMixin", "OrdersPacketMixin"]
+    elif gameplay:
         assert version == "26.3", "World integration currently targets the new 26.3 hand adapter"
         sources.append(str(ROOT / "tools/validation/Gameplay263.java"))
     java = Path(spec["java"])
     subprocess.run([str(java.with_name("javac.exe" if os.name == "nt" else "javac")), "-proc:none", "--release", "21",
                     "-cp", compile_cp, "-d", str(classes), *sources], check=True)
-    with zipfile.ZipFile(profile / "mods/herzium-validation.jar", "w") as archive:
+    compiled = profile / "validation-named.jar"
+    with zipfile.ZipFile(compiled, "w") as archive:
         for cls in classes.rglob("*.class"):
             archive.write(cls, cls.relative_to(classes).as_posix())
+    if orders and version.startswith("1."):
+        remapped = profile / "validation-intermediary.jar"
+        remap_to_intermediary(compiled, remapped, spec, profile)
+        compiled = remapped
+    with zipfile.ZipFile(compiled) as source_jar, zipfile.ZipFile(profile / "mods/herzium-validation.jar", "w") as archive:
+        for entry in source_jar.namelist():
+            if entry.endswith(".class"):
+                archive.writestr(entry, source_jar.read(entry))
         archive.writestr("fabric.mod.json", json.dumps({"schemaVersion": 1, "id": "herzium_validation",
                           "version": "1.0.0", "environment": "client", "mixins": ["smoke.mixins.json"]}))
         archive.writestr("smoke.mixins.json", json.dumps({"required": True, "package": "herzium.validation.mixin",
-                          "compatibilityLevel": "JAVA_21", "client": ["SmokeTickMixin"]}))
+                          "compatibilityLevel": "JAVA_21", "client": mixin_names}))
     classpath = []
     games = {}
     cache = None
@@ -165,7 +232,12 @@ abstract class SmokeTickMixin {{
         "herzium.smoke.setScreen": "setScreen" if split_gui else names.member(MC, "setScreen"),
         "herzium.smoke.onClose": names.member(SCREEN, "onClose"),
         "herzium.smoke.stop": names.member(MC, "stop"),
-        "herzium.smoke.gameplay": str(gameplay).lower(),
+        "herzium.smoke.gameplay": str(gameplay or orders).lower(),
+        "herzium.smoke.gameplayClass": "herzium.validation.GameplayOrders" if orders else "herzium.validation.Gameplay263",
+        "herzium.smoke.phaseSeconds": "420" if orders else "90",
+        "herzium.orders.keyPress": names.member("net.minecraft.client.KeyboardHandler", "keyPress"),
+        "herzium.orders.onCreate": names.member("net.minecraft.client.gui.screens.worldselection.CreateWorldScreen", "onCreate"),
+        "herzium.orders.report": str(profile / "orders-report.json"),
         "herzium.smoke.modmenu": str(any(p.name.startswith("modmenu-") for p in extra_mods)).lower(),
         "herzium.smoke.getTitle": names.member(SCREEN, "getTitle"),
         "herzium.smoke.getString": names.member("net.minecraft.network.chat.Component", "getString"),
@@ -183,7 +255,7 @@ abstract class SmokeTickMixin {{
         process = subprocess.Popen([str(java), "@" + str(argfile)], cwd=profile, stdout=stream, stderr=subprocess.STDOUT)
         print(f"{version}: PID {process.pid}, testing {jar.name}", flush=True)
         try:
-            code = process.wait(timeout=150)
+            code = process.wait(timeout=600 if orders else 150)
         except subprocess.TimeoutExpired:
             process.terminate()
             code = process.wait(timeout=15)
@@ -210,6 +282,8 @@ abstract class SmokeTickMixin {{
     assert "Can't open the resource index" not in text and "Couldn't set icon" not in text, "Broken validation assets"
     result.update(runtime="PASS", optional_injections="PASS", gameplay=gameplay,
                   extra_mods=[p.name for p in extra_mods], exit_code=code, log=str(log))
+    if orders:
+        result["orders_report"] = str(profile / "orders-report.json")
     (profile / "result.json").write_text(json.dumps(result, indent=2))
     return result
 
@@ -219,10 +293,12 @@ def main():
     parser.add_argument("versions", nargs="+", choices=["1.21.10", "1.21.11", "26.1", "26.1.1", "26.1.2", "26.2", "26.3"])
     parser.add_argument("--gameplay", action="store_true", help="Also test a fresh 26.3 world and the new hand extraction adapter")
     parser.add_argument("--mods", nargs="*", type=Path, default=[], help="Additional mod JARs to copy into each isolated profile")
+    parser.add_argument("--orders", action="store_true",
+                        help="Create a world and drive the three selection orders through the real input path")
     args = parser.parse_args()
     output = ROOT / "tmp" / "release-audit" / time.strftime("smoke-%Y%m%d-%H%M%S")
     output.mkdir(parents=True)
-    results = [smoke(version, output, args.gameplay, args.mods) for version in args.versions]
+    results = [smoke(version, output, args.gameplay, args.mods, args.orders) for version in args.versions]
     (output / "results.json").write_text(json.dumps(results, indent=2))
     print(f"PASS: {len(results)} release clients. Report: {output / 'results.json'}")
 

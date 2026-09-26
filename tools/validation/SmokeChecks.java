@@ -11,6 +11,9 @@ public final class SmokeChecks {
     private static long phaseStarted = System.nanoTime();
     private static Object title;
     private static Object settings;
+    private static final String GAMEPLAY =
+            System.getProperty("herzium.smoke.gameplayClass", "herzium.validation.Gameplay263");
+    private static final int PHASE_SECONDS = Integer.getInteger("herzium.smoke.phaseSeconds", 90);
 
     public static void tick(Object minecraft) {
         try {
@@ -29,9 +32,9 @@ public final class SmokeChecks {
                 ? field(minecraft, System.getProperty("herzium.smoke.screenField"))
                 : call(gui, "screen");
         double seconds = (System.nanoTime() - phaseStarted) / 1_000_000_000.0;
-        if (seconds > 90) throw new AssertionError("Phase timed out: " + phase + ", screen=" + screen);
+        if (seconds > PHASE_SECONDS) throw new AssertionError("Phase timed out: " + phase + ", screen=" + screen);
         if (phase == 4 && Boolean.getBoolean("herzium.smoke.gameplay")) {
-            boolean finished = (boolean) Class.forName("herzium.validation.Gameplay263")
+            boolean finished = (boolean) Class.forName(GAMEPLAY)
                     .getMethod("tick", Object.class).invoke(null, minecraft);
             if (finished) {
                 System.out.println("[HERZIUM-SMOKE] PASS");
@@ -87,7 +90,7 @@ public final class SmokeChecks {
         } else if (phase == 3 && screen == title && seconds > 1) {
             if (Boolean.getBoolean("herzium.smoke.gameplay")) {
                 advance();
-                Class.forName("herzium.validation.Gameplay263").getMethod("start", Object.class).invoke(null, minecraft);
+                Class.forName(GAMEPLAY).getMethod("start", Object.class).invoke(null, minecraft);
                 return;
             }
             System.out.println("[HERZIUM-SMOKE] PASS");
