@@ -20,9 +20,9 @@ SCREEN = "net.minecraft.client.gui.screens.Screen"
 TARGETS = [MC, "net.minecraft.client.KeyMapping", "net.minecraft.client.MouseHandler",
            "net.minecraft.client.gui.screens.TitleScreen"]
 GRADLE_MODULES = Path.home() / ".gradle/caches/modules-2/files-2.1"
-# Tick boundaries and carried-slot packets for GameplayOrders, with names resolved per target.
+# Tick boundaries and carried-slot packets for the gameplay harness, with names resolved per target.
 ORDERS_MIXINS = """package herzium.validation.mixin;
-import herzium.validation.GameplayOrders;
+import herzium.validation.{hook};
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Coerce;
@@ -31,14 +31,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets="{mc}", remap=false)
 abstract class OrdersTickMixin {{
  @Inject(method="{tick}()V", at=@At("HEAD"), remap=false, require=1)
- private void herziumOrders$tickHead(CallbackInfo ci) {{ GameplayOrders.onTickHead(); }}
+ private void herziumOrders$tickHead(CallbackInfo ci) {{ {hook}.onTickHead(); }}
  @Inject(method="{tick}()V", at=@At("RETURN"), remap=false, require=1)
- private void herziumOrders$tickReturn(CallbackInfo ci) {{ GameplayOrders.onTickReturn(); }}
+ private void herziumOrders$tickReturn(CallbackInfo ci) {{ {hook}.onTickReturn(); }}
 }}
 @Mixin(targets="{listener}", remap=false)
 abstract class OrdersPacketMixin {{
  @Inject(method="{send}(L{packet};)V", at=@At("HEAD"), remap=false, require=1)
- private void herziumOrders$send(@Coerce Object packet, CallbackInfo ci) {{ GameplayOrders.onSend(packet); }}
+ private void herziumOrders$send(@Coerce Object packet, CallbackInfo ci) {{ {hook}.onSend(packet); }}
 }}
 """
 
@@ -123,7 +123,11 @@ def remap_to_intermediary(named_jar, remapped_jar, spec, profile):
                     str(named_jar), str(remapped_jar), str(tiny), "named", "intermediary", *libraries], check=True)
 
 
-def smoke(version, output, gameplay=False, extra_mods=(), orders=False):
+def smoke(version, output, gameplay=False, extra_mods=(), orders=False, crystal=False):
+    if crystal:
+        assert version in ("26.2", "26.3"), "The crystal cycle targets the 26.2+ Gui API"
+    hook = "GameplayCrystal" if crystal else "GameplayOrders"
+    orders = orders or crystal
     build = ROOT / "version" / version / "build"
     spec = json.loads((build / "validation/runtime.json").read_text())
     jars = [p for p in (build / "libs").glob("*.jar") if not p.name.endswith("-sources.jar")]
@@ -171,10 +175,10 @@ abstract class SmokeTickMixin {{
     if orders:
         listener = "net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl"
         (profile / "OrdersMixins.java").write_text(ORDERS_MIXINS.format(
-            mc=names.cls(MC), tick=names.member(MC, "tick"), listener=names.cls(listener),
+            hook=hook, mc=names.cls(MC), tick=names.member(MC, "tick"), listener=names.cls(listener),
             send=names.member(listener, "send"),
             packet=names.cls("net.minecraft.network.protocol.Packet").replace(".", "/")))
-        sources += [str(profile / "OrdersMixins.java"), str(ROOT / "tools/validation/GameplayOrders.java")]
+        sources += [str(profile / "OrdersMixins.java"), str(ROOT / f"tools/validation/{hook}.java")]
         mixin_names += ["OrdersTickMixin", "OrdersPacketMixin"]
     elif gameplay:
         assert version == "26.3", "World integration currently targets the new 26.3 hand adapter"
@@ -233,7 +237,7 @@ abstract class SmokeTickMixin {{
         "herzium.smoke.onClose": names.member(SCREEN, "onClose"),
         "herzium.smoke.stop": names.member(MC, "stop"),
         "herzium.smoke.gameplay": str(gameplay or orders).lower(),
-        "herzium.smoke.gameplayClass": "herzium.validation.GameplayOrders" if orders else "herzium.validation.Gameplay263",
+        "herzium.smoke.gameplayClass": f"herzium.validation.{hook}" if orders else "herzium.validation.Gameplay263",
         "herzium.smoke.phaseSeconds": "420" if orders else "90",
         "herzium.orders.keyPress": names.member("net.minecraft.client.KeyboardHandler", "keyPress"),
         "herzium.orders.onCreate": names.member("net.minecraft.client.gui.screens.worldselection.CreateWorldScreen", "onCreate"),
@@ -295,10 +299,13 @@ def main():
     parser.add_argument("--mods", nargs="*", type=Path, default=[], help="Additional mod JARs to copy into each isolated profile")
     parser.add_argument("--orders", action="store_true",
                         help="Create a world and drive the three selection orders through the real input path")
+    parser.add_argument("--crystal", action="store_true",
+                        help="26.2+: time the obsidian and end-crystal placement cycle under each order")
     args = parser.parse_args()
     output = ROOT / "tmp" / "release-audit" / time.strftime("smoke-%Y%m%d-%H%M%S")
     output.mkdir(parents=True)
-    results = [smoke(version, output, args.gameplay, args.mods, args.orders) for version in args.versions]
+    results = [smoke(version, output, args.gameplay, args.mods, args.orders, args.crystal)
+               for version in args.versions]
     (output / "results.json").write_text(json.dumps(results, indent=2))
     print(f"PASS: {len(results)} release clients. Report: {output / 'results.json'}")
 
