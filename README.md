@@ -50,8 +50,9 @@ Any confirmed preview disagreement suspends previews for that world.
 - **Selection-order preference.** A compact Mod Menu button cycles through the
   three modes and saves the choice. No restart is needed.
 - **Ordinary-item equip transition.** Removes the decorative equip dip from
-  ordinary main-hand and offhand items. Combat items keep Vanilla's complete
-  equip transition.
+  ordinary main-hand and offhand items. Placing one still plays Vanilla's short
+  hand dip, the visual confirmation of the placement. Combat items keep
+  Vanilla's complete equip transition.
 - **Smoother attack indicator.** Interpolates only the displayed attack meter,
   conservatively within Vanilla's current tick. It does not change cooldowns
   or attack timing.
@@ -87,15 +88,15 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 | Minecraft | Jar | Java |
 | --- | --- | --- |
-| 1.21.10 | `herzium-1.21.10-1.10.4.jar` | 21 |
-| 1.21.11 | `herzium-1.21.11-1.10.4.jar` | 21 |
-| 26.1 | `herzium-26.1-1.10.4.jar` | 25 |
-| 26.1.1 | `herzium-26.1.1-1.10.4.jar` | 25 |
-| 26.1.2 | `herzium-26.1.2-1.10.4.jar` or `herzium-1.10.4.jar` | 25 |
-| 26.2 | `herzium-26.2-1.10.4.jar` | 25 |
-| 26.3 | `herzium-26.3-1.10.4.jar` | 25 |
+| 1.21.10 | `herzium-1.21.10-1.10.5.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.10.5.jar` | 21 |
+| 26.1 | `herzium-26.1-1.10.5.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.10.5.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.10.5.jar` or `herzium-1.10.5.jar` | 25 |
+| 26.2 | `herzium-26.2-1.10.5.jar` | 25 |
+| 26.3 | `herzium-26.3-1.10.5.jar` | 25 |
 
-The root build's `herzium-1.10.4.jar` accepts `>=26.1.2 <26.2`, so it also loads
+The root build's `herzium-1.10.5.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
 
 Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
@@ -134,7 +135,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.10.4`. The file
+`mod_version` comes from `gradle.properties` — currently `1.10.5`. The file
 ending in `-sources.jar` is not the playable build.
 
 The other game versions come from a separate build:
@@ -170,6 +171,9 @@ release JARs, and close automatically. The gameplay checks create their own worl
 `--orders` presses hotbar keys through the real keyboard handler and records what
 the HUD showed and which slot packets were sent; the
 [in-game order audit](docs/audits/AUDIT-1.10.4-orders-ingame.md) has its results.
+`--crystal` (26.2 and later) times the obsidian and end-crystal placement cycle
+under each order; the [1.10.5 audit](docs/audits/AUDIT-1.10.5-orders-static.md)
+has its results and a per-version bytecode check of the order hooks.
 The validation mod is never included in a release artifact.
 
 ## Repository layout

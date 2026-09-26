@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.10.5 - 2026-09-26
+
+### Changed
+- Placing an ordinary item, such as obsidian or an end crystal, plays Vanilla's
+  short hand dip again. Herzium had been removing it along with the equip dip,
+  which took away the visual confirmation of each placement. Switching items
+  stays instant.
+
 ## 1.10.4 - 2026-09-25
 
 ### Fixed
