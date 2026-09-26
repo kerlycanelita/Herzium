@@ -38,6 +38,8 @@ the same preference. They are not Vanilla-equivalent and may be restricted by
 servers. Because Herzium order is the default, a fresh install is in that state
 from its first session; select Vanilla order to keep Vanilla selection. Repeated presses retain Vanilla's queue and normal tick processing;
 duplicate bindings in Herzium mode use the higher slot as a deterministic tie-break.
+A key tapped twice inside one tick, or held until it auto-repeats, leaves clicks
+queued; in Herzium order those older clicks can no longer undo a newer key.
 Any confirmed preview disagreement suspends previews for that world.
 
 ## What it changes
@@ -85,15 +87,15 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 | Minecraft | Jar | Java |
 | --- | --- | --- |
-| 1.21.10 | `herzium-1.21.10-1.10.3.jar` | 21 |
-| 1.21.11 | `herzium-1.21.11-1.10.3.jar` | 21 |
-| 26.1 | `herzium-26.1-1.10.3.jar` | 25 |
-| 26.1.1 | `herzium-26.1.1-1.10.3.jar` | 25 |
-| 26.1.2 | `herzium-26.1.2-1.10.3.jar` or `herzium-1.10.3.jar` | 25 |
-| 26.2 | `herzium-26.2-1.10.3.jar` | 25 |
-| 26.3 | `herzium-26.3-1.10.3.jar` | 25 |
+| 1.21.10 | `herzium-1.21.10-1.10.4.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.10.4.jar` | 21 |
+| 26.1 | `herzium-26.1-1.10.4.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.10.4.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.10.4.jar` or `herzium-1.10.4.jar` | 25 |
+| 26.2 | `herzium-26.2-1.10.4.jar` | 25 |
+| 26.3 | `herzium-26.3-1.10.4.jar` | 25 |
 
-The root build's `herzium-1.10.3.jar` accepts `>=26.1.2 <26.2`, so it also loads
+The root build's `herzium-1.10.4.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
 
 Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
@@ -132,7 +134,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.10.3`. The file
+`mod_version` comes from `gradle.properties` — currently `1.10.4`. The file
 ending in `-sources.jar` is not the playable build.
 
 The other game versions come from a separate build:
@@ -160,10 +162,14 @@ adapter. To reproduce that build and export its isolated client launch inputs:
 version\build-all.ps1 -MinecraftVersions 1.21.10,1.21.11,26.1,26.1.1,26.1.2,26.2,26.3 -ExportRuntime
 py tools/validation/smoke-release.py 1.21.10 1.21.11 26.1 26.1.1 26.1.2 26.2 26.3
 py tools/validation/smoke-release.py 26.3 --gameplay
+py tools/validation/smoke-release.py 1.21.11 26.1.2 --orders
 ```
 
 Validation clients use new profiles under `tmp/release-audit/`, test the packaged
-release JARs, and close automatically. The gameplay check creates its own world.
+release JARs, and close automatically. The gameplay checks create their own world.
+`--orders` presses hotbar keys through the real keyboard handler and records what
+the HUD showed and which slot packets were sent; the
+[in-game order audit](docs/audits/AUDIT-1.10.4-orders-ingame.md) has its results.
 The validation mod is never included in a release artifact.
 
 ## Repository layout

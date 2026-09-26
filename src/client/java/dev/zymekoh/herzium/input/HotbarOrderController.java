@@ -30,7 +30,7 @@ public final class HotbarOrderController {
         passOrder = ordinarySelection(minecraft)
                 ? HerziumConfig.get().hotbarOrder() : HotbarOrder.VANILLA;
         passCaptured = false;
-        POLICY.beginPass(passOrder);
+        POLICY.beginPass(passOrder, selectedSlot(minecraft));
     }
 
     public static boolean acceptSelection(int slot) {
@@ -43,7 +43,7 @@ public final class HotbarOrderController {
             KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
             if (((KeyMappingAccessor) mapping).herzium$getPendingClickCount() > 0) mask |= 1 << slot;
         }
-        return POLICY.preview(mask, HerziumConfig.get().hotbarOrder());
+        return POLICY.preview(mask, HerziumConfig.get().hotbarOrder(), selectedSlot(minecraft));
     }
 
     public static void captureAlternatePass(Minecraft minecraft) {
@@ -66,6 +66,10 @@ public final class HotbarOrderController {
         POLICY.reset();
         passOrder = HotbarOrder.VANILLA;
         passCaptured = false;
+    }
+
+    private static int selectedSlot(Minecraft minecraft) {
+        return minecraft.player == null ? -1 : minecraft.player.getInventory().getSelectedSlot();
     }
 
     private static boolean ordinarySelection(Minecraft minecraft) {

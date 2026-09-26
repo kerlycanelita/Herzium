@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 1.10.4 - 2026-09-25
+
+### Fixed
+- Herzium order: clicks still queued from an older press can no longer undo a
+  newer key. Vanilla consumes at most one click per hotbar key per tick, so a
+  key tapped twice inside one tick, or held until the keyboard auto-repeats,
+  still had clicks waiting after a newer key had won; on the next tick they
+  selected the old slot again. Example: 1, 1, 9 inside one tick used to end on
+  1, and holding 1 and then pressing 9 went 1, 9, 1. Both now end on 9. Vanilla
+  still consumes those clicks at its normal rate; they just no longer move the
+  selection. Vanilla and Vanilla reversed are unchanged.
+- The guard switches itself off whenever the selection moved without Herzium
+  (the wheel, the server or another mod), so those keep plain ordering.
+
+### Verified in game
+- Every key press goes through the real keyboard handler in a fresh world, on
+  1.21.11 and 26.1.2. Over 80 random bursts the Herzium order now keeps the last
+  key in 80 of 80, up from 77 of 80. Vanilla order keeps it in about 48.
+- No HUD frame ever showed a slot the next tick did not select, no duplicate or
+  out-of-tick slot packet was sent, and the preview never suspended itself.
+  Latency is unchanged: the HUD follows a key on the next frame, about 1 ms at
+  1000 fps, against a median of 29 ms for the real tick.
+
 ## 1.10.3 - 2026-09-22
 
 First release published for more than one game version: 1.21.10, 1.21.11, 26.1,
