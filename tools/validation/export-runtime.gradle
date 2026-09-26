@@ -1,0 +1,24 @@
+import groovy.json.JsonOutput
+
+// Export Loom's resolved client inputs without launching or modifying a user profile.
+gradle.projectsEvaluated {
+    def project = gradle.rootProject
+    def runClient = project.tasks.named('runClient').get()
+    def exportTask = project.tasks.register('herziumExportRuntime') {
+        dependsOn runClient.taskDependencies.getDependencies(runClient)
+        doLast {
+            def destination = project.layout.buildDirectory.file('validation/runtime.json').get().asFile
+            destination.parentFile.mkdirs()
+            destination.text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                    minecraft: project.minecraft_version.toString(),
+                    classpath: runClient.classpath.files.collect { it.absolutePath },
+                    jvmArgs: runClient.allJvmArgs,
+                    args: runClient.args,
+                    mainClass: runClient.mainClass.get(),
+                    java: runClient.javaLauncher.get().executablePath.asFile.absolutePath
+            ]))
+            logger.lifecycle("Runtime inputs: ${destination}")
+        }
+    }
+    project.tasks.named('build') { finalizedBy exportTask }
+}

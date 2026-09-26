@@ -1,3 +1,9 @@
+param(
+    [string[]]$MinecraftVersions,
+    [switch]$Offline,
+    [switch]$ExportRuntime
+)
+
 $ErrorActionPreference = 'Stop'
 
 $targets = @(
@@ -16,8 +22,18 @@ $targets = @(
     @{ Minecraft = '26.1'; ModMenu = '18.0.0' },
     @{ Minecraft = '26.1.1'; ModMenu = '18.0.0' },
     @{ Minecraft = '26.1.2'; ModMenu = '18.0.0' },
-    @{ Minecraft = '26.2'; ModMenu = '20.0.1' }
+    @{ Minecraft = '26.2'; ModMenu = '20.0.1' },
+    @{ Minecraft = '26.3'; ModMenu = '21.0.0-beta.1' }
 )
+
+if ($MinecraftVersions) {
+    foreach ($requestedVersion in $MinecraftVersions) {
+        if ($requestedVersion -notin $targets.Minecraft) {
+            throw "Unknown Minecraft target: $requestedVersion"
+        }
+    }
+    $targets = @($targets | Where-Object { $_.Minecraft -in $MinecraftVersions })
+}
 
 # Every target runs its Gradle daemon on Java 25; the 1.21.x ones compile at
 # release 21 through a toolchain Gradle provisions itself (see the foojay
@@ -73,9 +89,22 @@ foreach ($target in $targets) {
         "-Pmodmenu_version=$($target.ModMenu)",
         "-Ploom_version=$loomVersion",
         "-Dorg.gradle.java.home=$javaHome",
+        '--no-daemon',
         '--console=plain'
     )
-    & "$PSScriptRoot\..\gradlew.bat" @herziumGradleArguments
+    if ($Offline) { $herziumGradleArguments += '--offline' }
+    if ($ExportRuntime) {
+        $herziumGradleArguments += @('-I', "$PSScriptRoot\..\tools\validation\export-runtime.gradle")
+    }
+    # The wrapper itself reads JAVA_HOME before Gradle sees org.gradle.java.home.
+    # A stale user value must not prevent the resolved JDK from launching it.
+    $previousJavaHome = $env:JAVA_HOME
+    try {
+        $env:JAVA_HOME = $javaHome
+        & "$PSScriptRoot\..\gradlew.bat" @herziumGradleArguments
+    } finally {
+        $env:JAVA_HOME = $previousJavaHome
+    }
     if ($LASTEXITCODE -ne 0) {
         throw "Herzium build failed for Minecraft $($target.Minecraft)."
     }
