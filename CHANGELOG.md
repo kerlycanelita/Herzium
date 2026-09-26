@@ -5,8 +5,8 @@
 ## 1.10.3 - 2026-09-22
 
 First release published for more than one game version: 1.21.10, 1.21.11, 26.1,
-26.1.2 and 26.2. On Modrinth this follows 1.10.0, so it also carries everything
-from 1.10.1 and 1.10.2; 1.21.10, 1.21.11, 26.1 and 26.2 are new there.
+26.1.1, 26.1.2, 26.2 and 26.3. On Modrinth this follows 1.10.0, so it also
+carries everything from 1.10.1 and 1.10.2.
 
 ### Changed
 - The default selection order is now **Herzium (last pressed binding)**, not
@@ -18,6 +18,11 @@ from 1.10.1 and 1.10.2; 1.21.10, 1.21.11, 26.1 and 26.2 are new there.
   order is the default and what it changes.
 
 ### Fixed - per-version builds
+- Added a dedicated 26.3 adapter for `FirstPersonHandsAndItems`. Ordinary items
+  are synchronized before their render state and models are extracted; combat
+  equip transitions and busy-hand lowering retain Vanilla's behavior.
+- Added a selectable build matrix and isolated validation of the packaged JARs.
+  The wrapper now also tolerates a stale `JAVA_HOME` when a Java 25 JDK is on PATH.
 - 1.21.x no longer compiles its own older copy of the client lifecycle hook. It
   had been left behind two releases and lacked the fail-closed action boundary,
   the preview clear on screen open, classifier invalidation on world change and
@@ -41,8 +46,8 @@ from 1.10.1 and 1.10.2; 1.21.10, 1.21.11, 26.1 and 26.2 are new there.
 
 - Kept the existing input sampling and removed the unproven sampling refinements
   from this iteration, as requested.
-- Added a compact, English/Spanish Mod Menu selector: Vanilla (default), Herzium
-  (last pending binding pressed), and Vanilla reversed (lowest pending slot).
+- Added a compact, English/Spanish Mod Menu selector: Vanilla, Herzium
+  (default; last pending binding pressed), and Vanilla reversed (lowest pending slot).
 - Alternate modes change the real slot at the existing hotbar selection call
   site. They are explicitly server-observable, not advertised as Vanilla-equivalent.
 - Normal/remapped Attack and Use keep their existing dispatch and cooldown paths.

@@ -4,6 +4,7 @@
 
 ## Guides
 
+- [Seven-version release audit, 1.21.10 through 26.3](audits/AUDIT-1.10.3-release-2026-09-22.md)
 - [1.10.3 audit](audits/AUDIT-1.10.3-26.1.2.md)
 - [1.10.3 multiversion audit](audits/AUDIT-1.10.3-multiversion.md)
 - [Earlier 1.9.3 audit](audits/AUDIT-1.9.3.md)

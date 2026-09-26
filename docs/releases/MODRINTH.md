@@ -15,7 +15,7 @@
 **Your hotbar switches on the very next frame — and you choose which slot wins.**
 
 Minecraft waits for its next game update to show a hotbar switch. Herzium draws
-it on the next frame: about **50 ms sooner** on a high-refresh monitor.
+it on the next frame: up to about **50 ms sooner** on a high-refresh monitor.
 Ordinary items appear in hand right away; weapons and tools keep their normal
 animation.
 
@@ -58,7 +58,7 @@ The **lowest** slot wins. 1 + 9 → slot 1.
 
 ## Also included
 
-- **No equip dip** on blocks, food and ordinary tools. Swords, axes, bows,
+- **No equip dip** on blocks, food and other ordinary items. Swords, axes, bows,
   shields and other combat items keep their full animation.
 - **Smoother attack indicator** — the cooldown bar glides instead of stepping.
   Your real attack timing is untouched.
@@ -75,7 +75,7 @@ Pick the file matching your Minecraft version. **Client-side only.**
 | Minecraft | Java |
 | --- | --- |
 | 1.21.10 · 1.21.11 | 21 |
-| 26.1 · 26.1.2 · 26.2 | 25 |
+| 26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3 | 25 |
 
 Needs **Fabric Loader 0.19.3+**. Get **Fabric API** too, or Minecraft won't load
 Herzium's text and the screens show raw codes. **Mod Menu** is where the order

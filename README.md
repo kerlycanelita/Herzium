@@ -88,8 +88,10 @@ CPU-limited frame rate and will not make loading work finish faster.
 | 1.21.10 | `herzium-1.21.10-1.10.3.jar` | 21 |
 | 1.21.11 | `herzium-1.21.11-1.10.3.jar` | 21 |
 | 26.1 | `herzium-26.1-1.10.3.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.10.3.jar` | 25 |
 | 26.1.2 | `herzium-26.1.2-1.10.3.jar` or `herzium-1.10.3.jar` | 25 |
 | 26.2 | `herzium-26.2-1.10.3.jar` | 25 |
+| 26.3 | `herzium-26.3-1.10.3.jar` | 25 |
 
 The root build's `herzium-1.10.3.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
@@ -149,6 +151,20 @@ and logical GUI bounds without launching Minecraft. See the
 [26.1.2 audit](docs/audits/AUDIT-1.10.3-26.1.2.md) for scope and limitations, and
 the [multiversion audit](docs/audits/AUDIT-1.10.3-multiversion.md) for how the
 per-version builds were checked.
+
+The [seven-version release audit](docs/audits/AUDIT-1.10.3-release-2026-09-22.md)
+covers the final JARs from 1.21.10 through 26.3, including the 26.3 hand-state
+adapter. To reproduce that build and export its isolated client launch inputs:
+
+```powershell
+version\build-all.ps1 -MinecraftVersions 1.21.10,1.21.11,26.1,26.1.1,26.1.2,26.2,26.3 -ExportRuntime
+py tools/validation/smoke-release.py 1.21.10 1.21.11 26.1 26.1.1 26.1.2 26.2 26.3
+py tools/validation/smoke-release.py 26.3 --gameplay
+```
+
+Validation clients use new profiles under `tmp/release-audit/`, test the packaged
+release JARs, and close automatically. The gameplay check creates its own world.
+The validation mod is never included in a release artifact.
 
 ## Repository layout
 
