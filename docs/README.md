@@ -4,6 +4,7 @@
 
 ## Guides
 
+- [In-game selection-order audit, 1.10.3 and 1.10.4](audits/AUDIT-1.10.4-orders-ingame.md)
 - [Seven-version release audit, 1.21.10 through 26.3](audits/AUDIT-1.10.3-release-2026-09-22.md)
 - [1.10.3 audit](audits/AUDIT-1.10.3-26.1.2.md)
 - [1.10.3 multiversion audit](audits/AUDIT-1.10.3-multiversion.md)
@@ -18,7 +19,7 @@
 | Setting | Value |
 | --- | --- |
 | Minecraft | `26.1.2` |
-| Mod version | `1.10.3` |
+| Mod version | `1.10.4` |
 | Loader | Fabric `0.19.3` |
 | Loom | `1.17.17` |
 | JDK | 25 |
