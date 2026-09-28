@@ -3,6 +3,8 @@ package dev.zymekoh.herzium.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.zymekoh.herzium.input.HotbarOrderController;
+import dev.zymekoh.herzium.input.ImmediateHotbarInput;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Inventory;
 import org.spongepowered.asm.mixin.Mixin;
@@ -28,12 +30,33 @@ abstract class HotbarOrderMixin {
         HotbarOrderController.captureAlternatePass((Minecraft) (Object) this);
     }
 
+    // Vanilla resolves every hotbar key of a tick before any Use or Attack
+    // click. Under the Herzium order, a key pressed after the first pending
+    // click is left queued, unconsumed, for the next pass, so the click uses
+    // the item the player held when pressing it. Every other mapping, and every
+    // other order, passes straight through.
+    @WrapOperation(method = "handleKeybinds", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/KeyMapping;consumeClick()Z"), require = 1)
+    private boolean herzium$keepKeysPressedAfterAClickForNextPass(KeyMapping mapping, Operation<Boolean> original) {
+        int slot = HotbarOrderController.hotbarSlotOf((Minecraft) (Object) this, mapping);
+        if (slot < 0) return original.call(mapping);
+        if (HotbarOrderController.defersHotbarClick(slot)) return false;
+        boolean consumed = original.call(mapping);
+        if (consumed) {
+            HotbarOrderController.hotbarClickConsumed(slot, ((KeyMappingAccessor) mapping).herzium$getPendingClickCount());
+        }
+        return consumed;
+    }
+
     // The queue and its one-consumption-per-slot loop are untouched. An
     // alternate policy only prevents a lower-priority consumed slot from
     // replacing the preferred one at this existing selection call site.
     @WrapOperation(method = "handleKeybinds", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/world/entity/player/Inventory;setSelectedSlot(I)V"), require = 1)
     private void herzium$applyPreferredConsumedSlot(Inventory inventory, int slot, Operation<Void> original) {
-        if (HotbarOrderController.acceptSelection(slot)) original.call(inventory, slot);
+        if (HotbarOrderController.acceptSelection(slot)) {
+            original.call(inventory, slot);
+            ImmediateHotbarInput.noteCallSiteSelection(slot);
+        }
     }
 }

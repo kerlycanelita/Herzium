@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 1.10.6 - 2026-09-27
+
+### Fixed
+- Herzium order: a hotbar key pressed after a Use or Attack click in the same
+  tick no longer changes the item that click uses. Vanilla resolves every hotbar
+  key of a tick before its clicks, so "nexus, use, glowstone" inside one tick
+  placed glowstone and "glowstone, use, sword" hit the anchor with the sword.
+  That later key now stays queued, unconsumed, and applies on the next tick; the
+  click uses the item held when it was pressed. Vanilla and Vanilla reversed are
+  unchanged.
+- The preview no longer suspends itself when another mod or the server chose the
+  final slot, for example KoHs Anchor's resolving a nexus burst. Only a
+  disagreement with Vanilla's own hotbar call site suspends it.
+
 ## 1.10.5 - 2026-09-26
 
 ### Changed

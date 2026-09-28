@@ -35,6 +35,8 @@ public final class ImmediateHotbarInput {
             new AtomicReference<>();
     private static final AtomicLong LAST_HUD_HOOK_NANOS = new AtomicLong();
     private static volatile boolean suspended;
+    /** The slot Vanilla's own hotbar call site selected in the current pass, or -1. */
+    private static volatile int callSiteSlot = -1;
 
     private ImmediateHotbarInput() {
     }
@@ -174,6 +176,13 @@ public final class ImmediateHotbarInput {
         if (matched) {
             return;
         }
+        // Only Vanilla's own hotbar call site can prove the prediction wrong.
+        // When the final slot came from somewhere else -- another mod that
+        // resolved the keys itself, or the server -- the preview is dropped
+        // but stays armed.
+        if (callSiteSlot < 0 || callSiteSlot != vanillaSlot) {
+            return;
+        }
 
         // One mismatch is enough: displaying a slot Vanilla did not commit is
         // precisely the ghost state this feature exists to avoid. From here on
@@ -188,6 +197,16 @@ public final class ImmediateHotbarInput {
                 state.slot() + 1,
                 vanillaSlot + 1,
                 state.selectedSlotAtInput() + 1);
+    }
+
+    /** Called at the start of every Vanilla keybind pass. */
+    public static void notePassStart() {
+        callSiteSlot = -1;
+    }
+
+    /** Called after Vanilla's hotbar call site really selected a slot. */
+    public static void noteCallSiteSelection(int slot) {
+        callSiteSlot = slot;
     }
 
     /** Marks the optional HUD expression hook as alive for coordinated rendering. */

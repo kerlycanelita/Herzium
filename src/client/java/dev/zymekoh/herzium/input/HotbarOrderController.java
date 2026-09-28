@@ -24,13 +24,35 @@ public final class HotbarOrderController {
                     && mapping.herzium$getPendingClickCount() > 0) mask |= 1 << slot;
         }
         POLICY.recordPress(mask);
+        if (clicked(minecraft.options.keyUse, key) || clicked(minecraft.options.keyAttack, key)) {
+            POLICY.recordAction();
+        }
     }
 
     public static void beginPass(Minecraft minecraft) {
         passOrder = ordinarySelection(minecraft)
                 ? HerziumConfig.get().hotbarOrder() : HotbarOrder.VANILLA;
         passCaptured = false;
-        POLICY.beginPass(passOrder, selectedSlot(minecraft));
+        POLICY.beginPass(passOrder, selectedSlot(minecraft), clickCounts(minecraft));
+        ImmediateHotbarInput.notePassStart();
+    }
+
+    /** The hotbar slot a mapping selects, or -1 for any other mapping. */
+    public static int hotbarSlotOf(Minecraft minecraft, KeyMapping mapping) {
+        KeyMapping[] slots = minecraft.options.keyHotbarSlots;
+        for (int slot = 0; slot < slots.length; slot++) {
+            if (slots[slot] == mapping) return slot;
+        }
+        return -1;
+    }
+
+    /** True when this pass must leave the slot's click queued for the next tick. */
+    public static boolean defersHotbarClick(int slot) {
+        return POLICY.defers(slot);
+    }
+
+    public static void hotbarClickConsumed(int slot, int remainingClicks) {
+        POLICY.consumed(slot, remainingClicks);
     }
 
     public static boolean acceptSelection(int slot) {
@@ -38,12 +60,7 @@ public final class HotbarOrderController {
     }
 
     public static int previewPendingSlot(Minecraft minecraft) {
-        int mask = 0;
-        for (int slot = 0; slot < minecraft.options.keyHotbarSlots.length; slot++) {
-            KeyMapping mapping = minecraft.options.keyHotbarSlots[slot];
-            if (((KeyMappingAccessor) mapping).herzium$getPendingClickCount() > 0) mask |= 1 << slot;
-        }
-        return POLICY.preview(mask, HerziumConfig.get().hotbarOrder(), selectedSlot(minecraft));
+        return POLICY.preview(clickCounts(minecraft), HerziumConfig.get().hotbarOrder(), selectedSlot(minecraft));
     }
 
     public static void captureAlternatePass(Minecraft minecraft) {
@@ -66,6 +83,20 @@ public final class HotbarOrderController {
         POLICY.reset();
         passOrder = HotbarOrder.VANILLA;
         passCaptured = false;
+    }
+
+    private static boolean clicked(KeyMapping mapping, InputConstants.Key key) {
+        KeyMappingAccessor accessor = (KeyMappingAccessor) mapping;
+        return accessor.herzium$getBoundKey().equals(key) && accessor.herzium$getPendingClickCount() > 0;
+    }
+
+    private static int[] clickCounts(Minecraft minecraft) {
+        KeyMapping[] slots = minecraft.options.keyHotbarSlots;
+        int[] counts = new int[9];
+        for (int slot = 0; slot < Math.min(9, slots.length); slot++) {
+            counts[slot] = ((KeyMappingAccessor) slots[slot]).herzium$getPendingClickCount();
+        }
+        return counts;
     }
 
     private static int selectedSlot(Minecraft minecraft) {
