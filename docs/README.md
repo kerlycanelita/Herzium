@@ -4,6 +4,7 @@
 
 ## Guides
 
+- [1.10.6 audit: clicks keep the key pressed before them](audits/AUDIT-1.10.6-action-boundary.md)
 - [1.10.5 audit: order hooks per version and the crystal cycle](audits/AUDIT-1.10.5-orders-static.md)
 - [In-game selection-order audit, 1.10.3 and 1.10.4](audits/AUDIT-1.10.4-orders-ingame.md)
 - [Seven-version release audit, 1.21.10 through 26.3](audits/AUDIT-1.10.3-release-2026-09-22.md)
@@ -20,7 +21,7 @@
 | Setting | Value |
 | --- | --- |
 | Minecraft | `26.1.2` |
-| Mod version | `1.10.5` |
+| Mod version | `1.10.6` |
 | Loader | Fabric `0.19.3` |
 | Loom | `1.17.17` |
 | JDK | 25 |
