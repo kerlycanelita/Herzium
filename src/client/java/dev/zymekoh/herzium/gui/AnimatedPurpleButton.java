@@ -154,12 +154,19 @@ final class AnimatedPurpleButton extends AbstractButton {
 
         int labelLeft = selectedState ? x + 3 : x + knobWidth + 5;
         int labelRight = selectedState ? x + width - knobWidth - 5 : x + width - 3;
+        // A narrow row of switches must not spill its labels over the next one.
+        net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+        int room = Math.max(0, labelRight - labelLeft);
+        String label = this.getMessage().getString();
+        if (font.width(label) > room) {
+            label = font.plainSubstrByWidth(label, Math.max(0, room - font.width("…"))) + "…";
+        }
         graphics.centeredText(
-                Minecraft.getInstance().font,
-                this.getMessage(),
+                font,
+                Component.literal(label),
                 (labelLeft + labelRight) / 2,
                 y + Math.max(1, (height - 9) / 2),
-                HerziumTheme.TEXT_PRIMARY);
+                this.active ? HerziumTheme.TEXT_PRIMARY : 0x99D7C8E4);
     }
 
     @Override

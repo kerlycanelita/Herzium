@@ -5,14 +5,16 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "GuiMixin",
-    "HotbarVisualMixin",
     "HotbarOrderMixin",
+    "HotbarVisualMixin",
     "ItemInHandRendererMixin",
     "KeyMappingAccessor",
     "KeyMappingMixin",
+    "MinecraftActionInvoker",
     "MinecraftHotbarConfirmationMixin",
     "MinecraftMixin",
     "MouseHandlerMixin",
+    "MultiPlayerGameModeInvoker",
     "TitleScreenMixin",
     "compat.ExordiumBufferInstanceMixin"
   ],

@@ -1,5 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
+import dev.zymekoh.herzium.input.HotbarOrderController;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
@@ -11,7 +12,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Observes only completed Vanilla wheel selection without changing it. */
+/**
+ * Observes completed Vanilla wheel selection without changing it. Under a last-press order the
+ * wheel counts as the newest input, so a key queued before it cannot undo it on the next tick.
+ */
 @Mixin(value = MouseHandler.class, priority = 2000)
 abstract class MouseHandlerMixin {
     @Shadow
@@ -39,6 +43,10 @@ abstract class MouseHandlerMixin {
             double yOffset,
             CallbackInfo ci) {
         if (this.herzium$selectedSlotBeforeScroll >= 0) {
+            if (this.minecraft.player != null
+                    && this.minecraft.player.getInventory().getSelectedSlot() != this.herzium$selectedSlotBeforeScroll) {
+                HotbarOrderController.observeWheelSelection(this.minecraft);
+            }
             ImmediateHotbarInput.onVanillaScrollFinished(
                     this.minecraft,
                     this.herzium$selectedSlotBeforeScroll);

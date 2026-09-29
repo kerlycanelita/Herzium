@@ -24,6 +24,16 @@
   "herzium.config.order.vanilla.description": "When several hotbar slots have pending clicks, the highest slot wins. Example: 1 + 9 selects 9.",
   "herzium.config.order.herzium.description": "Among slots with pending clicks, the most recently pressed binding wins. Example: 9 then 1 selects 1. Duplicate bindings use the highest slot as a tie-break.",
   "herzium.config.order.vanilla_reversed.description": "When several hotbar slots have pending clicks, the lowest slot wins. Example: 1 + 9 selects 1.",
+  "herzium.config.order.same_tick": "Same tick (lab)",
+  "herzium.config.order.same_tick.description": "Laboratory order. A burst of keys and clicks inside one tick is applied in the order you pressed it, within that tick: the slot can change several times in one tick. Measured against the Herzium order, which moves the later part of the burst to the next tick instead.",
+  "herzium.config.option.split": "Split bursts",
+  "herzium.config.option.split.description": "When one tick holds a hotbar key pressed after a click, that key and every click pressed after it wait for the next tick, so each click uses the item of the last key pressed before it. \"Obsidian, use, crystal, use\" places the obsidian now and the crystal on the next tick, on top of that obsidian. Every tick still changes the slot at most once, before its clicks, as Vanilla does; nothing is sent early and no click is created or repeated. Off is Herzium 1.10.7.",
+  "herzium.config.option.strict": "Strict attacks",
+  "herzium.config.option.strict.description": "An attack also keeps the key pressed before it when a use follows in the same tick: \"sword, attack, crystal, use\" hits with the sword and places the crystal on the next tick. Off keeps Vanilla's \"attack, key, use\" in one tick, where the attack takes the later key's item and the use is not delayed.",
+  "herzium.config.option.sync": "Offhand sync",
+  "herzium.config.option.sync.description": "Vanilla sends an offhand swap or a drop before it tells the server which slot the same tick selected, so \"totem key, swap\" inside one tick swapped the item held before. With this on, the server learns the slot first, as Vanilla does before a use or an attack, and in the Herzium order a key pressed after the swap waits for the next tick.",
+  "herzium.config.option.only_herzium": "Only with the Herzium order.",
+  "herzium.config.option.not_vanilla": "Not with the Vanilla order.",
   "herzium.config.vanilla_note": "Vanilla behavior; not the default. Input sampling and normal/remapped clicks keep their existing timing. Repeated slot presses retain Vanilla's queue.",
   "herzium.config.alternate_note": "This changes real slot selection and can affect which item is used on a server. It is not Vanilla-equivalent; follow the server's mod rules. Sampling, clicks and repeated-slot queues keep their existing timing."
 }

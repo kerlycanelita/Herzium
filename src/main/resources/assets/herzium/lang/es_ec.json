@@ -24,6 +24,16 @@
   "herzium.config.order.vanilla.description": "Si varias ranuras tienen pulsaciones pendientes, gana la mayor. Ejemplo: 1 + 9 selecciona 9.",
   "herzium.config.order.herzium.description": "Entre las ranuras con pulsaciones pendientes, gana la última pulsada. Ejemplo: 9 y luego 1 selecciona 1. Si comparten una tecla, gana la ranura mayor.",
   "herzium.config.order.vanilla_reversed.description": "Si varias ranuras tienen pulsaciones pendientes, gana la menor. Ejemplo: 1 + 9 selecciona 1.",
+  "herzium.config.order.same_tick": "Mismo tick (laboratorio)",
+  "herzium.config.order.same_tick.description": "Orden de laboratorio. Una ráfaga de teclas y clics dentro de un tick se aplica en el orden en que la pulsaste, dentro de ese mismo tick: la ranura puede cambiar varias veces en un tick. Se mide frente al orden Herzium, que pasa la parte posterior de la ráfaga al tick siguiente.",
+  "herzium.config.option.split": "Ráfagas por tick",
+  "herzium.config.option.split.description": "Si un tick trae una tecla de la barra pulsada después de un clic, esa tecla y los clics pulsados después de ella esperan al tick siguiente, así cada clic usa el objeto de la última tecla pulsada antes que él. \"Obsidiana, usar, cristal, usar\" coloca la obsidiana ahora y el cristal en el tick siguiente, encima de esa obsidiana. Cada tick sigue cambiando de ranura como mucho una vez y antes de sus clics, igual que Vanilla; nada se envía antes de tiempo y ningún clic se crea ni se repite. Desactivado es Herzium 1.10.7.",
+  "herzium.config.option.strict": "Golpes estrictos",
+  "herzium.config.option.strict.description": "Un ataque también se queda con la tecla pulsada antes de él aunque en el mismo tick venga un uso: \"espada, atacar, cristal, usar\" golpea con la espada y coloca el cristal en el tick siguiente. Desactivado mantiene el \"atacar, tecla, usar\" de Vanilla en un tick: el ataque sale con el objeto de la tecla posterior y el uso no se retrasa.",
+  "herzium.config.option.sync": "Cambio de mano exacto",
+  "herzium.config.option.sync.description": "Vanilla envía el cambio de mano o el soltar antes de decirle al servidor qué ranura eligió ese mismo tick, así que \"tecla del tótem, cambiar de mano\" dentro de un tick cambiaba el objeto que tenías antes. Activado, el servidor recibe primero la ranura, como hace Vanilla antes de usar o atacar, y en el orden Herzium una tecla pulsada después del cambio espera al tick siguiente.",
+  "herzium.config.option.only_herzium": "Solo con el orden Herzium.",
+  "herzium.config.option.not_vanilla": "No se aplica en el orden Vanilla.",
   "herzium.config.vanilla_note": "Comportamiento de Vanilla; no es el predeterminado. El muestreo y los clics normales o remapeados mantienen sus tiempos actuales. Las pulsaciones repetidas conservan la cola de Vanilla.",
   "herzium.config.alternate_note": "Cambia la selección real y puede afectar al objeto usado en un servidor. No equivale a Vanilla; respeta las reglas del servidor. El muestreo, los clics y las colas de ranuras repetidas mantienen sus tiempos."
 }

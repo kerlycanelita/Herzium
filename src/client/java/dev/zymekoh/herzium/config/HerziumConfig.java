@@ -6,6 +6,7 @@ import com.google.gson.JsonParseException;
 import dev.zymekoh.herzium.Herzium;
 import dev.zymekoh.herzium.input.HotbarOrder;
 import dev.zymekoh.herzium.input.HotbarOrderController;
+import dev.zymekoh.herzium.input.HotbarOrderPolicy;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -77,6 +78,29 @@ public final class HerziumConfig {
      * older than the setting itself.</p>
      */
     private volatile HotbarOrder hotbarOrder = HotbarOrder.HERZIUM;
+
+    /**
+     * Herzium order: a click pressed after a key that waits for the next tick
+     * waits with it, so "obsidian, use, crystal, use" inside one tick places the
+     * obsidian now and the crystal on the next tick, each with its own item.
+     * Off is 1.10.7, where the second click took the first key's item.
+     */
+    private volatile boolean splitBursts = true;
+
+    /**
+     * Herzium order: an Attack gets the key pressed before it even when a Use
+     * follows in the same tick; the key and the Use then go on the next tick.
+     * Off keeps Vanilla's "attack, key, use" in one tick.
+     */
+    private volatile boolean strictActionOrder = false;
+
+    /**
+     * Offhand swaps and drops use the slot the player pressed before them: the
+     * server is told the slot first, and in the Herzium order a key pressed
+     * after them waits for the next tick. Vanilla swapped the item held before
+     * a key pressed in the same tick.
+     */
+    private volatile boolean offhandSync = true;
 
     public static HerziumConfig get() {
         HerziumConfig current = instance;
@@ -154,16 +178,35 @@ public final class HerziumConfig {
         return this.hotbarOrder == null ? HotbarOrder.HERZIUM : this.hotbarOrder;
     }
 
+    /** The burst options of the Herzium order, read once per input pass. */
+    public HotbarOrderPolicy.Options burstOptions() {
+        return new HotbarOrderPolicy.Options(this.splitBursts, this.strictActionOrder, this.offhandSync);
+    }
+
+    public boolean splitBursts() { return this.splitBursts; }
+
+    public boolean strictActionOrder() { return this.strictActionOrder; }
+
+    public boolean offhandSync() { return this.offhandSync; }
+
+    public void toggleSplitBursts() { this.splitBursts = !this.splitBursts; changed(); }
+
+    public void toggleStrictActionOrder() { this.strictActionOrder = !this.strictActionOrder; changed(); }
+
+    public void toggleOffhandSync() { this.offhandSync = !this.offhandSync; changed(); }
+
+    private void changed() {
+        HotbarOrderController.reset();
+        ImmediateHotbarInput.clearPreview();
+        this.save();
+    }
+
     public void cycleHotbarOrder() {
         this.hotbarOrder = hotbarOrder().next();
         HotbarOrderController.reset();
         ImmediateHotbarInput.clearPreview();
         this.save();
     }
-
-
-
-
 
     public void acknowledgeStartupWarning() {
         if (this.startupWarningAcknowledged) {
