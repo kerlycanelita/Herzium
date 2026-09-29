@@ -47,8 +47,9 @@ orders with each option set, it checks:
 - every click runs exactly once, and the last key stays selected;
 - options off decide exactly as 1.10.7.
 
-It passes 8,155,246 assertions (761,736 option bursts). Three deliberate mutants of the policy
-(no waiting, no strict boundary, wrong tie-break) each fail it on the first named case.
+It passes 9,061,242 assertions (812,157 option bursts, wheel turns included). Deliberate mutants
+of the policy (no waiting, no strict boundary, wrong tie-break, no pass-aware preview, no wheel,
+selection press going down) each fail it.
 
 ## Method
 
@@ -60,7 +61,8 @@ It passes 8,155,246 assertions (761,736 option bursts). Three deliberate mutants
   Anchor's 0.4.0 and Crystal Tweaks 2.3.0 with the player's own configurations. Keys: hotbar R, C, F,
   4, M, G, 2, 8, 3; use on the period key; attack on the left button; swap on B.
 - A calibration probe (one duplicate slot packet) must show up as Grim's BadPacketsA in every
-  session, or its "no alerts" means nothing. It did in every session.
+  session, or its "no alerts" means nothing. It did in every session. In total: 226 benches,
+  6,615 cycles, 12 sessions.
 - Profiles: **V** Vanilla order; **H107** Herzium order, options off (1.10.7); **R107** the released
   1.10.7 jar; **HS** split bursts and offhand sync; **HX** HS plus strict attacks; **ST** same tick.
 - Each cycle starts on a rebuilt platform with a full kit and the sword in hand. Phase 0 starts a
@@ -146,4 +148,68 @@ Crystal Tweaks 2.3.0 with their own configurations, Marlow, Ping Equalizer), cry
 as above; anchor bursts succeed in every order because KoHs Anchor's applies them itself, in
 pressed order, inside the tick.
 
-RESULTS2
+### Grim with its experimental checks on
+
+Same benches, 165 cycles per profile (one-tick crystal, crystal hit, 20 ms crystal, one-tick
+anchor, offhand swap, random bursts), Grim's `experimental-checks: true`.
+
+| Profile | Alerts |
+| --- | --- |
+| Vanilla | 0 |
+| 1.10.7 (options off) | 0 |
+| Split bursts + offhand sync | 0 |
+| + strict attacks | 0 |
+| Same tick | **120 × PacketOrderE** |
+
+PacketOrderE ("Changed held item slot during another conflicting action") flags a slot packet that
+arrives after a use or an attack in the same tick. It is exactly what the same-tick order does, and
+exactly what split bursts never do.
+
+The player's setup on the same server: KoHs Anchor's 0.4.0 replays anchor bursts in pressed order
+inside one tick, and it got PacketOrderE ×24 to ×40 and MultiPlace ×2 to ×5 per bench, with the
+anchor charged and detonated in only 20 to 50 % of the cycles (Grim cancels the packets). Crystal
+bursts, which KoHs Anchor's leaves alone, raised nothing. The finding went to the KoHs Anchor's
+session.
+
+## What the lab caught in the lab build itself
+
+- **Preview suspended in random bursts (lab.1).** The preview Herzium caches when it seals a pass is
+  its bet on the next pass; it was computed while this pass's clicks were still queued, so a queued
+  use bounded the next pass that it would never reach. Three random-burst benches suspended the
+  preview. Fixed in lab.2: while a pass is open, the preview leaves out the clicks the pass is
+  still going to take. `hotbarOrderTest` now checks, after every pass of every burst, that the
+  sealed preview is the slot the next pass selects; the unfixed policy fails it on
+  `[1, 1, use, 0]`. The fixcheck session (480 random bursts, split and strict) had no suspension.
+- **The wheel.** A hotbar key and a wheel turn in the same tick: Vanilla applies the queued key at the
+  tick, after the wheel, and undoes it (0 % kept in the lab). The Herzium order now counts the wheel
+  as the newest input (100 % kept). While testing it, the oracle found that an older queued click
+  of the same slot lowered the press behind the selection and let an even older key through; the
+  selection's press no longer goes down.
+
+## Fair play
+
+- Nothing is automated: no click is created, repeated or sent early. Every action is one press of
+  the player's, in the order it was pressed.
+- Split bursts only ever delay a click by one tick, and only when it would otherwise run with the
+  wrong item. Obsidian and crystal land on consecutive ticks, which Vanilla does when the second
+  key and click come 50 ms later. Every tick keeps Vanilla's shape: at most one slot change, before
+  its clicks.
+- Offhand sync sends the slot right before the swap, the step Vanilla takes before a use or an
+  attack and that Mojang added to dropping in 26.3.
+- Rejected without building it: re-reading the crosshair between clicks of one tick. That would put
+  obsidian and crystal on the same tick, a speed no Vanilla input reaches, and it is what MultiPlace
+  watches.
+- As with the Herzium order already, which item a click uses on the server changes: server rules on
+  client mods apply.
+
+## Known limits
+
+- A click that opens a screen (a chest) empties Minecraft's click queue, so a key waiting for the
+  next tick is lost. The same was true of 1.10.6 and 1.10.7.
+- The same-tick order cannot honour a wheel turn that happened between the stretches it replays;
+  one more reason it stays in the lab.
+- The bench's waits above a few milliseconds depend on the Windows timer: the nominal 20 ms gap was
+  24 ms in one session and 47 ms in another. One-tick bursts use busy waits and all of them fell
+  inside one tick. Each result carries its measured gap and how many bursts fell in one tick.
+- Only 26.2 was measured. Before a release, the options need porting to every target; on 26.3 the
+  drop hook is not needed (and its injection point does not exist there).
