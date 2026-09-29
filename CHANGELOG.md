@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.10.7 - 2026-09-28
+
+### Fixed
+- Herzium order: "attack, key, use" in one tick works again. 1.10.6 let any
+  Attack bound the pass, so the obsidian key pressed after breaking a crystal
+  waited a tick and the Use placed nothing, where Vanilla places the obsidian.
+  Now the first pending Use bounds the pass; an Attack does only when no Use is
+  pending in that tick.
+
 ## 1.10.6 - 2026-09-27
 
 ### Fixed

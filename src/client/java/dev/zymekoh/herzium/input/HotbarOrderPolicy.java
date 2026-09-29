@@ -16,8 +16,9 @@ public final class HotbarOrderPolicy {
     @SuppressWarnings("unchecked")
     private final ArrayDeque<Long>[] pending = new ArrayDeque[9];
     private long sequence;
-    /** The first Use or Attack pressed since the last pass began; 0 if none. */
-    private long nextActionBoundary;
+    /** The first Use and the first Attack pressed since the last pass began; 0 if none. */
+    private long nextUseBoundary;
+    private long nextAttackBoundary;
 
     private HotbarOrder passOrder = HotbarOrder.VANILLA;
     private long passActionBoundary;
@@ -58,18 +59,28 @@ public final class HotbarOrderPolicy {
     }
 
     /**
-     * A Use or Attack click. Vanilla resolves every hotbar key of a tick before
-     * its clicks, so a key pressed after the first pending click would
-     * otherwise decide which item that click uses.
+     * A Use click. Vanilla resolves every hotbar key of a tick before its
+     * clicks, so a key pressed after the first pending Use would otherwise
+     * decide which item that Use places or uses.
      */
-    public synchronized void recordAction() {
+    public synchronized void recordUse() {
         long serial = nextSerial();
-        if (nextActionBoundary == 0L) nextActionBoundary = serial;
+        if (nextUseBoundary == 0L) nextUseBoundary = serial;
+    }
+
+    /**
+     * An Attack click. It only bounds the pass when no Use is pending: Vanilla
+     * attacks before it uses within a tick, so "attack, key, use" is the key
+     * choosing the item for the Use, which is how Vanilla already plays it.
+     */
+    public synchronized void recordAttack() {
+        long serial = nextSerial();
+        if (nextAttackBoundary == 0L) nextAttackBoundary = serial;
     }
 
     /** The slot the next pass will select, or -1 if it will not select one. */
     public synchronized int preview(int[] clickCounts, HotbarOrder order, int currentSlot) {
-        long boundary = order == HotbarOrder.HERZIUM ? nextActionBoundary : 0L;
+        long boundary = order == HotbarOrder.HERZIUM ? nextBoundary() : 0L;
         long superseded = superseded(order, currentSlot);
         long[] press = new long[9];
         int selected = -1;
@@ -90,8 +101,9 @@ public final class HotbarOrderPolicy {
         acceptedSlot = -1;
         passCurrentSlot = currentSlot;
         // Every Use and Attack click pressed so far is consumed by this pass.
-        passActionBoundary = order == HotbarOrder.HERZIUM ? nextActionBoundary : 0L;
-        nextActionBoundary = 0L;
+        passActionBoundary = order == HotbarOrder.HERZIUM ? nextBoundary() : 0L;
+        nextUseBoundary = 0L;
+        nextAttackBoundary = 0L;
         passSuperseded = superseded(order, currentSlot);
         for (int slot = 0; slot < 9; slot++) {
             sync(slot, clickCounts[slot]);
@@ -104,7 +116,8 @@ public final class HotbarOrderPolicy {
     /**
      * Whether this pass must leave the slot's click queued. True only under the
      * Herzium order, for a key whose oldest queued click was pressed after the
-     * first pending Use or Attack: that click belongs to the next tick.
+     * first pending Use, or the first Attack when no Use is pending: that click
+     * belongs to the next tick.
      */
     public synchronized boolean defers(int slot) {
         return slot >= 0 && slot < 9 && passOrder == HotbarOrder.HERZIUM && passDeferred[slot];
@@ -134,7 +147,8 @@ public final class HotbarOrderPolicy {
         Arrays.fill(passPress, 0L);
         Arrays.fill(passDeferred, false);
         sequence = 0L;
-        nextActionBoundary = 0L;
+        nextUseBoundary = 0L;
+        nextAttackBoundary = 0L;
         passActionBoundary = 0L;
         acceptedSlot = -1;
         passOrder = HotbarOrder.VANILLA;
@@ -142,6 +156,11 @@ public final class HotbarOrderPolicy {
         passSuperseded = 0L;
         selectionSlot = -1;
         selectionPress = 0L;
+    }
+
+    /** The first pending Use; the first pending Attack only when no Use is pending. */
+    private long nextBoundary() {
+        return nextUseBoundary != 0L ? nextUseBoundary : nextAttackBoundary;
     }
 
     private long nextSerial() {

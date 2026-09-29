@@ -24,9 +24,8 @@ public final class HotbarOrderController {
                     && mapping.herzium$getPendingClickCount() > 0) mask |= 1 << slot;
         }
         POLICY.recordPress(mask);
-        if (clicked(minecraft.options.keyUse, key) || clicked(minecraft.options.keyAttack, key)) {
-            POLICY.recordAction();
-        }
+        if (clicked(minecraft.options.keyAttack, key)) POLICY.recordAttack();
+        if (clicked(minecraft.options.keyUse, key)) POLICY.recordUse();
     }
 
     public static void beginPass(Minecraft minecraft) {

@@ -41,8 +41,9 @@ duplicate bindings in Herzium mode use the higher slot as a deterministic tie-br
 A key tapped twice inside one tick, or held until it auto-repeats, leaves clicks
 queued; in Herzium order those older clicks can no longer undo a newer key.
 Vanilla applies every hotbar key of a tick before its Use and Attack clicks; in
-Herzium order a key pressed after such a click waits for the next tick, so the
-click uses the item held when it was pressed.
+Herzium order a key pressed after the first Use of a tick (or after an Attack
+when no Use follows) waits for the next tick, so the click uses the item held
+when it was pressed.
 A preview that Vanilla's own selection contradicts suspends previews for that
 world; a slot chosen by another mod or the server only clears it.
 
@@ -92,15 +93,15 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 | Minecraft | Jar | Java |
 | --- | --- | --- |
-| 1.21.10 | `herzium-1.21.10-1.10.6.jar` | 21 |
-| 1.21.11 | `herzium-1.21.11-1.10.6.jar` | 21 |
-| 26.1 | `herzium-26.1-1.10.6.jar` | 25 |
-| 26.1.1 | `herzium-26.1.1-1.10.6.jar` | 25 |
-| 26.1.2 | `herzium-26.1.2-1.10.6.jar` or `herzium-1.10.6.jar` | 25 |
-| 26.2 | `herzium-26.2-1.10.6.jar` | 25 |
-| 26.3 | `herzium-26.3-1.10.6.jar` | 25 |
+| 1.21.10 | `herzium-1.21.10-1.10.7.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.10.7.jar` | 21 |
+| 26.1 | `herzium-26.1-1.10.7.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.10.7.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.10.7.jar` or `herzium-1.10.7.jar` | 25 |
+| 26.2 | `herzium-26.2-1.10.7.jar` | 25 |
+| 26.3 | `herzium-26.3-1.10.7.jar` | 25 |
 
-The root build's `herzium-1.10.6.jar` accepts `>=26.1.2 <26.2`, so it also loads
+The root build's `herzium-1.10.7.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
 
 Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
@@ -139,7 +140,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.10.6`. The file
+`mod_version` comes from `gradle.properties` — currently `1.10.7`. The file
 ending in `-sources.jar` is not the playable build.
 
 The other game versions come from a separate build:

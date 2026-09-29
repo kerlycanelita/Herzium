@@ -9,19 +9,20 @@ import java.util.Random;
 
 /** Production policy tests; no Minecraft client, server or input automation. */
 public final class HotbarOrderTest {
-    /** A Use or Attack click in a burst; 0-8 are hotbar keys. */
-    private static final int ACTION = 9;
+    /** Use and Attack clicks in a burst; 0-8 are hotbar keys. */
+    private static final int USE = 9;
+    private static final int ATTACK = 10;
     private static int checks;
     private static int exhaustive;
     private static int random;
 
     public static void main(String[] args) {
         for (HotbarOrder order : HotbarOrder.values()) {
-            // Every sequence of four events: keys, repeats, ties and clicks.
-            for (int encoded = 0; encoded < 10_000; encoded++) {
+            // Every sequence of four events: keys, repeats, ties, uses and attacks.
+            for (int encoded = 0; encoded < 14_641; encoded++) {
                 int value = encoded;
                 int[] events = new int[4];
-                for (int i = 0; i < events.length; i++) { events[i] = value % 10; value /= 10; }
+                for (int i = 0; i < events.length; i++) { events[i] = value % 11; value /= 11; }
                 verifyBurst(order, events);
                 exhaustive++;
             }
@@ -29,7 +30,10 @@ public final class HotbarOrderTest {
         Random rng = new Random(2612);
         for (int i = 0; i < 5000; i++) {
             int[] events = new int[1 + rng.nextInt(80)];
-            for (int e = 0; e < events.length; e++) events[e] = rng.nextInt(7) == 0 ? ACTION : rng.nextInt(9);
+            for (int e = 0; e < events.length; e++) {
+                int roll = rng.nextInt(14);
+                events[e] = roll == 0 ? USE : roll == 1 ? ATTACK : rng.nextInt(9);
+            }
             for (HotbarOrder order : HotbarOrder.values()) { verifyBurst(order, events); random++; }
         }
 
@@ -64,22 +68,34 @@ public final class HotbarOrderTest {
         // Herzium order a click uses the key pressed before it; a key pressed
         // after it waits, unconsumed, for the next pass.
         policy.reset();
-        policy.recordPress(1 << 3); policy.recordAction(); policy.recordPress(1 << 1);
+        policy.recordPress(1 << 3); policy.recordUse(); policy.recordPress(1 << 1);
         check(3, policy.preview(counts(3, 1), HotbarOrder.HERZIUM, 0), "click keeps the key pressed before it");
         check(3, pass(policy, HotbarOrder.HERZIUM, 0, counts(3, 1)), "nexus, use, glowstone: the use gets the nexus");
         check(1, policy.preview(counts(1), HotbarOrder.HERZIUM, 3), "the later key is next");
         check(1, pass(policy, HotbarOrder.HERZIUM, 3, counts(1)), "the later key applies on the next pass");
         policy.reset();
-        policy.recordAction(); policy.recordPress(1 << 5);
+        policy.recordUse(); policy.recordPress(1 << 5);
         check(-1, pass(policy, HotbarOrder.HERZIUM, 2, counts(5)), "use, then key: the use keeps the held item");
         check(5, pass(policy, HotbarOrder.HERZIUM, 2, counts(5)), "use, then key: the key follows");
         policy.reset();
-        policy.recordPress(1 << 3); policy.recordAction(); policy.recordPress(1 << 1);
+        policy.recordPress(1 << 3); policy.recordUse(); policy.recordPress(1 << 1);
         check(3, pass(policy, HotbarOrder.VANILLA, 0, counts(3, 1)), "Vanilla order ignores clicks");
         policy.reset();
-        policy.recordPress(1 << 3); policy.recordAction(); policy.recordPress(1 << 3);
+        policy.recordPress(1 << 3); policy.recordUse(); policy.recordPress(1 << 3);
         check(3, pass(policy, HotbarOrder.HERZIUM, 0, counts(3, 3)), "same key before and after a click");
         check(3, pass(policy, HotbarOrder.HERZIUM, 3, counts(3)), "its later click only re-selects it");
+        // Crystal PvP: break the crystal, switch to obsidian, place it. Vanilla
+        // attacks before it uses, so the key belongs to the Use.
+        policy.reset();
+        policy.recordAttack(); policy.recordPress(1 << 2); policy.recordUse();
+        check(2, pass(policy, HotbarOrder.HERZIUM, 5, counts(2)), "attack, obsidian, use: the use places obsidian");
+        policy.reset();
+        policy.recordPress(1 << 1); policy.recordAttack(); policy.recordPress(1 << 5);
+        check(1, pass(policy, HotbarOrder.HERZIUM, 0, counts(1, 5)), "attack alone keeps the key pressed before it");
+        policy.reset();
+        policy.recordPress(1 << 2); policy.recordUse(); policy.recordPress(1 << 5); policy.recordUse();
+        check(2, pass(policy, HotbarOrder.HERZIUM, 0, counts(2, 5)), "obsidian, use, crystal, use: one slot per tick");
+        check(5, pass(policy, HotbarOrder.HERZIUM, 2, counts(5)), "the crystal key follows on the next tick");
 
         // The same policy sees slot masks regardless of mouse, keysym or scancode.
         for (String binding : new String[] {"mouse.left", "mouse.right", "mouse.side", "keysym", "scancode"}) {
@@ -122,21 +138,29 @@ public final class HotbarOrderTest {
         List<ArrayDeque<Integer>> queued = new ArrayList<>();
         for (int slot = 0; slot < 9; slot++) queued.add(new ArrayDeque<>());
         int[] counts = new int[9];
-        int firstAction = 0;
-        int keyBeforeAction = -1;
+        int firstUse = 0;
+        int firstAttack = 0;
+        int keyBeforeUse = -1;
+        int keyBeforeAttack = -1;
         int lastKey = -1;
         for (int i = 0; i < events.length; i++) {
             int serial = i + 1;
-            if (events[i] == ACTION) {
-                policy.recordAction();
-                if (firstAction == 0) firstAction = serial;
+            if (events[i] == USE) {
+                policy.recordUse();
+                if (firstUse == 0) firstUse = serial;
+                continue;
+            }
+            if (events[i] == ATTACK) {
+                policy.recordAttack();
+                if (firstAttack == 0) firstAttack = serial;
                 continue;
             }
             policy.recordPress(1 << events[i]);
             counts[events[i]]++;
             queued.get(events[i]).addLast(serial);
             lastKey = events[i];
-            if (firstAction == 0) keyBeforeAction = events[i];
+            if (firstUse == 0) keyBeforeUse = events[i];
+            if (firstAttack == 0) keyBeforeAttack = events[i];
         }
         int current = 4;
         // Oracle state for the Herzium order: the press behind the current slot.
@@ -145,7 +169,9 @@ public final class HotbarOrderTest {
         boolean firstPass = true;
         while (firstPass || Arrays.stream(counts).sum() > 0) {
             // Independent oracle. Every click is consumed by the first pass, so
-            // only that pass has a boundary.
+            // only that pass has a boundary: the first Use, else the first Attack.
+            int firstAction = firstUse != 0 ? firstUse : firstAttack;
+            int keyBeforeAction = firstUse != 0 ? keyBeforeUse : keyBeforeAttack;
             int boundary = firstPass && order == HotbarOrder.HERZIUM ? firstAction : 0;
             int superseded = order == HotbarOrder.HERZIUM && current == selectionSlot ? selectionPress : 0;
             boolean[] deferred = new boolean[9];
@@ -183,7 +209,8 @@ public final class HotbarOrderTest {
             check(expected, committed, "actual consumed winner matches preview");
             if (firstPass && firstAction > 0 && order == HotbarOrder.HERZIUM) {
                 check(keyBeforeAction >= 0 ? keyBeforeAction : current, committed >= 0 ? committed : current,
-                        "the click uses the key pressed before it");
+                        firstUse != 0 ? "the first use gets the key pressed before it"
+                                : "an attack alone gets the key pressed before it");
             }
             if (committed >= 0) {
                 current = committed;
