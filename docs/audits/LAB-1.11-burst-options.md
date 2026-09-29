@@ -169,7 +169,9 @@ The player's setup on the same server: KoHs Anchor's 0.4.0 replays anchor bursts
 inside one tick, and it got PacketOrderE ×24 to ×40 and MultiPlace ×2 to ×5 per bench, with the
 anchor charged and detonated in only 20 to 50 % of the cycles (Grim cancels the packets). Crystal
 bursts, which KoHs Anchor's leaves alone, raised nothing. The finding went to the KoHs Anchor's
-session.
+session, which now splits anchor bursts across ticks the same way. With its fixed jar (sha1
+`f58401d1`), the same benches on strict Grim gave anchors at 100 % with no alert and no slot change
+after a click, and Grim as it ships showed no regression.
 
 ## What the lab caught in the lab build itself
 
