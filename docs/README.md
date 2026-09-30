@@ -4,6 +4,8 @@
 
 ## Guides
 
+- [1.11.0 release audit: the burst options as a fresh install ships them](audits/AUDIT-1.11.0-release.md)
+- [1.11 laboratory: burst options against Grim and Ping Equalizer](audits/LAB-1.11-burst-options.md)
 - [1.10.6 audit: clicks keep the key pressed before them](audits/AUDIT-1.10.6-action-boundary.md)
 - [1.10.5 audit: order hooks per version and the crystal cycle](audits/AUDIT-1.10.5-orders-static.md)
 - [In-game selection-order audit, 1.10.3 and 1.10.4](audits/AUDIT-1.10.4-orders-ingame.md)
@@ -21,7 +23,7 @@
 | Setting | Value |
 | --- | --- |
 | Minecraft | `26.1.2` |
-| Mod version | `1.10.7` |
+| Mod version | `1.11.0` |
 | Loader | Fabric `0.19.3` |
 | Loom | `1.17.17` |
 | JDK | 25 |

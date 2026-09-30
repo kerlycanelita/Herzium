@@ -79,9 +79,14 @@ abstract class HotbarOrderMixin {
         HotbarOrderController.sendSlotBeforeOffhandAction((Minecraft) (Object) this);
     }
 
+    // Up to 26.2 a drop is sent the same way. 26.3 drops through
+    // MultiPlayerGameMode.dropItem, which sends the slot first by itself, so
+    // its build leaves this hook out.
+    // herzium:26.3-drop-start
     @Inject(method = "handleKeybinds", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/player/LocalPlayer;drop(Z)Z"), require = 1)
     private void herzium$sendSlotBeforeDrop(CallbackInfo ci) {
         HotbarOrderController.sendSlotBeforeOffhandAction((Minecraft) (Object) this);
     }
+    // herzium:26.3-drop-end
 }

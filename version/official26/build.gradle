@@ -35,6 +35,10 @@ tasks.register('generateHerzium26ClientSources', Sync) {
     // "this whole hook moved to another class", which is what 26.2 did to
     // Minecraft.setScreen.
     def dropping = false
+    // Blocks fenced by herzium:26.3-drop-start / -end are removed for 26.3:
+    // it drops through MultiPlayerGameMode.dropItem, so the LocalPlayer.drop
+    // hook has no target there and would fail the mixin config at launch.
+    def dropping263 = false
 
     from('../../src/client/java') {
         if (extractedHands) {
@@ -43,6 +47,17 @@ tasks.register('generateHerzium26ClientSources', Sync) {
         filteringCharset = 'UTF-8'
         filter { String line ->
             String transformed = line
+            if (transformed.contains('herzium:26.3-drop-start')) {
+                dropping263 = targetMinecraft == '26.3'
+                return null
+            }
+            if (transformed.contains('herzium:26.3-drop-end')) {
+                dropping263 = false
+                return null
+            }
+            if (dropping263) {
+                return null
+            }
             if (!splitGui) {
                 return transformed
             }

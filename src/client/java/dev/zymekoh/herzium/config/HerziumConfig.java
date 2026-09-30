@@ -90,9 +90,13 @@ public final class HerziumConfig {
     /**
      * Herzium order: an Attack gets the key pressed before it even when a Use
      * follows in the same tick; the key and the Use then go on the next tick.
-     * Off keeps Vanilla's "attack, key, use" in one tick.
+     * Off keeps Vanilla's "attack, key, use" in one tick, where the attack
+     * takes the later key's item.
+     *
+     * <p>On in a fresh install, like the other two: every click then runs with
+     * the item of the key pressed before it.</p>
      */
-    private volatile boolean strictActionOrder = false;
+    private volatile boolean strictActionOrder = true;
 
     /**
      * Offhand swaps and drops use the slot the player pressed before them: the

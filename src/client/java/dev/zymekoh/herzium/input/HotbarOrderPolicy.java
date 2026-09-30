@@ -42,10 +42,6 @@ public final class HotbarOrderPolicy {
         public static final Options LEGACY = new Options(false, false, false);
     }
 
-    /** One stretch of a burst that Vanilla would resolve as a tick of its own. */
-    public record Segment(int slot, long press, int[] keyClicks, int[] actions) {
-    }
-
     @SuppressWarnings("unchecked")
     private final ArrayDeque<Long>[] pending = new ArrayDeque[TYPES];
     private long sequence;
@@ -275,12 +271,6 @@ public final class HotbarOrderPolicy {
         return true;
     }
 
-    /** A slot selected outside Vanilla's call site by a replayed segment. */
-    public synchronized void noteSelection(int slot, long press) {
-        selectionSlot = slot;
-        selectionPress = press;
-    }
-
     /**
      * The mouse wheel selected a slot, right now. Under a last-press order it is the newest input:
      * a hotbar key still queued from before it would select its slot again on the next tick and
@@ -290,55 +280,6 @@ public final class HotbarOrderPolicy {
     public synchronized void noteWheel(int slot) {
         selectionSlot = slot;
         selectionPress = nextSerial();
-    }
-
-    /**
-     * The stretches of the pending burst that come before its last one, for the
-     * same-tick order: a new stretch starts at every key pressed after a click.
-     * Empty when the burst is a single stretch, which Vanilla's own pass already
-     * resolves in pressed order, or when Herzium did not see every pending
-     * click pressed and cannot know their order.
-     */
-    public synchronized List<Segment> sameTickPrefix(int[] counts) {
-        syncAll(counts);
-        for (int type = 0; type < TYPES; type++) {
-            if (counts[type] > pending[type].size()) return List.of();
-        }
-        List<long[]> events = new ArrayList<>();
-        for (int type = 0; type < TYPES; type++) {
-            for (long serial : pending[type]) events.add(new long[] {serial, type});
-        }
-        events.sort((a, b) -> a[0] != b[0] ? Long.compare(a[0], b[0]) : Long.compare(a[1], b[1]));
-        List<Segment> segments = new ArrayList<>();
-        int[] keys = new int[9];
-        int[] actions = new int[TYPES];
-        int slot = -1;
-        long press = 0L;
-        boolean acted = false;
-        for (long[] event : events) {
-            int type = (int) event[1];
-            if (type < 9) {
-                if (acted) {
-                    segments.add(new Segment(slot, press, keys, actions));
-                    keys = new int[9];
-                    actions = new int[TYPES];
-                    slot = -1;
-                    press = 0L;
-                    acted = false;
-                }
-                keys[type]++;
-                // Ties (one physical key bound to several slots) use Vanilla's highest slot.
-                if (event[0] > press || (event[0] == press && type > slot)) {
-                    slot = type;
-                    press = event[0];
-                }
-            } else {
-                actions[type]++;
-                acted = true;
-            }
-        }
-        // The last stretch is left to Vanilla's own pass.
-        return segments;
     }
 
     public synchronized void reset() {

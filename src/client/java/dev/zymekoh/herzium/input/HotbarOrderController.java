@@ -3,15 +3,9 @@ package dev.zymekoh.herzium.input;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
-import dev.zymekoh.herzium.mixin.MinecraftActionInvoker;
 import dev.zymekoh.herzium.mixin.MultiPlayerGameModeInvoker;
-import java.util.List;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 
 /** Adapts the optional slot-order policy to the existing Vanilla input pass. */
 public final class HotbarOrderController {
@@ -42,9 +36,6 @@ public final class HotbarOrderController {
         passOrder = ordinary ? HerziumConfig.get().hotbarOrder() : HotbarOrder.VANILLA;
         passOptions = ordinary ? HerziumConfig.get().burstOptions() : HotbarOrderPolicy.Options.LEGACY;
         passCaptured = false;
-        if (passOrder == HotbarOrder.SAME_TICK) {
-            replayEarlierStretches(minecraft);
-        }
         POLICY.beginPass(passOrder, passOptions, selectedSlot(minecraft), clickCounts(minecraft));
         ImmediateHotbarInput.notePassStart();
     }
@@ -136,61 +127,6 @@ public final class HotbarOrderController {
         passOrder = HotbarOrder.VANILLA;
         passOptions = HotbarOrderPolicy.Options.LEGACY;
         passCaptured = false;
-    }
-
-    /**
-     * The same-tick order: every stretch of the burst but the last is applied
-     * here, in pressed order, each as Vanilla would apply a tick of its own --
-     * its keys, then its swaps, attacks and uses. The last stretch is left to
-     * Vanilla's pass. Each click is consumed from Vanilla's own counter before
-     * it is applied, so nothing is created or repeated. Drops, a screen or an
-     * item in use end the replay; the rest is Vanilla's to handle.
-     */
-    private static void replayEarlierStretches(Minecraft minecraft) {
-        List<HotbarOrderPolicy.Segment> segments = POLICY.sameTickPrefix(clickCounts(minecraft));
-        if (segments.isEmpty()) return;
-        KeyMapping[] slots = minecraft.options.keyHotbarSlots;
-        for (HotbarOrderPolicy.Segment segment : segments) {
-            LocalPlayer player = minecraft.player;
-            if (!ordinarySelection(minecraft) || player == null || segment.actions()[HotbarOrderPolicy.DROP] > 0) return;
-            for (int slot = 0; slot < 9 && slot < slots.length; slot++) {
-                for (int click = 0; click < segment.keyClicks()[slot]; click++) {
-                    if (slots[slot].consumeClick()) POLICY.consumed(slot, pendingClicks(slots[slot]));
-                }
-            }
-            if (segment.slot() >= 0) {
-                player.getInventory().setSelectedSlot(segment.slot());
-                POLICY.noteSelection(segment.slot(), segment.press());
-            }
-            for (int click = 0; click < segment.actions()[HotbarOrderPolicy.SWAP]; click++) {
-                if (!take(minecraft.options.keySwapOffhand, HotbarOrderPolicy.SWAP) || player.isSpectator()) continue;
-                if (passOptions.offhandSync() && minecraft.gameMode != null) {
-                    ((MultiPlayerGameModeInvoker) minecraft.gameMode).herzium$ensureHasSentCarriedItem();
-                }
-                if (minecraft.getConnection() != null) {
-                    minecraft.getConnection().send(new ServerboundPlayerActionPacket(
-                            ServerboundPlayerActionPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ZERO, Direction.DOWN));
-                }
-            }
-            if (player.isUsingItem()) return;
-            for (int click = 0; click < segment.actions()[HotbarOrderPolicy.ATTACK]; click++) {
-                if (take(minecraft.options.keyAttack, HotbarOrderPolicy.ATTACK)) {
-                    ((MinecraftActionInvoker) minecraft).herzium$startAttack();
-                }
-            }
-            for (int click = 0; click < segment.actions()[HotbarOrderPolicy.USE]; click++) {
-                if (player.isUsingItem() || !ordinarySelection(minecraft)) return;
-                if (take(minecraft.options.keyUse, HotbarOrderPolicy.USE)) {
-                    ((MinecraftActionInvoker) minecraft).herzium$startUseItem();
-                }
-            }
-        }
-    }
-
-    private static boolean take(KeyMapping mapping, int type) {
-        if (!mapping.consumeClick()) return false;
-        POLICY.actionConsumed(type, pendingClicks(mapping));
-        return true;
     }
 
     private static int pendingClicks(KeyMapping mapping) {

@@ -277,6 +277,8 @@ abstract class SmokeTickMixin {{
             print(line, flush=True)
     config = json.loads((profile / "config/herzium.json").read_text())
     assert config["startupWarningAcknowledged"] and config["hotbarOrder"] == "HERZIUM"
+    # A fresh install starts with every burst option on.
+    assert config["splitBursts"] and config["strictActionOrder"] and config["offhandSync"], config
     for target, handler in [(targets[4], "renderVanillaResolvableHotbarInput"),
                             (targets[5], "replaceVisibleItemImmediately")]:
         exported = profile / ".mixin.out/class" / (names.cls(target).replace(".", "/") + ".class")

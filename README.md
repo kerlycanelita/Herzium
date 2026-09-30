@@ -41,11 +41,29 @@ duplicate bindings in Herzium mode use the higher slot as a deterministic tie-br
 A key tapped twice inside one tick, or held until it auto-repeats, leaves clicks
 queued; in Herzium order those older clicks can no longer undo a newer key.
 Vanilla applies every hotbar key of a tick before its Use and Attack clicks; in
-Herzium order a key pressed after the first Use of a tick (or after an Attack
-when no Use follows) waits for the next tick, so the click uses the item held
-when it was pressed.
+Herzium order a key pressed after a click waits for the next tick, so the click
+uses the item held when it was pressed. The mouse wheel counts as the newest
+input, so a key still queued from before a wheel turn cannot undo it.
 A preview that Vanilla's own selection contradicts suspends previews for that
 world; a slot chosen by another mod or the server only clears it.
+
+### Burst options
+
+Three switches in Mod Menu refine how a fast burst of keys and clicks is split
+across ticks. All three are **on in a fresh install**; with all three off,
+Herzium behaves exactly like 1.10.7.
+
+| Option | Applies to | What it does |
+| --- | --- | --- |
+| Split bursts | Herzium order | A click whose item (the last key pressed before it) is not the one this tick holds waits for the next tick, together with everything pressed after it. "Obsidian, use, crystal, use" inside one tick places the obsidian now and the crystal on the next tick, on top of it. |
+| Strict attacks | Herzium order | An attack keeps the key pressed before it even when a use follows in the same tick: "sword, attack, crystal, use" hits with the sword and places the crystal on the next tick. Off keeps Vanilla's "attack, key, use" in one tick, where the attack takes the later key's item. |
+| Offhand sync | Herzium and Vanilla reversed | The server learns the selected slot right before an offhand swap or a drop, as Vanilla already does before a use or an attack. Vanilla sends the swap first, so "totem key, swap" inside one tick swapped the item held before the key. |
+
+Every tick keeps Vanilla's shape: at most one slot change, sent before that
+tick's clicks. The options only ever make a click wait one tick; nothing is sent
+earlier, and no click is created, repeated or dropped. The measurements behind
+them, against Grim Anticheat with Ping Equalizer, are in the
+[1.11 laboratory audit](docs/audits/LAB-1.11-burst-options.md).
 
 ## What it changes
 
@@ -75,8 +93,10 @@ write those options to `options.txt`.
 The visual preview is not sent to the server. Selecting Vanilla order keeps the
 real selection Vanilla too. The default Herzium order and Vanilla reversed can
 change carried-slot packets and the resulting item/block actions because they
-select a different item. Herzium does not dispatch actions early, add retries, send packets itself,
-consume extra clicks or modify reach, cooldowns or hitboxes.
+select a different item. Herzium does not dispatch actions early, add retries,
+consume extra clicks or modify reach, cooldowns or hitboxes. The only packet it
+causes is Vanilla's own carried-slot update, sent right before an offhand swap
+or a drop when Offhand sync is on.
 Servers may still restrict client mods or identify them through an approved
 client/attestation system, so follow each server's rules.
 
@@ -93,15 +113,15 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 | Minecraft | Jar | Java |
 | --- | --- | --- |
-| 1.21.10 | `herzium-1.21.10-1.10.7.jar` | 21 |
-| 1.21.11 | `herzium-1.21.11-1.10.7.jar` | 21 |
-| 26.1 | `herzium-26.1-1.10.7.jar` | 25 |
-| 26.1.1 | `herzium-26.1.1-1.10.7.jar` | 25 |
-| 26.1.2 | `herzium-26.1.2-1.10.7.jar` or `herzium-1.10.7.jar` | 25 |
-| 26.2 | `herzium-26.2-1.10.7.jar` | 25 |
-| 26.3 | `herzium-26.3-1.10.7.jar` | 25 |
+| 1.21.10 | `herzium-1.21.10-1.11.0.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.11.0.jar` | 21 |
+| 26.1 | `herzium-26.1-1.11.0.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.11.0.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.11.0.jar` or `herzium-1.11.0.jar` | 25 |
+| 26.2 | `herzium-26.2-1.11.0.jar` | 25 |
+| 26.3 | `herzium-26.3-1.11.0.jar` | 25 |
 
-The root build's `herzium-1.10.7.jar` accepts `>=26.1.2 <26.2`, so it also loads
+The root build's `herzium-1.11.0.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
 
 Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
@@ -128,6 +148,11 @@ Herzium does not control Raw Input or the cursor, so KoHsium, Raw Input Buffer,
 Ixeris and KoHs Inventory Tweaks retain ownership of those behaviors. Detected
 input-related mods are reported in the log for troubleshooting.
 
+KoHs Anchor's and KoHs Crystal Tweaks show Herzium's order on their own
+screens and change it through Herzium's own button, so the choice is saved in
+Herzium's config. KoHs Anchor's also reports the hotbar keys its anchor bursts
+use, so Herzium's preview follows the item the burst is really holding.
+
 If Exordium is installed, Herzium bypasses Exordium's HUD frame buffer so the
 hotbar preview can be drawn each frame. Exordium's HUD caching is therefore
 inactive while both mods run. Players who prefer Exordium's caching should not
@@ -140,7 +165,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.10.7`. The file
+`mod_version` comes from `gradle.properties` — currently `1.11.0`. The file
 ending in `-sources.jar` is not the playable build.
 
 The other game versions come from a separate build:

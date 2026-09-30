@@ -5,10 +5,12 @@ import dev.zymekoh.herzium.input.HotbarOrder;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
 import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
 import dev.zymekoh.herzium.render.CombatItemClassifier;
+import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.player.FirstPersonHandsAndItems;
@@ -39,6 +41,14 @@ public final class Gameplay263 {
             Method create = CreateWorldScreen.class.getDeclaredMethod("onCreate");
             create.setAccessible(true);
             create.invoke(screen);
+        }
+        // 26.3 asks before creating a world whose settings are not marked stable (the
+        // experimental-settings warning); the validation world is disposable.
+        if (creating && minecraft.player == null && minecraft.gui.screen() instanceof ConfirmScreen confirm) {
+            Field callback = ConfirmScreen.class.getDeclaredField("callback");
+            callback.setAccessible(true);
+            ((BooleanConsumer) callback.get(confirm)).accept(true);
+            return false;
         }
         if (minecraft.player == null || minecraft.level == null || minecraft.gui.screen() != null) return false;
         if (++worldFrames < 120) return false;

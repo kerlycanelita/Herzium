@@ -248,7 +248,7 @@ public final class HotbarOrderTest {
     }
 
     // ------------------------------------------------------------------
-    // Burst options (split, strict, offhand sync) and the same-tick order.
+    // Burst options (split, strict, offhand sync).
     // Event codes: 0-8 keys, 9 use, 10 attack, 11 swap, 12 drop.
     // ------------------------------------------------------------------
 
@@ -268,9 +268,6 @@ public final class HotbarOrderTest {
         check(2, passesOf(HotbarOrder.HERZIUM, SPLIT, obsidianCrystal), "split: the crystal goes on the next tick");
         check(List.of("9@2", "9@2"), actionsOf(HotbarOrder.HERZIUM, HotbarOrderPolicy.Options.LEGACY, obsidianCrystal),
                 "1.10.7: the second use kept the obsidian");
-        check(List.of("9@2", "9@5"), actionsOf(HotbarOrder.SAME_TICK, SPLIT, obsidianCrystal),
-                "same tick: each use gets its own key");
-        check(1, passesOf(HotbarOrder.SAME_TICK, SPLIT, obsidianCrystal), "same tick: one pass");
         int[] sameKeyTwice = {2, USE, 2, USE};
         check(2, simulate(HotbarOrder.HERZIUM, SPLIT, sameKeyTwice).firstPassActions(),
                 "the same key twice does not wait");
@@ -280,6 +277,7 @@ public final class HotbarOrderTest {
         int[] attackKeyUse = {ATTACK, 2, USE};
         check(List.of("10@4", "9@2"), actionsOf(HotbarOrder.HERZIUM, STRICT, attackKeyUse),
                 "strict: attack keeps the held item, the use gets the key");
+        check(2, passesOf(HotbarOrder.HERZIUM, STRICT, attackKeyUse), "strict: the key and the use go on the next tick");
         check(List.of("10@2", "9@2"), actionsOf(HotbarOrder.HERZIUM, SPLIT, attackKeyUse),
                 "split: attack, key, use in one tick as in Vanilla");
         check(1, passesOf(HotbarOrder.HERZIUM, SPLIT, attackKeyUse), "split: attack, key, use is one tick");
@@ -302,16 +300,13 @@ public final class HotbarOrderTest {
             int[] raw = decode(encoded, 5, 7);
             int[] events = new int[raw.length];
             for (int i = 0; i < raw.length; i++) events[i] = wheelAlphabet[raw[i]];
-            // Only the Herzium order: the same-tick replay cannot put back a wheel turn that
-            // already happened between two of the stretches it replays, one more reason it stays
-            // a laboratory order.
             for (HotbarOrderPolicy.Options option : new HotbarOrderPolicy.Options[] {SPLIT, STRICT,
                     HotbarOrderPolicy.Options.LEGACY}) {
                 verifyOptions(HotbarOrder.HERZIUM, option, events);
             }
         }
 
-        HotbarOrder[] orders = {HotbarOrder.HERZIUM, HotbarOrder.SAME_TICK};
+        HotbarOrder[] orders = {HotbarOrder.HERZIUM};
         HotbarOrderPolicy.Options[] options = {SPLIT, STRICT, SPLIT_NO_SYNC, HotbarOrderPolicy.Options.LEGACY};
         // Exhaustive: every burst of four events over all thirteen codes.
         for (int encoded = 0; encoded < 13 * 13 * 13 * 13; encoded++) {
@@ -370,8 +365,8 @@ public final class HotbarOrderTest {
 
     /**
      * Every event arrives before the first pass, as in one very fast frame; then
-     * passes run as handleKeybinds does -- the same-tick replay, the hotbar loop,
-     * then swap, drop, attack and use -- until every click is consumed.
+     * passes run as handleKeybinds does -- the hotbar loop, then swap, drop,
+     * attack and use -- until every click is consumed.
      */
     private static Outcome simulate(HotbarOrder order, HotbarOrderPolicy.Options options, int[] events) {
         HotbarOrderPolicy policy = new HotbarOrderPolicy();
@@ -395,29 +390,6 @@ public final class HotbarOrderTest {
         while (Arrays.stream(counts).sum() > 0) {
             if (++passes > events.length + 2) throw new AssertionError("no progress: " + Arrays.toString(events));
             int changes = 0;
-            if (order == HotbarOrder.SAME_TICK) {
-                for (HotbarOrderPolicy.Segment segment : policy.sameTickPrefix(counts.clone())) {
-                    if (segment.actions()[DROP] > 0) break;
-                    for (int slot = 0; slot < 9; slot++) {
-                        for (int c = 0; c < segment.keyClicks()[slot]; c++) {
-                            counts[slot]--;
-                            policy.consumed(slot, counts[slot]);
-                        }
-                    }
-                    if (segment.slot() >= 0) {
-                        if (segment.slot() != current) changes++;
-                        current = segment.slot();
-                        policy.noteSelection(segment.slot(), segment.press());
-                    }
-                    for (int type : new int[] {SWAP, ATTACK, USE}) {
-                        for (int c = 0; c < segment.actions()[type]; c++) {
-                            counts[type]--;
-                            policy.actionConsumed(type, counts[type]);
-                            actions.add(type + "@" + current);
-                        }
-                    }
-                }
-            }
             policy.beginPass(order, options, current, counts.clone());
             int before = current;
             for (int slot = 0; slot < 9; slot++) {
@@ -455,7 +427,6 @@ public final class HotbarOrderTest {
         check(false, outcome.changedTwiceInAPass(), "Herzium order changes the slot at most once per tick");
         int lastKey = -1;
         int total = 0;
-        boolean hasDrop = false;
         boolean hasWheel = false;
         for (int event : events) {
             if (event >= WHEEL) {
@@ -466,13 +437,10 @@ public final class HotbarOrderTest {
             } else {
                 total++;
             }
-            hasDrop |= event == DROP;
         }
         if (lastKey >= 0) check(lastKey, outcome.finalSlot(), "the last input stays selected " + order + " " + options + " " + Arrays.toString(events));
         check(total, outcome.actions().size(), "every click runs exactly once");
-        boolean sameTick = order == HotbarOrder.SAME_TICK;
-        if (!sameTick && !options.splitBursts()) return;
-        if (sameTick && hasDrop) return;
+        if (!options.splitBursts()) return;
         // The wheel selects at once: a click queued before it runs with the wheel's slot, in
         // Vanilla too. Only the final selection is checked for bursts with a wheel.
         if (hasWheel) return;
@@ -491,8 +459,7 @@ public final class HotbarOrderTest {
             actual.get(Integer.parseInt(action.substring(0, action.indexOf('@')))).add(action);
         }
         for (int type = USE; type < HotbarOrderPolicy.TYPES; type++) {
-            boolean covered = sameTick
-                    || type == USE
+            boolean covered = type == USE
                     || (type == ATTACK && options.strictActions())
                     || ((type == SWAP || type == DROP) && options.offhandSync());
             if (covered) {

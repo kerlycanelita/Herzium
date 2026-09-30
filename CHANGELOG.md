@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+## 1.11.0 - 2026-09-30
+
+### Added
+- Three burst options in Mod Menu, all on in a fresh install. With all three
+  off, Herzium behaves exactly like 1.10.7.
+  - **Split bursts** (Herzium order): a click whose item is not the one this
+    tick holds waits for the next tick, together with everything pressed after
+    it. "Obsidian, use, crystal, use" inside one tick now places the obsidian
+    and then the crystal on top of it on the next tick; 1.10.7 placed only the
+    obsidian, because the second use kept the first key's item.
+  - **Strict attacks** (Herzium order): an attack keeps the key pressed before
+    it even when a use follows in the same tick. "Sword, attack, crystal, use"
+    hits with the sword; the crystal key and its use go on the next tick.
+  - **Offhand sync** (every order but Vanilla): the server learns the selected
+    slot right before an offhand swap or a drop. Vanilla sends the swap first,
+    so "totem key, swap" inside one tick swapped the item held before the key.
+    On 26.3 Minecraft already does this for drops, so only swaps need it there.
+
+### Changed
+- Herzium order: the mouse wheel counts as the newest input. A hotbar key still
+  queued from before a wheel turn no longer selects its slot again on the next
+  tick and undoes the wheel.
+- The preview no longer suspends itself during long random bursts: the preview
+  sealed at the end of a pass left out clicks that pass was still going to take.
+
+### Verified
+- Grim Anticheat 2.3.74 with Ravenclaw's Ping Equalizer: the one-tick
+  obsidian→crystal burst lands both blocks in every cycle from 0 to 150 ms of
+  added latency, and anchor→glowstone→detonate and rail→TNT cart at 0 and
+  100 ms (0 % in 1.10.7 and in Vanilla), with no alert, also with Grim's
+  experimental checks on. See `docs/audits/LAB-1.11-burst-options.md`.
+- The released 26.2 JAR, as a fresh install leaves it, through the same lab:
+  every burst at 100 %, next to KoHs Anchor's 0.4.0 and Crystal Tweaks 2.3.1
+  too, and no Grim alert with or without the experimental checks. All seven
+  JARs launch in a clean profile with the new defaults. See
+  `docs/audits/AUDIT-1.11.0-release.md`.
+
 ## 1.10.7 - 2026-09-28
 
 ### Fixed

@@ -10,7 +10,6 @@
     "ItemInHandRendererMixin",
     "KeyMappingAccessor",
     "KeyMappingMixin",
-    "MinecraftActionInvoker",
     "MinecraftHotbarConfirmationMixin",
     "MinecraftMixin",
     "MouseHandlerMixin",

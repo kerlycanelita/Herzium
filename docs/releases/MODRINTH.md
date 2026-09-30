@@ -23,6 +23,17 @@ The highest slot wins, exactly like Minecraft without any mods. Press 1 and 9 to
 
 The lowest slot wins. Press 1 and 9 together, you get slot 1.
 
+Fast bursts, the right item every time
+Three more switches in Mod Menu, all on by default.
+
+🟪 Split bursts — obsidian, use, crystal, use inside one tick places the obsidian, then the crystal right on top of it on the next tick. Vanilla lands only one of them. Same for anchor → glowstone → detonate and rail → TNT minecart.
+
+🟪 Strict attacks — your hit uses the item you held when you clicked, not a key you pressed a few milliseconds later.
+
+🟪 Offhand sync — totem key and swap in the same tick puts the totem in your offhand, not the item you held before.
+
+Every tick still switches slot at most once, before its clicks, just like Vanilla. A click can only ever wait one tick: nothing is sent earlier, nothing is repeated. Tested against Grim Anticheat, with and without its experimental checks, and with Ping Equalizer: no alerts.
+
 
 ⚠️ Read this once
 Herzium (last input) is on by default. It changes the slot you really hold, not just what you see — so the item you use can change, and the server sees it. Switch to Vanilla in Mod Menu if you don't want that, and check your server's rules on client mods. Herzium also tells you this on first launch.

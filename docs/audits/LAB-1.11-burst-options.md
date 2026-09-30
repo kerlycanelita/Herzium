@@ -5,6 +5,10 @@ local server with Grim Anticheat and Ravenclaw's Ping Equalizer, with the player
 bindings. The rig lives in
 [KoHs Debug Tools, `herzium-lab/`](https://github.com/kerlycanelita/KoHs-Debug-Tools-for-KoHs-Mods/tree/main/herzium-lab).
 
+> Shipped in **1.11.0** with all three options on in a fresh install (strict attacks included) and
+> without the same-tick order. The release JAR's own checks, and its run through this lab as a
+> fresh install leaves it, are in the [1.11.0 release audit](AUDIT-1.11.0-release.md).
+
 ## Why
 
 Vanilla's `Minecraft.handleKeybinds` resolves every hotbar key of a client tick before any click of
