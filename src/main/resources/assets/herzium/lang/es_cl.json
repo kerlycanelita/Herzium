@@ -35,7 +35,7 @@
   "herzium.feature.swap_preview": "Vista previa del cambio de mano",
   "herzium.feature.swap_preview.description": "El cambio de mano se dibuja al momento, en las manos y en la barra, en vez de cuando responde el servidor, tu ping después. Solo es dibujo: si el servidor no lo ha confirmado en medio segundo, la pantalla vuelve a mostrar los objetos reales.",
   "herzium.feature.combat_preview": "También objetos de combate",
-  "herzium.feature.combat_preview.description": "Espadas, hachas, mazas, tridentes y los demás objetos de combate también aparecen en la mano al momento, como cualquier otro objeto. Desactívalo para devolverles la animación de equipar de Vanilla, que es como Vanilla enseña que la recarga del ataque empieza de nuevo; el indicador de ataque muestra esa recarga en los dos casos.",
+  "herzium.feature.combat_preview.description": "Espadas, hachas, mazas, tridentes y los demás objetos de combate también aparecen en la mano al momento, como cualquier otro objeto. Viene desactivado, así que conservan la animación de equipar de Vanilla, que es como Vanilla enseña que la recarga del ataque empieza de nuevo; el indicador de ataque muestra esa recarga en los dos casos.",
   "herzium.feature.slot_pop": "Rebote de la ranura",
   "herzium.feature.slot_pop.description": "El objeto de la ranura que eliges hace el pequeño rebote de Vanilla, el de un objeto al llegar a la barra. Una confirmación, tan rápida como tus fotogramas, de que la tecla se leyó. Solo es dibujo.",
   "herzium.feature.no_equip_dip": "Sin bajada al equipar",

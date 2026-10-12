@@ -85,8 +85,9 @@ Everything Herzium draws is now a switch: Hotbar preview, Preview recovery,
 Offhand swap preview (the swap is drawn at once instead of one ping later, and
 undone after half a second if the server does not confirm it), Combat items
 too, Slot pop, No equip dip and Smooth attack indicator. A fresh install has
-all of them on, the fastest the screen can answer; none of them sends, delays
-or changes a packet.
+all of them on but Combat items too, so swords and the other combat items keep
+Vanilla's equip animation, which shows the attack cooldown starting again. None
+of them sends, delays or changes a packet.
 
 The Monitor tab measures instead of promising. The **response meter** shows how
 many milliseconds your last hotbar key took to reach the screen and to reach
@@ -103,7 +104,8 @@ went with the key pressed with them. The findings and measurements are in the
 
 - **Hotbar preview.** Vanilla's currently resolvable requested slot can be
   highlighted on the next rendered frame. The item also appears in hand immediately;
-  switch Combat items too off to give combat items Vanilla's hand/equip transition back.
+  combat items keep Vanilla's hand/equip transition unless Combat items too is on
+  (off in a fresh install).
 - **Selection-order preference.** The Order tab of the settings chooses among
   the three modes and saves the choice. No restart is needed.
 - **Equip transition.** Removes the decorative equip dip from main-hand and
@@ -154,15 +156,15 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 | Minecraft | Jar | Java |
 | --- | --- | --- |
-| 1.21.10 | `herzium-1.21.10-1.12.0.jar` | 21 |
-| 1.21.11 | `herzium-1.21.11-1.12.0.jar` | 21 |
-| 26.1 | `herzium-26.1-1.12.0.jar` | 25 |
-| 26.1.1 | `herzium-26.1.1-1.12.0.jar` | 25 |
-| 26.1.2 | `herzium-26.1.2-1.12.0.jar` or `herzium-1.12.0.jar` | 25 |
-| 26.2 | `herzium-26.2-1.12.0.jar` | 25 |
-| 26.3 | `herzium-26.3-1.12.0.jar` | 25 |
+| 1.21.10 | `herzium-1.21.10-1.12.1.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.12.1.jar` | 21 |
+| 26.1 | `herzium-26.1-1.12.1.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.12.1.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.12.1.jar` or `herzium-1.12.1.jar` | 25 |
+| 26.2 | `herzium-26.2-1.12.1.jar` | 25 |
+| 26.3 | `herzium-26.3-1.12.1.jar` | 25 |
 
-The root build's `herzium-1.12.0.jar` accepts `>=26.1.2 <26.2`, so it also loads
+The root build's `herzium-1.12.1.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
 
 Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
@@ -206,7 +208,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.12.0`. The file
+`mod_version` comes from `gradle.properties` — currently `1.12.1`. The file
 ending in `-sources.jar` is not the playable build.
 
 The other game versions come from a separate build:

@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-### 1.12.1 (26.2 test build)
+## 1.12.1 - 2026-10-12
 
-#### Fixed
+### Fixed
 - **The click that lands before its key.** Two hands press a key and its click
   together, and now and then the click lands a few milliseconds first. Vanilla
   forgives that inside a tick, because it applies a tick's keys before its
@@ -21,7 +21,7 @@
   KoHs Anchor's 0.6.1 (117/120 with 100 ms of latency), with no Grim alert. Herzium alone
   sends every slip of a tick with its key's item (37/37), as Vanilla does.
 
-#### Changed
+### Changed
 - **The core has no switches.** Split bursts, Offhand sync, Hold guard and
   Ignore key repeat are the Herzium order now: always on, and no longer saved.
   With any of them off a burst sent the wrong item or an extra click, and none
@@ -30,8 +30,11 @@
   they did is off. Strict attacks took two ticks for "attack, key, use" where
   Vanilla takes one.
 - The settings screen has four tabs: Order, Feel, Monitor and KoHs.
+- **Combat items too is off in a fresh install.** Swords and the other combat
+  items keep Vanilla's equip animation, which shows the attack cooldown starting
+  again. A config that already holds the switch keeps its value.
 
-#### Added
+### Added
 - The first time the tick shape monitor sees a hotbar change after a click of
   the same tick, the log gets the call that sent the click and the call that
   sent the change: that names the mod. The Monitor tab counts the clicks that

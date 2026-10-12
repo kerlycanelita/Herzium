@@ -284,9 +284,10 @@ abstract class SmokeTickMixin {{
         assert key not in config, (key, config)
     # 1.12: the fastest drawing and the guards are on; one click per tick, mouse-like keys and the HUD line are off.
     for key in ("hotbarPreview", "previewRecovery", "swapPreview",
-                "combatPreview", "slotPop", "noEquipDip", "smoothIndicator", "shapeMonitor"):
+                "slotPop", "noEquipDip", "smoothIndicator", "shapeMonitor"):
         assert config[key] is True, (key, config)
-    for key in ("responseMeter",):
+    # 1.12.1: combat items keep Vanilla's equip animation unless the player switches it on.
+    for key in ("combatPreview", "responseMeter"):
         assert config[key] is False, (key, config)
     for target, handler in [(targets[4], "renderVanillaResolvableHotbarInput"),
                             (targets[5], "replaceVisibleItemImmediately")]:

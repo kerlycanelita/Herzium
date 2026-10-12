@@ -35,7 +35,7 @@
   "herzium.feature.swap_preview": "Offhand swap preview",
   "herzium.feature.swap_preview.description": "An offhand swap is drawn at once, in the hands and in the hotbar, instead of when the server answers, your ping later. Only drawing: if the server has not confirmed it in half a second, the screen shows the real items again.",
   "herzium.feature.combat_preview": "Combat items too",
-  "herzium.feature.combat_preview.description": "Swords, axes, maces, tridents and the other combat items also take the hand at once, like every other item. Switch it off to give them back Vanilla's equip animation, which is how Vanilla shows the attack cooldown starting again; the attack indicator shows that cooldown either way.",
+  "herzium.feature.combat_preview.description": "Swords, axes, maces, tridents and the other combat items take the hand at once too, like every other item. Off in a fresh install: they keep Vanilla's equip animation, which is how Vanilla shows the attack cooldown starting again; the attack indicator shows that cooldown either way.",
   "herzium.feature.slot_pop": "Slot pop",
   "herzium.feature.slot_pop.description": "The item of the slot you select makes Vanilla's small bounce, the one an item makes when it arrives in the hotbar. A confirmation, as fast as your frames, that the key was read. Only drawing.",
   "herzium.feature.no_equip_dip": "No equip dip",

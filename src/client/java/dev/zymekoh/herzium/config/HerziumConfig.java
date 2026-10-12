@@ -108,11 +108,14 @@ public final class HerziumConfig {
     private transient volatile boolean oneClickPerTick = false;
     private transient volatile boolean mouseLikeKeys = false;
 
-    /** 1.12 feel: what is drawn, never what is sent. */
+    /**
+     * 1.12 feel: what is drawn, never what is sent. Combat items too is off from 1.12.1: combat
+     * items keep Vanilla's equip animation, the way Vanilla shows the attack cooldown starting.
+     */
     private volatile boolean hotbarPreview = true;
     private volatile boolean previewRecovery = true;
     private volatile boolean swapPreview = true;
-    private volatile boolean combatPreview = true;
+    private volatile boolean combatPreview = false;
     private volatile boolean slotPop = true;
     private volatile boolean noEquipDip = true;
     private volatile boolean smoothIndicator = true;

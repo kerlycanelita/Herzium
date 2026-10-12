@@ -3,7 +3,7 @@
 Herzium
 Your hotbar switches on the very next frame — and you choose which slot wins.
 
-Minecraft waits for its next game update to show a hotbar switch. Herzium draws it on the next frame: up to about 50 ms sooner on a high-refresh monitor. Every item appears in hand right away, weapons included; one switch gives those their normal animation back.
+Minecraft waits for its next game update to show a hotbar switch. Herzium draws it on the next frame: up to about 50 ms sooner on a high-refresh monitor. Every item appears in hand right away; weapons keep their normal animation unless one switch puts them in hand at once too.
 
 Pick how your hotbar chooses
 Press two hotbar keys at once and Minecraft has to pick one. The Order tab of the settings has the three options, no restart.
@@ -24,22 +24,22 @@ The highest slot wins, exactly like Minecraft without any mods. Press 1 and 9 to
 The lowest slot wins. Press 1 and 9 together, you get slot 1.
 
 Fast bursts, the right item every time
-Three more switches in Mod Menu, all on by default.
+Built into the Herzium order, always on.
 
-🟪 Split bursts — obsidian, use, crystal, use inside one tick places the obsidian, then the crystal right on top of it on the next tick. Vanilla lands only one of them. Same for anchor → glowstone → detonate and rail → TNT minecart.
+🟪 Bursts in order — obsidian, use, crystal, use inside one tick places the obsidian, then the crystal right on top of it on the next tick. Vanilla lands only one of them. Same for anchor → glowstone → detonate and rail → TNT minecart.
 
-🟪 Strict attacks — your hit uses the item you held when you clicked, not a key you pressed a few milliseconds later.
+🟪 Two hands, one rhythm — new in 1.12.1. When your click lands a few milliseconds before its key, it goes with that key, as Vanilla does inside a tick. 1.12.0 ran it with the item of the step before: a second glowstone instead of the detonation, and your loop one click late.
 
 🟪 Offhand sync — totem key and swap in the same tick puts the totem in your offhand, not the item you held before.
 
-Every tick still switches slot at most once, before its clicks, just like Vanilla. A click can only ever wait one tick: nothing is sent earlier, nothing is repeated. Tested against Grim Anticheat, with and without its experimental checks, and with Ping Equalizer: no alerts.
+🟪 Hold guard — a button you keep held never places once more with the old item, the ghost block of 1.11.
+
+🟪 Real presses only — a hotbar key you keep held no longer takes the slot back from a slot on a mouse button.
+
+Every tick still switches slot at most once, before its clicks, just like Vanilla. A click can only ever wait one tick, or go with the key pressed right with it: nothing is sent earlier, nothing is repeated. Tested against Grim Anticheat, with and without its experimental checks, and with Ping Equalizer: no alerts.
 
 Built for a real hand
-New in 1.12, each one a switch in the new settings screen, with what it does written next to it.
-
-🟪 Hold guard — while a click waited one tick and you were still holding the button, Minecraft placed once more with the old item: the ghost block of 1.11. With real 80 ms clicks it happened in 25 of 25 bursts; now in none.
-
-🟪 Ignore key repeat — a hotbar key you keep held no longer takes the slot back from a slot on a mouse button.
+In the settings screen, with what each one does written next to it.
 
 🟪 Offhand swap preview — the swap is drawn at once instead of one ping later.
 
@@ -52,7 +52,7 @@ New in 1.12, each one a switch in the new settings screen, with what it does wri
 Herzium (last input) is on by default. It changes the slot you really hold, not just what you see — so the item you use can change, and the server sees it. Switch to Vanilla in Mod Menu if you don't want that, and check your server's rules on client mods. Herzium also tells you this on first launch.
 
 Also included
-No equip dip — items appear in hand at once, and placing a block still plays Minecraft's quick hand dip. Switch "Combat items too" off to give swords, axes, bows and shields their full animation back.
+No equip dip — items appear in hand at once, and placing a block still plays Minecraft's quick hand dip. Swords, axes, bows and shields keep their full animation unless you switch "Combat items too" on.
 Smoother attack indicator — the cooldown bar glides instead of stepping. Your real attack timing is untouched.
 Snappier start-up — skips the title fade and the pause after world creation. Nothing real is skipped, only the waiting.
 Not a performance mod. No FPS gain, and your settings — VSync, max framerate, Raw Input, sensitivity, cursor — are never touched.
