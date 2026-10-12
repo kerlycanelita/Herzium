@@ -87,8 +87,8 @@ public final class HerziumConfigScreen extends Screen {
         return switch (tab) {
             case ORDER -> List.of(Row.of(HotbarOrder.HERZIUM), Row.of(HotbarOrder.VANILLA), Row.of(HotbarOrder.VANILLA_REVERSED));
             case BURSTS -> List.of(Row.of(Feature.SPLIT), Row.of(Feature.STRICT), Row.of(Feature.SYNC));
-            case GUARDS -> List.of(Row.of(Feature.HOLD_GUARD), Row.of(Feature.ONE_CLICK), Row.of(Feature.REPEAT_FILTER),
-                    Row.of(Feature.MOUSE_KEYS));
+            // One click per tick has no row: it drew anticheat alerts with latency and stays a config-file switch.
+            case GUARDS -> List.of(Row.of(Feature.HOLD_GUARD), Row.of(Feature.REPEAT_FILTER), Row.of(Feature.MOUSE_KEYS));
             case FEEL -> List.of(Row.of(Feature.PREVIEW), Row.of(Feature.PREVIEW_RECOVERY), Row.of(Feature.SWAP_PREVIEW),
                     Row.of(Feature.COMBAT_PREVIEW), Row.of(Feature.SLOT_POP), Row.of(Feature.NO_EQUIP_DIP),
                     Row.of(Feature.SMOOTH_INDICATOR));

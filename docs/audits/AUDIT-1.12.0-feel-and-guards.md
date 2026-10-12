@@ -98,8 +98,9 @@ into the rule (13 in 50).
 
 Every one of those ticks is a tick Vanilla can send, and the alert is Grim
 being late, not the player cheating. It is still an alert, on a regular check,
-and a private anticheat may read it the same way. So the switch ships **off**,
-with this written in its description. Hold guard, the fix that matters, does
+and a private anticheat may read it the same way. So it ships **off** and has
+no row in the settings screen: only `oneClickPerTick` in the config file
+switches it on. Hold guard, the fix that matters, does
 not move any click to a new block and drew no alert at 0 or 100 ms.
 
 ## What a server can see
@@ -168,12 +169,12 @@ for the server would be guessing, and a wrong guess is a ghost item. Herzium
 | Switch | Tab | Default | Packets |
 | --- | --- | --- | --- |
 | Hold guard | Guards | on | Leaves out the use Vanilla adds for a held button in a tick whose click waits |
-| One click per tick | Guards | off | A second use or attack waits one tick |
+| One click per tick | config file only | off | A second use or attack waits one tick |
 | Ignore key repeat | Guards | on | None; changes which press counts as newest |
 | Mouse-like keys | Guards | off | Leaves out keyboard repeats of use, attack, swap, drop |
 | Preview recovery | Feel | on | None |
 | Offhand swap preview | Feel | on | None |
-| Combat items too | Feel | off | None |
+| Combat items too | Feel | on | None |
 | Slot pop | Feel | on | None |
 | Response meter | Monitor | off | None |
 | Tick shape monitor | Monitor | on | None |
@@ -185,7 +186,10 @@ none is sent sooner than Vanilla would send it.
 
 ## Proof
 
-All of it with the seven JARs of `docs/releases/1.12.0-checksums.sha256`.
+Run on the build before the last two changes, which touch no input code: One
+click per tick lost its row in the settings, and Combat items too, a drawing
+switch, became on by default. The published JARs are those of
+`docs/releases/1.12.0-checksums.sha256`.
 
 - `hotbarOrderTest`: 9,464,240 assertions over the order policy, the new
   options (one click and its one-tick limit, held keys, mouse-like keys) and

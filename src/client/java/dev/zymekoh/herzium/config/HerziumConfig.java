@@ -112,7 +112,10 @@ public final class HerziumConfig {
      * Like the burst options they stand down under the Vanilla order.
      */
     private volatile boolean holdGuard = true;
-    /** Off: with latency its second click lands on a block the server has not confirmed (AUDIT-1.12.0). */
+    /**
+     * Off, and not in the settings screen: with latency its second click lands on a block the
+     * server has not confirmed (AUDIT-1.12.0). Only this file can switch it on.
+     */
     private volatile boolean oneClickPerTick = false;
     private volatile boolean repeatFilter = true;
     private volatile boolean mouseLikeKeys = false;
@@ -121,7 +124,7 @@ public final class HerziumConfig {
     private volatile boolean hotbarPreview = true;
     private volatile boolean previewRecovery = true;
     private volatile boolean swapPreview = true;
-    private volatile boolean combatPreview = false;
+    private volatile boolean combatPreview = true;
     private volatile boolean slotPop = true;
     private volatile boolean noEquipDip = true;
     private volatile boolean smoothIndicator = true;

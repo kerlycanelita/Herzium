@@ -14,7 +14,7 @@
 Herzium is a small client-side visual-response mod. When a hotbar slot is
 requested with a configured hotbar key, Herzium can preview Vanilla's currently
 resolvable HUD highlight on the next rendered frame instead of waiting for
-Vanilla's next client tick. Ordinary non-combat items can also be previewed in hand. That can
+Vanilla's next client tick. The item can also be previewed in hand. That can
 make the response visible up to one normal client tick (about 50 ms) sooner on
 a high refresh-rate display.
 
@@ -68,24 +68,28 @@ them, against Grim Anticheat with Ping Equalizer, are in the
 
 ### Guards (1.12)
 
-Four switches for what a real hand does that a burst on paper does not: it
-holds the button down, it double-clicks, and its keyboard repeats held keys.
-They act in every order but Vanilla.
+Switches for what a real hand does that a burst on paper does not: it holds
+the button down, and its keyboard repeats held keys. They act in every order
+but Vanilla.
 
 | Option | Default | What it does |
 | --- | --- | --- |
 | Hold guard | on | When a click waits one tick for its key, Vanilla saw the button still held and used the old item at once. That extra use with the wrong item was the ghost block of 1.11. The held button now waits with its click. |
-| One click per tick | off | Two uses or two attacks pressed inside one tick go one per tick; nothing is lost and nothing waits more than one tick. Off because it was measured: with latency the second click lands on the block the first just placed, before the server confirms it, and Grim's `AirLiquidPlace` alerted on it for a player standing still. |
 | Ignore key repeat | on (Herzium order) | A hotbar key held on the keyboard keeps repeating. Tapping a slot bound to a mouse button does not stop it, so the held key took the slot back. Only real presses count now. |
 | Mouse-like keys | off | Use, attack, swap and drop bound to a keyboard key act once per press, as a mouse button does, instead of repeating while held. |
+
+A fifth guard, One click per tick, is in the code but not in the settings: with
+100 ms of ping it drew Grim's `AirLiquidPlace` (see the audit). It is off, and
+only `oneClickPerTick` in `config/herzium.json` switches it on.
 
 ### Feel and Monitor (1.12)
 
 Everything Herzium draws is now a switch: Hotbar preview, Preview recovery,
 Offhand swap preview (the swap is drawn at once instead of one ping later, and
 undone after half a second if the server does not confirm it), Combat items
-too (off), Slot pop, No equip dip and Smooth attack indicator. None of them
-sends, delays or changes a packet.
+too, Slot pop, No equip dip and Smooth attack indicator. A fresh install has
+all of them on, the fastest the screen can answer; none of them sends, delays
+or changes a packet.
 
 The Monitor tab measures instead of promising. The **response meter** shows how
 many milliseconds your last hotbar key took to reach the screen and to reach
@@ -98,13 +102,13 @@ a row, and two placements in one tick. The findings and measurements are in the
 ## What it changes
 
 - **Hotbar preview.** Vanilla's currently resolvable requested slot can be
-  highlighted on the next rendered frame. Ordinary items can also appear in hand immediately;
-  combat items keep Vanilla's hand/equip transition.
+  highlighted on the next rendered frame. The item also appears in hand immediately;
+  switch Combat items too off to give combat items Vanilla's hand/equip transition back.
 - **Selection-order preference.** The Order tab of the settings chooses among
   the three modes and saves the choice. No restart is needed.
-- **Ordinary-item equip transition.** Removes the decorative equip dip from
-  ordinary main-hand and offhand items. Placing one still plays Vanilla's short
-  hand dip, the visual confirmation of the placement. Combat items keep
+- **Equip transition.** Removes the decorative equip dip from main-hand and
+  offhand items. Placing one still plays Vanilla's short hand dip, the visual
+  confirmation of the placement. With Combat items too off, combat items keep
   Vanilla's complete equip transition.
 - **Smoother attack indicator.** Interpolates only the displayed attack meter,
   conservatively within Vanilla's current tick. It does not change cooldowns

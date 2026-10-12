@@ -17,9 +17,9 @@
   tapped on a mouse button (its repeats counted as new presses).
 
 ### Added
-- **Guards**: Hold guard and Ignore key repeat (on); One click per tick and
-  Mouse-like keys (off).
-- **Feel**: Offhand swap preview, Slot pop, Combat items too (off), Preview
+- **Guards**: Hold guard and Ignore key repeat (on), Mouse-like keys (off).
+  One click per tick exists only as `oneClickPerTick` in the config file, off.
+- **Feel**: Offhand swap preview, Slot pop, Combat items too, Preview
   recovery; and switches for Hotbar preview, No equip dip and Smooth attack
   indicator, which were always on before.
 - **Monitor**: a response meter (milliseconds from key to screen and to tick,
@@ -37,7 +37,7 @@
   Tweaks. Every click used the right item, no extra use, no alert. The
   laboratory's own stricter judge, which reads the client's ticks the way a
   server does since 1.21.2, found no tick Vanilla could not send.
-- One click per tick was measured and ships off: with 100 ms of ping it drew
+- One click per tick was measured and ships off and out of the settings: with 100 ms of ping it drew
   Grim's `AirLiquidPlace` 13 times in 50 bursts (Vanilla: 2). All seven JARs
   launch with the new settings screen; 1.21.11 passes 314 order scenarios. See
   `docs/audits/AUDIT-1.12.0-feel-and-guards.md`.
