@@ -163,7 +163,7 @@ CPU-limited frame rate and will not make loading work finish faster.
 | 26.2 | `herzium-26.2-1.12.0.jar` | 25 |
 | 26.3 | `herzium-26.3-1.12.0.jar` | 25 |
 
-The root build's `herzium-1.11.0.jar` accepts `>=26.1.2 <26.2`, so it also loads
+The root build's `herzium-1.12.0.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
 
 Herzium is client-side only. **Fabric API and Mod Menu are both optional**, with
@@ -207,7 +207,7 @@ combine the two mods.
 ```
 
 The release JAR is written to `build/libs/herzium-<mod_version>.jar`, where
-`mod_version` comes from `gradle.properties` — currently `1.11.0`. The file
+`mod_version` comes from `gradle.properties` — currently `1.12.0`. The file
 ending in `-sources.jar` is not the playable build.
 
 The other game versions come from a separate build:
