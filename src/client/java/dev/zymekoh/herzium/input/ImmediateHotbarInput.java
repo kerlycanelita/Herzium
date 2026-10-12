@@ -34,7 +34,12 @@ public final class ImmediateHotbarInput {
     private static final AtomicReference<PreviewState> PENDING_CONFIRMATION =
             new AtomicReference<>();
     private static final AtomicLong LAST_HUD_HOOK_NANOS = new AtomicLong();
+    /** How long one disagreement with Vanilla switches the preview off when it may recover. */
+    private static final long RECOVERY_NANOS = 3_000_000_000L;
     private static volatile boolean suspended;
+    private static volatile long suspendedAtNanos;
+    /** The slot the hotbar drew last, for the pop of a newly selected item. */
+    private static int lastHudSlot = -1;
     /** The slot Vanilla's own hotbar call site selected in the current pass, or -1. */
     private static volatile int callSiteSlot = -1;
 
@@ -43,7 +48,7 @@ public final class ImmediateHotbarInput {
 
     /** Called after Vanilla has registered exactly one logical KeyMapping click. */
     public static void previewLogicalKey(InputConstants.Key logicalKey) {
-        if (suspended || !hudHookIsHealthy()) {
+        if (suspended()) {
             return;
         }
 
@@ -75,8 +80,62 @@ public final class ImmediateHotbarInput {
 
         int pendingSlot = resolvePendingVanillaSlot(minecraft);
         if (pendingSlot >= 0) {
-            cacheResolvedPendingSlot(player, pendingSlot);
+            if (pendingSlot != player.getInventory().getSelectedSlot()) {
+                ResponseMeter.pressed(pendingSlot);
+            }
+            if (hudHookIsHealthy() && HerziumConfig.get().on(HerziumConfig.Feature.PREVIEW)) {
+                cacheResolvedPendingSlot(player, pendingSlot);
+            }
         }
+    }
+
+    /**
+     * Whether a disagreement with Vanilla has the preview switched off. With
+     * recovery on it comes back after a few seconds; without it, on the next
+     * world, as before 1.12.
+     */
+    private static boolean suspended() {
+        if (!suspended) {
+            return false;
+        }
+        if (HerziumConfig.get().on(HerziumConfig.Feature.PREVIEW_RECOVERY)
+                && System.nanoTime() - suspendedAtNanos > RECOVERY_NANOS) {
+            suspended = false;
+            return false;
+        }
+        return true;
+    }
+
+    /** The slot the hotbar draws as selected: the preview, measured and with its pop. */
+    public static int hudSlot(Inventory inventory, int vanillaSlot) {
+        int slot = visualSelectedSlot(inventory, vanillaSlot);
+        ResponseMeter.drawing(slot);
+        if (slot != lastHudSlot) {
+            // Vanilla's own bounce for an item that just arrived in a slot, here
+            // for the slot that was just selected. Drawn only; nothing reads it.
+            if (lastHudSlot >= 0 && slot >= 0 && slot < Inventory.getSelectionSize()
+                    && HerziumConfig.get().on(HerziumConfig.Feature.SLOT_POP)) {
+                ItemStack stack = inventory.getItem(slot);
+                if (!stack.isEmpty()) {
+                    stack.setPopTime(4);
+                }
+            }
+            lastHudSlot = slot;
+        }
+        return slot;
+    }
+
+    /** Whether a stack takes the hand at once, without Vanilla's equip dip. */
+    public static boolean instantEquip(ItemStack stack) {
+        HerziumConfig config = HerziumConfig.get();
+        return config.on(HerziumConfig.Feature.NO_EQUIP_DIP)
+                && (config.on(HerziumConfig.Feature.COMBAT_PREVIEW)
+                        || !CombatItemClassifier.preservesVanillaEquipTransition(stack));
+    }
+
+    /** What the offhand draws: the real stack, or the other one while a swap is on its way. */
+    public static ItemStack visualOffHandItem(LocalPlayer player) {
+        return SwapPreview.offhand(player, player.getOffhandItem());
     }
 
     /** Returns a provisional render value; it never writes to the inventory. */
@@ -87,7 +146,7 @@ public final class ImmediateHotbarInput {
         }
         // Checked here too, so a suspension takes effect on the very next
         // frame instead of leaving a preview on screen until the deadline.
-        if (suspended || !hudHookIsHealthy() || !previewIsValid(state, inventory)) {
+        if (suspended() || !hudHookIsHealthy() || !previewIsValid(state, inventory)) {
             clearPreview(state);
             return vanillaSlot;
         }
@@ -102,6 +161,10 @@ public final class ImmediateHotbarInput {
     }
 
     public static ItemStack visualMainHandItem(LocalPlayer player) {
+        ItemStack swapped = SwapPreview.mainHand(player);
+        if (swapped != null) {
+            return swapped;
+        }
         int vanillaSlot = player.getInventory().getSelectedSlot();
         int visualSlot = visualSelectedSlot(player.getInventory(), vanillaSlot);
         if (visualSlot == vanillaSlot) {
@@ -113,7 +176,8 @@ public final class ImmediateHotbarInput {
         // combat item keeps its complete Vanilla hand/equip transition. This
         // separates input feedback from the animation policy instead of making
         // combat slots look as if their hotbar binding was ignored.
-        return CombatItemClassifier.preservesVanillaEquipTransition(previewedItem)
+        return !HerziumConfig.get().on(HerziumConfig.Feature.COMBAT_PREVIEW)
+                && CombatItemClassifier.preservesVanillaEquipTransition(previewedItem)
                 ? player.getMainHandItem()
                 : previewedItem;
     }
@@ -145,7 +209,8 @@ public final class ImmediateHotbarInput {
         // slot as a new generation instead of briefly falling back to the slot
         // which has just been committed.
         int remainingSlot = resolvePendingVanillaSlot(minecraft);
-        if (remainingSlot >= 0 && !suspended && hudHookIsHealthy()) {
+        if (remainingSlot >= 0 && !suspended() && hudHookIsHealthy()
+                && HerziumConfig.get().on(HerziumConfig.Feature.PREVIEW)) {
             cacheResolvedPendingSlot(player, remainingSlot);
         }
     }
@@ -188,6 +253,7 @@ public final class ImmediateHotbarInput {
         // precisely the ghost state this feature exists to avoid. From here on
         // the current world follows Vanilla with no speculative rendering.
         suspended = true;
+        suspendedAtNanos = System.nanoTime();
         PREVIEW.set(null);
         Herzium.LOGGER.warn(
                 "Priority Hotbar expected slot {} from the configured queued-slot order but the final "
@@ -207,6 +273,12 @@ public final class ImmediateHotbarInput {
     /** Called after Vanilla's hotbar call site really selected a slot. */
     public static void noteCallSiteSelection(int slot) {
         callSiteSlot = slot;
+        ResponseMeter.committed(slot);
+    }
+
+    /** Whether a disagreement with Vanilla currently has the preview switched off. */
+    public static boolean previewSuspended() {
+        return suspended;
     }
 
     /** Marks the optional HUD expression hook as alive for coordinated rendering. */
@@ -260,6 +332,10 @@ public final class ImmediateHotbarInput {
         PENDING_CONFIRMATION.set(null);
         LAST_HUD_HOOK_NANOS.set(0L);
         suspended = false;
+        lastHudSlot = -1;
+        SwapPreview.clear();
+        ResponseMeter.reset();
+        ShapeMonitor.reset();
     }
 
     /**

@@ -106,6 +106,87 @@ public final class HerziumConfig {
      */
     private volatile boolean offhandSync = true;
 
+    /**
+     * 1.12 guards. They only ever make a click wait or drop a repeat the
+     * keyboard made by itself; none creates, repeats or sends anything early.
+     * Like the burst options they stand down under the Vanilla order.
+     */
+    private volatile boolean holdGuard = true;
+    /** Off: with latency its second click lands on a block the server has not confirmed (AUDIT-1.12.0). */
+    private volatile boolean oneClickPerTick = false;
+    private volatile boolean repeatFilter = true;
+    private volatile boolean mouseLikeKeys = false;
+
+    /** 1.12 feel: what is drawn, never what is sent. */
+    private volatile boolean hotbarPreview = true;
+    private volatile boolean previewRecovery = true;
+    private volatile boolean swapPreview = true;
+    private volatile boolean combatPreview = false;
+    private volatile boolean slotPop = true;
+    private volatile boolean noEquipDip = true;
+    private volatile boolean smoothIndicator = true;
+    private volatile boolean responseMeter = false;
+    private volatile boolean shapeMonitor = true;
+
+    /**
+     * Every switch of the settings screen. The burst options keep their own
+     * fields and getters too: KoHs Anchor's, Crystal Tweaks and the lab read
+     * those by name.
+     */
+    public enum Feature {
+        SPLIT, STRICT, SYNC, HOLD_GUARD, ONE_CLICK, REPEAT_FILTER, MOUSE_KEYS,
+        PREVIEW, PREVIEW_RECOVERY, SWAP_PREVIEW, COMBAT_PREVIEW, SLOT_POP, NO_EQUIP_DIP, SMOOTH_INDICATOR,
+        RESPONSE_METER, SHAPE_MONITOR;
+
+        public String key() {
+            return "herzium.feature." + name().toLowerCase(java.util.Locale.ROOT);
+        }
+    }
+
+    public boolean on(Feature feature) {
+        return switch (feature) {
+            case SPLIT -> this.splitBursts;
+            case STRICT -> this.strictActionOrder;
+            case SYNC -> this.offhandSync;
+            case HOLD_GUARD -> this.holdGuard;
+            case ONE_CLICK -> this.oneClickPerTick;
+            case REPEAT_FILTER -> this.repeatFilter;
+            case MOUSE_KEYS -> this.mouseLikeKeys;
+            case PREVIEW -> this.hotbarPreview;
+            case PREVIEW_RECOVERY -> this.previewRecovery;
+            case SWAP_PREVIEW -> this.swapPreview;
+            case COMBAT_PREVIEW -> this.combatPreview;
+            case SLOT_POP -> this.slotPop;
+            case NO_EQUIP_DIP -> this.noEquipDip;
+            case SMOOTH_INDICATOR -> this.smoothIndicator;
+            case RESPONSE_METER -> this.responseMeter;
+            case SHAPE_MONITOR -> this.shapeMonitor;
+        };
+    }
+
+    public void toggle(Feature feature) {
+        boolean value = !on(feature);
+        switch (feature) {
+            case SPLIT -> this.splitBursts = value;
+            case STRICT -> this.strictActionOrder = value;
+            case SYNC -> this.offhandSync = value;
+            case HOLD_GUARD -> this.holdGuard = value;
+            case ONE_CLICK -> this.oneClickPerTick = value;
+            case REPEAT_FILTER -> this.repeatFilter = value;
+            case MOUSE_KEYS -> this.mouseLikeKeys = value;
+            case PREVIEW -> this.hotbarPreview = value;
+            case PREVIEW_RECOVERY -> this.previewRecovery = value;
+            case SWAP_PREVIEW -> this.swapPreview = value;
+            case COMBAT_PREVIEW -> this.combatPreview = value;
+            case SLOT_POP -> this.slotPop = value;
+            case NO_EQUIP_DIP -> this.noEquipDip = value;
+            case SMOOTH_INDICATOR -> this.smoothIndicator = value;
+            case RESPONSE_METER -> this.responseMeter = value;
+            case SHAPE_MONITOR -> this.shapeMonitor = value;
+        }
+        changed();
+    }
+
     public static HerziumConfig get() {
         HerziumConfig current = instance;
         if (current != null) {
@@ -184,7 +265,8 @@ public final class HerziumConfig {
 
     /** The burst options of the Herzium order, read once per input pass. */
     public HotbarOrderPolicy.Options burstOptions() {
-        return new HotbarOrderPolicy.Options(this.splitBursts, this.strictActionOrder, this.offhandSync);
+        return new HotbarOrderPolicy.Options(this.splitBursts, this.strictActionOrder, this.offhandSync,
+                this.oneClickPerTick, this.repeatFilter, this.mouseLikeKeys);
     }
 
     public boolean splitBursts() { return this.splitBursts; }
@@ -206,7 +288,11 @@ public final class HerziumConfig {
     }
 
     public void cycleHotbarOrder() {
-        this.hotbarOrder = hotbarOrder().next();
+        setHotbarOrder(hotbarOrder().next());
+    }
+
+    public void setHotbarOrder(HotbarOrder order) {
+        this.hotbarOrder = order;
         HotbarOrderController.reset();
         ImmediateHotbarInput.clearPreview();
         this.save();

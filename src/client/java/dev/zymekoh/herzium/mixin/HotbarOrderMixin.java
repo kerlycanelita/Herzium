@@ -1,5 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.zymekoh.herzium.input.HotbarOrderController;
@@ -10,6 +11,7 @@ import net.minecraft.world.entity.player.Inventory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /** Server-observable slot preference; Herzium order is the default, Vanilla is one click away. */
@@ -51,12 +53,30 @@ abstract class HotbarOrderMixin {
         }
         int action = HotbarOrderController.actionTypeOf(minecraft, mapping);
         if (action < 0) return original.call(mapping);
-        if (!HotbarOrderController.allowsActionClick(action)) return false;
-        boolean consumed = original.call(mapping);
-        if (consumed) {
-            HotbarOrderController.actionClickConsumed(action, ((KeyMappingAccessor) mapping).herzium$getPendingClickCount());
+        // A repeat the keyboard made while the key was held is consumed and
+        // skipped where the options drop it; the loop goes on to the next click.
+        while (HotbarOrderController.allowsActionClick(action)) {
+            if (!original.call(mapping)) return false;
+            if (HotbarOrderController.actionClickConsumed(action,
+                    ((KeyMappingAccessor) mapping).herzium$getPendingClickCount())) {
+                return true;
+            }
         }
-        return consumed;
+        return false;
+    }
+
+    // Vanilla starts a held use when the key is down and nothing delays it. A
+    // use whose press waits for the next tick is not a held use yet.
+    @ModifyExpressionValue(method = "handleKeybinds", at = @At(value = "FIELD",
+            target = "Lnet/minecraft/client/Minecraft;rightClickDelay:I"), require = 1)
+    private int herzium$heldUseWaitsWithItsClick(int delay) {
+        return delay == 0 && HotbarOrderController.heldUseWaits() ? 1 : delay;
+    }
+
+    @ModifyArg(method = "handleKeybinds", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/Minecraft;continueAttack(Z)V"), require = 1)
+    private boolean herzium$heldAttackWaitsWithItsClick(boolean attackDown) {
+        return attackDown && !HotbarOrderController.heldAttackWaits();
     }
 
     // The queue and its one-consumption-per-slot loop are untouched. An
@@ -76,7 +96,7 @@ abstract class HotbarOrderMixin {
     @Inject(method = "handleKeybinds", at = @At(value = "NEW",
             target = "net/minecraft/network/protocol/game/ServerboundPlayerActionPacket"), require = 1)
     private void herzium$sendSlotBeforeOffhandSwap(CallbackInfo ci) {
-        HotbarOrderController.sendSlotBeforeOffhandAction((Minecraft) (Object) this);
+        HotbarOrderController.beforeOffhandSwap((Minecraft) (Object) this);
     }
 
     // Up to 26.2 a drop is sent the same way. 26.3 drops through

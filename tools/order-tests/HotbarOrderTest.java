@@ -105,34 +105,57 @@ public final class HotbarOrderTest {
             policy.reset(); policy.recordPress(1 << 8); policy.recordPress(1 << 0);
             check(0, policy.preview(counts(0, 8), HotbarOrder.HERZIUM, -1), binding);
         }
-        for (int w = 48; w <= 1920; w += w < 480 ? 8 : 40) {
-            for (int h = 48; h <= 1080; h += h < 360 ? 6 : 40) {
-                for (int labelWidth : new int[] {40, 110, 150, 320}) {
+        // The settings screen: every box inside the panel, none over another, at every size.
+        for (int w = 120; w <= 2600; w += w < 700 ? 7 : 60) {
+            for (int h = 48; h <= 1440; h += h < 400 ? 5 : 40) {
+                for (int labelWidth : new int[] {20, 60, 110, 240}) {
                     HerziumConfigLayout l = HerziumConfigLayout.fit(w, h, labelWidth);
-                    check(true, l.x() >= 0 && l.y() >= 0 && l.x() + l.width() <= w && l.y() + l.height() <= h, "panel bounds");
-                    check(true, l.modeY() >= l.y() && l.doneY() + l.buttonHeight() <= l.y() + l.height(), "button bounds");
-                    check(true, l.modeY() + l.buttonHeight() <= l.doneY(), "button overlap");
-                    int[] previous = null;
-                    for (int option = 0; option < HerziumConfigLayout.OPTIONS; option++) {
-                        int[] b = l.option(option);
-                        check(true, b[2] > 0 && b[3] > 0, "option has a size " + w + "x" + h);
-                        check(true, b[0] >= l.x() && b[0] + b[2] <= l.x() + l.width(), "option inside the panel " + w + "x" + h);
-                        check(true, b[1] >= l.modeY() + l.buttonHeight(), "option below the order " + w + "x" + h);
-                        check(true, b[1] + b[3] <= l.doneY(), "option above Done " + w + "x" + h);
-                        if (previous != null) {
-                            boolean apart = previous[0] + previous[2] <= b[0] || previous[1] + previous[3] <= b[1];
-                            check(true, apart, "options do not overlap " + w + "x" + h);
+                    String at = " " + w + "x" + h;
+                    HerziumConfigLayout.Box panel = l.panel();
+                    check(true, panel.x() >= 0 && panel.y() >= 0 && panel.right() <= w && panel.bottom() <= h, "panel on screen" + at);
+                    HerziumConfigLayout.Box[] parts = {l.rail(), l.list(), l.info(), l.done()};
+                    for (int a = 0; a < parts.length; a++) {
+                        if (parts[a].empty()) {
+                            check(true, parts[a] == l.info(), "only the explanation may give up its room" + at);
+                            continue;
                         }
-                        previous = b;
-                        check(true, l.textTop() >= b[1] + b[3], "explanation below the options " + w + "x" + h);
+                        check(true, inside(parts[a], panel), "part " + a + " inside the panel" + at);
+                        for (int b = a + 1; b < parts.length; b++) {
+                            check(true, parts[b].empty() || apart(parts[a], parts[b]), "parts " + a + " and " + b + " apart" + at);
+                        }
                     }
-                    check(true, l.textBottom() >= l.textTop() && l.textBottom() <= l.doneY(), "explanation above Done");
+                    HerziumConfigLayout.Box previous = null;
+                    for (int tab = 0; tab < HerziumConfigLayout.TABS; tab++) {
+                        HerziumConfigLayout.Box box = l.tab(tab);
+                        check(true, !box.empty() && inside(box, l.rail()), "tab inside the rail" + at);
+                        check(true, previous == null || apart(previous, box), "tabs apart" + at);
+                        previous = box;
+                    }
+                    check(true, l.visibleRows() >= 1, "at least one switch shows" + at);
+                    previous = null;
+                    for (int row = 0; row < l.visibleRows(); row++) {
+                        HerziumConfigLayout.Box box = l.row(row);
+                        check(true, !box.empty() && inside(box, l.list()), "row inside the list" + at);
+                        check(true, previous == null || apart(previous, box), "rows apart" + at);
+                        previous = box;
+                    }
+                    if (w >= 240 && h >= 140) {
+                        check(true, l.tabHeight() >= 8 && l.rowHeight() >= 12, "controls stay usable from 240x140" + at);
+                    }
                 }
             }
         }
         verifyOptionSuites();
         System.out.printf("PASS: %d policy/layout assertions; %,d exhaustive and %,d random bursts;"
                 + " %,d option bursts.%n", checks, exhaustive, random, optionBursts);
+    }
+
+    private static boolean inside(HerziumConfigLayout.Box box, HerziumConfigLayout.Box outer) {
+        return box.x() >= outer.x() && box.y() >= outer.y() && box.right() <= outer.right() && box.bottom() <= outer.bottom();
+    }
+
+    private static boolean apart(HerziumConfigLayout.Box a, HerziumConfigLayout.Box b) {
+        return a.right() <= b.x() || b.right() <= a.x() || a.bottom() <= b.y() || b.bottom() <= a.y();
     }
 
     /** One Vanilla keybind pass as handleKeybinds runs it; returns the slot it selected, or -1. */
@@ -259,6 +282,11 @@ public final class HotbarOrderTest {
     private static final int DROP = HotbarOrderPolicy.DROP;
     /** Test-only codes 20-28: the mouse wheel selects slot (code - 20). */
     private static final int WHEEL = 20;
+    /** Test-only codes 30-39: the keyboard repeats a held key, a hotbar key (code - 30) or Use (39). */
+    private static final int REPEATED = 30;
+    private static final HotbarOrderPolicy.Options ONE = new HotbarOrderPolicy.Options(true, true, true, true, false, false);
+    private static final HotbarOrderPolicy.Options FILTER = new HotbarOrderPolicy.Options(true, true, true, true, true, false);
+    private static final HotbarOrderPolicy.Options MOUSE = new HotbarOrderPolicy.Options(true, true, true, true, true, true);
 
     private static void verifyOptionSuites() {
         // Named cases first: each is a burst from the laboratory.
@@ -291,6 +319,41 @@ public final class HotbarOrderTest {
         check(List.of("11@0"), actionsOf(HotbarOrder.HERZIUM, SPLIT_NO_SYNC, totemSwapSword),
                 "without offhand sync the last key wins the swap too");
 
+        // 1.12: one click per tick, repeats of a held key, and the hold that waits with its click.
+        int[] doubleUse = {2, USE, USE};
+        check(2, passesOf(HotbarOrder.HERZIUM, ONE, doubleUse), "one click: the second use goes on the next tick");
+        check(List.of("9@2", "9@2"), actionsOf(HotbarOrder.HERZIUM, ONE, doubleUse), "one click: both uses run, with their item");
+        check(1, passesOf(HotbarOrder.HERZIUM, SPLIT, doubleUse), "without it Vanilla runs both in one tick");
+        check(2, passesOf(HotbarOrder.HERZIUM, ONE, new int[] {ATTACK, ATTACK}), "one click: one attack per tick");
+        check(2, passesOf(HotbarOrder.HERZIUM, ONE, new int[] {2, USE, USE, USE, USE}),
+                "one click: four uses take two ticks, not four; a click waits one tick at most");
+        check(1, passesOf(HotbarOrder.VANILLA, ONE, doubleUse), "the Vanilla order stays Vanilla");
+        int[] heldTwo = {2, 5, REPEATED + 2, REPEATED + 2};
+        check(5, finalSlotOf(HotbarOrder.HERZIUM, FILTER, heldTwo), "a key held while another is tapped does not take the slot back");
+        check(2, finalSlotOf(HotbarOrder.HERZIUM, ONE, heldTwo), "without the filter its repeats are the last input, as in Vanilla");
+        int[] heldUse = {2, USE, REPEATED + USE, REPEATED + USE};
+        check(List.of("9@2"), actionsOf(HotbarOrder.HERZIUM, MOUSE, heldUse), "mouse-like keys: repeats of a held use are dropped");
+        check(3, actionsOf(HotbarOrder.HERZIUM, FILTER, heldUse).size(), "without them every repeat is a use, as in Vanilla");
+        HotbarOrderPolicy waiting = new HotbarOrderPolicy();
+        waiting.recordEvent(1 << ATTACK);
+        waiting.recordEvent(1 << 2);
+        waiting.recordEvent(1 << USE);
+        int[] waitingCounts = new int[HotbarOrderPolicy.TYPES];
+        waitingCounts[ATTACK] = waitingCounts[2] = waitingCounts[USE] = 1;
+        waiting.beginPass(HotbarOrder.HERZIUM, STRICT, 4, waitingCounts.clone());
+        check(false, waiting.allowsAction(USE), "strict: the use waits for its key");
+        check(true, waiting.waits(USE), "hold guard: a use whose press waits is not a held use this tick");
+        check(true, waiting.allowsAction(ATTACK), "the attack itself runs now");
+        waiting.actionConsumed(ATTACK, 0);
+        check(false, waiting.waits(ATTACK), "and once it ran, a held attack is an ordinary held attack");
+        check(true, waiting.waits(USE), "while the use still waits");
+        HotbarOrderPolicy plain = new HotbarOrderPolicy();
+        plain.recordEvent(1 << USE);
+        int[] plainCounts = new int[HotbarOrderPolicy.TYPES];
+        plainCounts[USE] = 1;
+        plain.beginPass(HotbarOrder.HERZIUM, STRICT, 4, plainCounts.clone());
+        check(false, plain.waits(USE), "a use nothing holds back never blocks the held use");
+
         // The wheel is the newest input: a key queued before it cannot undo it on the next tick.
         check(5, finalSlotOf(HotbarOrder.HERZIUM, SPLIT, new int[] {2, WHEEL + 5}), "key, then wheel: the wheel stays");
         check(7, finalSlotOf(HotbarOrder.HERZIUM, SPLIT, new int[] {2, WHEEL + 5, 7}), "key, wheel, key: the last key");
@@ -307,7 +370,7 @@ public final class HotbarOrderTest {
         }
 
         HotbarOrder[] orders = {HotbarOrder.HERZIUM};
-        HotbarOrderPolicy.Options[] options = {SPLIT, STRICT, SPLIT_NO_SYNC, HotbarOrderPolicy.Options.LEGACY};
+        HotbarOrderPolicy.Options[] options = {SPLIT, STRICT, SPLIT_NO_SYNC, ONE, HotbarOrderPolicy.Options.LEGACY};
         // Exhaustive: every burst of four events over all thirteen codes.
         for (int encoded = 0; encoded < 13 * 13 * 13 * 13; encoded++) {
             int[] events = decode(encoded, 4, 13);
@@ -339,6 +402,22 @@ public final class HotbarOrderTest {
             }
             verifyLegacyEquivalence(events);
         }
+        // Held keys: a repeat only ever follows a real press of the same key.
+        Random held = new Random(1112);
+        for (int i = 0; i < 12_000; i++) {
+            int[] events = new int[2 + held.nextInt(24)];
+            boolean[] pressed = new boolean[10];
+            for (int e = 0; e < events.length; e++) {
+                int roll = held.nextInt(20);
+                int code = roll < 4 ? USE : roll < 6 ? ATTACK : roll == 6 ? SWAP : held.nextInt(9);
+                boolean repeat = held.nextInt(3) == 0 && (code < 9 || code == USE) && pressed[code];
+                if (code <= USE) pressed[code] = true;
+                events[e] = repeat ? REPEATED + code : code;
+            }
+            for (HotbarOrderPolicy.Options option : new HotbarOrderPolicy.Options[] {ONE, FILTER, MOUSE}) {
+                verifyOptions(HotbarOrder.HERZIUM, option, events);
+            }
+        }
     }
 
     private static int[] decode(int encoded, int length, int base) {
@@ -349,7 +428,7 @@ public final class HotbarOrderTest {
 
     /** What one burst did: each action as "type@slot" in the order it ran, and how many passes it took. */
     private record Outcome(List<String> actions, int passes, int finalSlot, boolean changedTwiceInAPass,
-            int firstPassActions) { }
+            int firstPassActions, int mostClicksInAPass) { }
 
     private static List<String> actionsOf(HotbarOrder order, HotbarOrderPolicy.Options options, int[] events) {
         return simulate(order, options, events).actions();
@@ -373,6 +452,11 @@ public final class HotbarOrderTest {
         int[] counts = new int[HotbarOrderPolicy.TYPES];
         int current = 4;
         for (int event : events) {
+            if (event >= REPEATED) {
+                policy.recordRepeat(1 << (event - REPEATED), options.repeatFilter(), options.mouseKeys());
+                counts[event - REPEATED]++;
+                continue;
+            }
             if (event >= WHEEL) {
                 // The wheel selects at once, between ticks, as Vanilla's scroll handler does.
                 current = event - WHEEL;
@@ -382,6 +466,7 @@ public final class HotbarOrderTest {
             policy.recordEvent(1 << event);
             counts[event]++;
         }
+        int mostClicks = 0;
         List<String> actions = new ArrayList<>();
         int passes = 0;
         boolean changedTwice = false;
@@ -407,17 +492,21 @@ public final class HotbarOrderTest {
             }
             predicted = policy.preview(counts.clone(), order, options, current);
             for (int type : new int[] {SWAP, DROP, ATTACK, USE}) {
+                int ran = 0;
                 while (counts[type] > 0 && policy.allowsAction(type)) {
                     counts[type]--;
-                    policy.actionConsumed(type, counts[type]);
-                    actions.add(type + "@" + current);
+                    if (policy.actionConsumed(type, counts[type])) {
+                        actions.add(type + "@" + current);
+                        ran++;
+                    }
                 }
+                if ((type == ATTACK || type == USE) && firstPassActions < 0) mostClicks = Math.max(mostClicks, ran);
             }
             policy.endPass();
             if (order == HotbarOrder.HERZIUM && changes > 1) changedTwice = true;
             if (firstPassActions < 0) firstPassActions = actions.size();
         }
-        return new Outcome(actions, passes, current, changedTwice, firstPassActions);
+        return new Outcome(actions, passes, current, changedTwice, firstPassActions, mostClicks);
     }
 
     /** Each checked click runs with the last key pressed before it; the Herzium order changes slot once per tick. */
@@ -425,6 +514,19 @@ public final class HotbarOrderTest {
         optionBursts++;
         Outcome outcome = simulate(order, options, events);
         check(false, outcome.changedTwiceInAPass(), "Herzium order changes the slot at most once per tick");
+        if (options.oneClick()) {
+            check(true, outcome.mostClicksInAPass() <= 1, "one click: the tick of the burst takes one use and one attack "
+                    + Arrays.toString(events));
+            HotbarOrderPolicy.Options uncapped = new HotbarOrderPolicy.Options(options.splitBursts(), options.strictActions(),
+                    options.offhandSync(), false, options.repeatFilter(), options.mouseKeys());
+            check(true, outcome.passes() <= simulate(order, uncapped, events).passes() + 1,
+                    "one click: no click waits more than one tick " + Arrays.toString(events));
+        }
+        // What the hand did, as the options read it: a repeat is a press, or it is nothing.
+        int[] raw = events;
+        events = Arrays.stream(raw).filter(event -> event < REPEATED
+                || !(event - REPEATED < 9 ? options.repeatFilter() : options.mouseKeys()))
+                .map(event -> event >= REPEATED ? event - REPEATED : event).toArray();
         int lastKey = -1;
         int total = 0;
         boolean hasWheel = false;

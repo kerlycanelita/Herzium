@@ -13,6 +13,10 @@ public final class HotbarOrderController {
     private static HotbarOrder passOrder = HotbarOrder.VANILLA;
     private static HotbarOrderPolicy.Options passOptions = HotbarOrderPolicy.Options.LEGACY;
     private static boolean passCaptured;
+    private static boolean passHoldGuard;
+    /** Keys seen going down and not yet up: a second "down" for one of them is the keyboard repeating it. */
+    private static final java.util.Set<InputConstants.Key> HELD = new java.util.HashSet<>();
+    private static InputConstants.Key repeatedKey;
 
     private HotbarOrderController() { }
 
@@ -27,8 +31,36 @@ public final class HotbarOrderController {
         if (clicked(minecraft.options.keyAttack, key)) mask |= 1 << HotbarOrderPolicy.ATTACK;
         if (clicked(minecraft.options.keySwapOffhand, key)) mask |= 1 << HotbarOrderPolicy.SWAP;
         if (clicked(minecraft.options.keyDrop, key)) mask |= 1 << HotbarOrderPolicy.DROP;
+        boolean repeat = key.equals(repeatedKey);
+        repeatedKey = null;
+        if (repeat) {
+            HerziumConfig config = HerziumConfig.get();
+            HotbarOrder order = config.hotbarOrder();
+            HotbarOrderPolicy.Options options = config.burstOptions();
+            POLICY.recordRepeat(mask, order == HotbarOrder.HERZIUM && options.repeatFilter(),
+                    order != HotbarOrder.VANILLA && options.mouseKeys());
+            return;
+        }
         // One press, one serial, even when the key is bound to several mappings.
         POLICY.recordEvent(mask);
+    }
+
+    /** Vanilla is about to mark the key down or up; "down" while it is already down is a repeat. */
+    public static void noteKeyState(InputConstants.Key key, boolean down) {
+        if (!down) {
+            HELD.remove(key);
+            if (key.equals(repeatedKey)) repeatedKey = null;
+        } else if (!HELD.add(key)) {
+            repeatedKey = key;
+        } else {
+            repeatedKey = null;
+        }
+    }
+
+    /** Vanilla released every key (a screen opened, the window lost focus): nothing is held any more. */
+    public static void forgetHeldKeys() {
+        HELD.clear();
+        repeatedKey = null;
     }
 
     public static void beginPass(Minecraft minecraft) {
@@ -36,6 +68,8 @@ public final class HotbarOrderController {
         passOrder = ordinary ? HerziumConfig.get().hotbarOrder() : HotbarOrder.VANILLA;
         passOptions = ordinary ? HerziumConfig.get().burstOptions() : HotbarOrderPolicy.Options.LEGACY;
         passCaptured = false;
+        passHoldGuard = ordinary && passOrder != HotbarOrder.VANILLA
+                && HerziumConfig.get().on(HerziumConfig.Feature.HOLD_GUARD);
         POLICY.beginPass(passOrder, passOptions, selectedSlot(minecraft), clickCounts(minecraft));
         ImmediateHotbarInput.notePassStart();
     }
@@ -72,8 +106,29 @@ public final class HotbarOrderController {
         return POLICY.allowsAction(type);
     }
 
-    public static void actionClickConsumed(int type, int remainingClicks) {
-        POLICY.actionConsumed(type, remainingClicks);
+    /** False when the click Vanilla just consumed was a keyboard repeat the options drop. */
+    public static boolean actionClickConsumed(int type, int remainingClicks) {
+        return POLICY.actionConsumed(type, remainingClicks);
+    }
+
+    /**
+     * A Use press of this tick waits for the next one, and the key is still
+     * down. Vanilla would start a held use right now, with the item the press
+     * was held back from: the hold waits with its click.
+     */
+    public static boolean heldUseWaits() {
+        return passHoldGuard && POLICY.waits(HotbarOrderPolicy.USE);
+    }
+
+    /** The same for a held Attack, which would start breaking a block with the item before the key. */
+    public static boolean heldAttackWaits() {
+        return passHoldGuard && POLICY.waits(HotbarOrderPolicy.ATTACK);
+    }
+
+    /** The offhand swap is about to be sent: the slot first where the options say so, then the picture. */
+    public static void beforeOffhandSwap(Minecraft minecraft) {
+        sendSlotBeforeOffhandAction(minecraft);
+        SwapPreview.arm(minecraft);
     }
 
     public static boolean acceptSelection(int slot) {
@@ -127,6 +182,8 @@ public final class HotbarOrderController {
         passOrder = HotbarOrder.VANILLA;
         passOptions = HotbarOrderPolicy.Options.LEGACY;
         passCaptured = false;
+        passHoldGuard = false;
+        forgetHeldKeys();
     }
 
     private static int pendingClicks(KeyMapping mapping) {

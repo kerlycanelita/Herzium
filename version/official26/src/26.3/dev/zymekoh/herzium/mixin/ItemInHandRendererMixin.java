@@ -1,7 +1,6 @@
 package dev.zymekoh.herzium.mixin;
 
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
-import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.FirstPersonHandsAndItems;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.state.level.FirstPersonHandsAndItemsRenderState;
@@ -51,7 +50,7 @@ abstract class ItemInHandRendererMixin {
         this.herzium$offHandPlacing &= this.offHandHeight < 1.0F || this.oOffHandHeight < 1.0F;
 
         ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
-        if (!CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
+        if (ImmediateHotbarInput.instantEquip(visualMainHandItem)) {
             this.mainHandItem = visualMainHandItem;
             if (!handsBusy && !this.herzium$mainHandPlacing) {
                 this.mainHandHeight = 1.0F;
@@ -59,8 +58,8 @@ abstract class ItemInHandRendererMixin {
             }
         }
 
-        ItemStack visualOffHandItem = player.getOffhandItem();
-        if (!CombatItemClassifier.preservesVanillaEquipTransition(visualOffHandItem)) {
+        ItemStack visualOffHandItem = ImmediateHotbarInput.visualOffHandItem(player);
+        if (ImmediateHotbarInput.instantEquip(visualOffHandItem)) {
             this.offHandItem = visualOffHandItem;
             if (!handsBusy && !this.herzium$offHandPlacing) {
                 this.offHandHeight = 1.0F;
@@ -74,7 +73,7 @@ abstract class ItemInHandRendererMixin {
     private void herzium$replaceVisibleItemImmediately(
             ItemStack renderedItem, ItemStack currentItem, LocalPlayer player,
             CallbackInfoReturnable<Boolean> cir) {
-        if (!CombatItemClassifier.preservesVanillaEquipTransition(currentItem)) {
+        if (ImmediateHotbarInput.instantEquip(currentItem)) {
             cir.setReturnValue(true);
         }
     }

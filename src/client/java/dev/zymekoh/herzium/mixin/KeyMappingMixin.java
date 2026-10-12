@@ -16,6 +16,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = KeyMapping.class, priority = 100)
 abstract class KeyMappingMixin {
+    @Inject(method = "set", at = @At("HEAD"))
+    private static void herzium$noteKeyState(InputConstants.Key key, boolean down, CallbackInfo ci) {
+        HotbarOrderController.noteKeyState(key, down);
+    }
+
+    @Inject(method = "releaseAll", at = @At("HEAD"))
+    private static void herzium$forgetHeldKeys(CallbackInfo ci) {
+        HotbarOrderController.forgetHeldKeys();
+    }
+
     @Inject(method = "click", at = @At("TAIL"))
     private static void herzium$observeLogicalHotbarInput(
             InputConstants.Key logicalKey,

@@ -44,8 +44,9 @@ Vanilla applies every hotbar key of a tick before its Use and Attack clicks; in
 Herzium order a key pressed after a click waits for the next tick, so the click
 uses the item held when it was pressed. The mouse wheel counts as the newest
 input, so a key still queued from before a wheel turn cannot undo it.
-A preview that Vanilla's own selection contradicts suspends previews for that
-world; a slot chosen by another mod or the server only clears it.
+A preview that Vanilla's own selection contradicts suspends previews for three
+seconds (for the rest of that world with Preview recovery off, as before 1.12);
+a slot chosen by another mod or the server only clears it.
 
 ### Burst options
 
@@ -61,17 +62,46 @@ Herzium behaves exactly like 1.10.7.
 
 Every tick keeps Vanilla's shape: at most one slot change, sent before that
 tick's clicks. The options only ever make a click wait one tick; nothing is sent
-earlier, and no click is created, repeated or dropped. The measurements behind
+earlier, and no click is created or repeated. The measurements behind
 them, against Grim Anticheat with Ping Equalizer, are in the
 [1.11 laboratory audit](docs/audits/LAB-1.11-burst-options.md).
+
+### Guards (1.12)
+
+Four switches for what a real hand does that a burst on paper does not: it
+holds the button down, it double-clicks, and its keyboard repeats held keys.
+They act in every order but Vanilla.
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| Hold guard | on | When a click waits one tick for its key, Vanilla saw the button still held and used the old item at once. That extra use with the wrong item was the ghost block of 1.11. The held button now waits with its click. |
+| One click per tick | off | Two uses or two attacks pressed inside one tick go one per tick; nothing is lost and nothing waits more than one tick. Off because it was measured: with latency the second click lands on the block the first just placed, before the server confirms it, and Grim's `AirLiquidPlace` alerted on it for a player standing still. |
+| Ignore key repeat | on (Herzium order) | A hotbar key held on the keyboard keeps repeating. Tapping a slot bound to a mouse button does not stop it, so the held key took the slot back. Only real presses count now. |
+| Mouse-like keys | off | Use, attack, swap and drop bound to a keyboard key act once per press, as a mouse button does, instead of repeating while held. |
+
+### Feel and Monitor (1.12)
+
+Everything Herzium draws is now a switch: Hotbar preview, Preview recovery,
+Offhand swap preview (the swap is drawn at once instead of one ping later, and
+undone after half a second if the server does not confirm it), Combat items
+too (off), Slot pop, No equip dip and Smooth attack indicator. None of them
+sends, delays or changes a packet.
+
+The Monitor tab measures instead of promising. The **response meter** shows how
+many milliseconds your last hotbar key took to reach the screen and to reach
+the game tick. The **tick shape monitor** counts, in the packets this client
+really sends and whichever mod causes them, the things a server can tell from
+Vanilla: a hotbar change after a click of the same tick, the same slot twice in
+a row, and two placements in one tick. The findings and measurements are in the
+[1.12 audit](docs/audits/AUDIT-1.12.0-feel-and-guards.md).
 
 ## What it changes
 
 - **Hotbar preview.** Vanilla's currently resolvable requested slot can be
   highlighted on the next rendered frame. Ordinary items can also appear in hand immediately;
   combat items keep Vanilla's hand/equip transition.
-- **Selection-order preference.** A compact Mod Menu button cycles through the
-  three modes and saves the choice. No restart is needed.
+- **Selection-order preference.** The Order tab of the settings chooses among
+  the three modes and saves the choice. No restart is needed.
 - **Ordinary-item equip transition.** Removes the decorative equip dip from
   ordinary main-hand and offhand items. Placing one still plays Vanilla's short
   hand dip, the visual confirmation of the placement. Combat items keep
@@ -94,9 +124,17 @@ The visual preview is not sent to the server. Selecting Vanilla order keeps the
 real selection Vanilla too. The default Herzium order and Vanilla reversed can
 change carried-slot packets and the resulting item/block actions because they
 select a different item. Herzium does not dispatch actions early, add retries,
-consume extra clicks or modify reach, cooldowns or hitboxes. The only packet it
-causes is Vanilla's own carried-slot update, sent right before an offhand swap
-or a drop when Offhand sync is on.
+or modify reach, cooldowns or hitboxes. It never creates a click: the guards can
+only make one wait a tick, leave out the use Vanilla would add on its own for a
+button still held in that tick, or (Mouse-like keys, off by default) ignore the
+keyboard's repeats of a held key. The only packet it causes is Vanilla's own
+carried-slot update, sent right before an offhand swap or a drop when Offhand
+sync is on.
+
+The inventory screens are not touched. Vanilla already handles their clicks,
+drags and tooltips per event and per frame; what is slow there is the server's
+answer, and no client mod can make that faster without guessing. Opening the
+inventory faster is KoHs Inventory Tweaks' job.
 Servers may still restrict client mods or identify them through an approved
 client/attestation system, so follow each server's rules.
 

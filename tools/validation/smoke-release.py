@@ -279,6 +279,12 @@ abstract class SmokeTickMixin {{
     assert config["startupWarningAcknowledged"] and config["hotbarOrder"] == "HERZIUM"
     # A fresh install starts with every burst option on.
     assert config["splitBursts"] and config["strictActionOrder"] and config["offhandSync"], config
+    # 1.12: the guards and the drawing switches are on; what changes Vanilla behavior or adds a HUD line is off.
+    for key in ("holdGuard", "repeatFilter", "hotbarPreview", "previewRecovery", "swapPreview",
+                "slotPop", "noEquipDip", "smoothIndicator", "shapeMonitor"):
+        assert config[key] is True, (key, config)
+    for key in ("oneClickPerTick", "mouseLikeKeys", "combatPreview", "responseMeter"):
+        assert config[key] is False, (key, config)
     for target, handler in [(targets[4], "renderVanillaResolvableHotbarInput"),
                             (targets[5], "replaceVisibleItemImmediately")]:
         exported = profile / ".mixin.out/class" / (names.cls(target).replace(".", "/") + ".class")

@@ -2,7 +2,6 @@ package dev.zymekoh.herzium.mixin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
-import dev.zymekoh.herzium.render.CombatItemClassifier;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -85,7 +84,7 @@ abstract class ItemInHandRendererMixin {
         // The hand follows the same previewed slot the HUD shows, so a swap
         // reaches both at once instead of the hand trailing by up to a tick.
         ItemStack visualMainHandItem = ImmediateHotbarInput.visualMainHandItem(player);
-        if (!CombatItemClassifier.preservesVanillaEquipTransition(visualMainHandItem)) {
+        if (ImmediateHotbarInput.instantEquip(visualMainHandItem)) {
             this.mainHandItem = visualMainHandItem;
             if (!handsBusy && !this.herzium$mainHandPlacing) {
                 this.mainHandHeight = 1.0F;
@@ -93,8 +92,8 @@ abstract class ItemInHandRendererMixin {
             }
         }
 
-        ItemStack visualOffHandItem = player.getOffhandItem();
-        if (!CombatItemClassifier.preservesVanillaEquipTransition(visualOffHandItem)) {
+        ItemStack visualOffHandItem = ImmediateHotbarInput.visualOffHandItem(player);
+        if (ImmediateHotbarInput.instantEquip(visualOffHandItem)) {
             this.offHandItem = visualOffHandItem;
             if (!handsBusy && !this.herzium$offHandPlacing) {
                 this.offHandHeight = 1.0F;
@@ -112,7 +111,7 @@ abstract class ItemInHandRendererMixin {
             ItemStack renderedItem,
             ItemStack currentItem,
             CallbackInfoReturnable<Boolean> cir) {
-        if (!CombatItemClassifier.preservesVanillaEquipTransition(currentItem)) {
+        if (ImmediateHotbarInput.instantEquip(currentItem)) {
             cir.setReturnValue(true);
         }
     }

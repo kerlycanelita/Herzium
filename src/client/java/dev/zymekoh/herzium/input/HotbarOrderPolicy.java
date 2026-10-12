@@ -37,10 +37,25 @@ public final class HotbarOrderPolicy {
      *                      key pressed before it even when a Use follows
      * @param offhandSync   offhand swaps and drops bound the pass like a Use,
      *                      and the server learns the slot before they are sent
+     * @param oneClick      a pass takes at most one Use and one Attack; the
+     *                      rest wait for the next tick, in pressed order
+     * @param repeatFilter  a hotbar key repeated by the keyboard while held is
+     *                      not a new press, so it never wins as the last input
+     * @param mouseKeys     Use, Attack, swap and drop repeated by the keyboard
+     *                      while held are dropped, as a mouse button would
      */
-    public record Options(boolean splitBursts, boolean strictActions, boolean offhandSync) {
+    public record Options(boolean splitBursts, boolean strictActions, boolean offhandSync, boolean oneClick,
+            boolean repeatFilter, boolean mouseKeys) {
         public static final Options LEGACY = new Options(false, false, false);
+
+        /** The three burst options of 1.11. */
+        public Options(boolean splitBursts, boolean strictActions, boolean offhandSync) {
+            this(splitBursts, strictActions, offhandSync, false, false, false);
+        }
     }
+
+    /** The serial of a click the keyboard repeated by itself: it is not a press. */
+    private static final long REPEAT = 0L;
 
     @SuppressWarnings("unchecked")
     private final ArrayDeque<Long>[] pending = new ArrayDeque[TYPES];
@@ -53,6 +68,8 @@ public final class HotbarOrderPolicy {
     private final boolean[] passDeferred = new boolean[9];
     /** Action clicks the pass may still take, per type; UNLIMITED lets Vanilla drain them all. */
     private final int[] passAllowance = new int[TYPES];
+    /** The newest press there was when the previous pass began: a click not newer than it has waited a tick. */
+    private long previousPassMark;
     private int acceptedSlot = -1;
     private int passCurrentSlot = -1;
     private long passSuperseded;
@@ -94,6 +111,21 @@ public final class HotbarOrderPolicy {
         }
     }
 
+    /**
+     * A click the keyboard repeated while its key was held. Where the options
+     * say a repeat is not a press it is tracked as {@link #REPEAT}; elsewhere it
+     * is a press like any other, as in Vanilla.
+     */
+    public synchronized void recordRepeat(int typeMask, boolean hotbarRepeatsIgnored, boolean actionRepeatsDropped) {
+        if (typeMask == 0) return;
+        long serial = nextSerial();
+        for (int type = 0; type < TYPES; type++) {
+            if ((typeMask & (1 << type)) == 0) continue;
+            boolean notAPress = type < 9 ? hotbarRepeatsIgnored : actionRepeatsDropped;
+            track(type, notAPress ? REPEAT : serial);
+        }
+    }
+
     public void recordUse() { recordEvent(1 << USE); }
 
     public void recordAttack() { recordEvent(1 << ATTACK); }
@@ -124,9 +156,16 @@ public final class HotbarOrderPolicy {
         List<List<Long>> hidden = new ArrayList<>();
         for (int type = USE; type < TYPES; type++) {
             List<Long> taken = new ArrayList<>();
-            int take = passAllowance[type] == UNLIMITED ? pending[type].size() : Math.min(passAllowance[type], pending[type].size());
-            for (int click = 0; click < take; click++) taken.add(pending[type].removeFirst());
-            visible[type] = Math.max(0, visible[type] - (passAllowance[type] == UNLIMITED ? visible[type] : passAllowance[type]));
+            // Vanilla consumes the oldest first: clicks Herzium never saw, then the tracked ones.
+            int unseen = Math.max(0, visible[type] - pending[type].size());
+            int real = passAllowance[type] == UNLIMITED ? UNLIMITED : Math.max(0, passAllowance[type] - unseen);
+            while (!pending[type].isEmpty() && (pending[type].peekFirst() == REPEAT || real > 0)) {
+                long serial = pending[type].removeFirst();
+                if (serial != REPEAT && real != UNLIMITED) real--;
+                taken.add(serial);
+            }
+            visible[type] = passAllowance[type] == UNLIMITED ? 0
+                    : Math.max(0, visible[type] - Math.min(unseen, passAllowance[type]) - taken.size());
             hidden.add(taken);
         }
         try {
@@ -198,6 +237,23 @@ public final class HotbarOrderPolicy {
                 }
             }
         }
+        if (order != HotbarOrder.VANILLA && options.oneClick()) {
+            // Vanilla runs every queued click of a tick, so two presses inside one tick are two
+            // uses in it. One per tick is the tick of a player who clicked 50 ms later. A click
+            // that already waited a tick runs now whatever came after it: nothing waits two.
+            passAllowance[USE] = Math.min(passAllowance[USE], waited(USE) + 1);
+            passAllowance[ATTACK] = Math.min(passAllowance[ATTACK], waited(ATTACK) + 1);
+        }
+        previousPassMark = sequence;
+    }
+
+    /** The clicks of the type that were already queued when the previous pass began. */
+    private int waited(int type) {
+        int waited = 0;
+        for (long serial : pending[type]) {
+            if (serial != REPEAT && serial <= previousPassMark) waited++;
+        }
+        return waited;
     }
 
     /**
@@ -217,6 +273,8 @@ public final class HotbarOrderPolicy {
         int intended = currentSlot;
         for (long[] event : events) {
             int type = (int) event[1];
+            // A repeat is not a press, and its place in the burst is unknown: it names no item.
+            if (event[0] == REPEAT) continue;
             if (type < 9) {
                 if (passSuperseded == 0L || event[0] > passSuperseded || type == currentSlot) intended = type;
                 continue;
@@ -243,16 +301,37 @@ public final class HotbarOrderPolicy {
         if (slot >= 0 && slot < 9) sync(slot, remainingClicks);
     }
 
-    /** Whether the pass may take one more click of this action type now. */
+    /** Whether the pass may take one more click of this action type now; a repeat is always taken, to be dropped. */
     public synchronized boolean allowsAction(int type) {
-        return type < USE || type >= TYPES || passAllowance[type] > 0;
+        if (type < USE || type >= TYPES || passAllowance[type] > 0) return true;
+        Long next = pending[type].peekFirst();
+        return next != null && next == REPEAT;
     }
 
-    /** Called after Vanilla really consumed one click of the action type. */
-    public synchronized void actionConsumed(int type, int remainingClicks) {
-        if (type < USE || type >= TYPES) return;
-        if (passAllowance[type] != UNLIMITED && passAllowance[type] > 0) passAllowance[type]--;
+    /**
+     * Called after Vanilla really consumed one click of the action type.
+     *
+     * @return false when that click was a repeat the options drop: the caller
+     *         must not act on it
+     */
+    public synchronized boolean actionConsumed(int type, int remainingClicks) {
+        if (type < USE || type >= TYPES) return true;
+        // The consumed click is the oldest: one Herzium never saw if there were more clicks than
+        // tracked presses, the head of the queue otherwise.
+        boolean tracked = pending[type].size() > Math.max(0, remainingClicks);
+        boolean repeat = tracked && pending[type].peekFirst() == REPEAT;
+        if (!repeat && passAllowance[type] != UNLIMITED && passAllowance[type] > 0) passAllowance[type]--;
         sync(type, remainingClicks);
+        return !repeat;
+    }
+
+    /** Whether a press of the type is still queued once the pass took what it may: it waits for the next tick. */
+    public synchronized boolean waits(int type) {
+        if (type < USE || type >= TYPES || passAllowance[type] == UNLIMITED) return false;
+        for (long serial : pending[type]) {
+            if (serial != REPEAT) return true;
+        }
+        return false;
     }
 
     /** Called only for slots whose real Vanilla consumeClick succeeded. */
@@ -288,6 +367,7 @@ public final class HotbarOrderPolicy {
         Arrays.fill(passDeferred, false);
         Arrays.fill(passAllowance, UNLIMITED);
         sequence = 0L;
+        previousPassMark = 0L;
         acceptedSlot = -1;
         passOrder = HotbarOrder.VANILLA;
         passOpen = false;
@@ -319,16 +399,19 @@ public final class HotbarOrderPolicy {
         if (pending[type].size() > TRACKED_CLICKS) pending[type].removeFirst();
     }
 
+    /** The oldest real press of the type, or 0. */
     private long oldest(int type) {
-        Long serial = pending[type].peekFirst();
-        return serial == null ? 0L : serial;
+        for (long serial : pending[type]) {
+            if (serial != REPEAT) return serial;
+        }
+        return 0L;
     }
 
     /** Pending clicks of the type pressed before the serial; unseen ones count as older. */
     private int countBefore(int type, long serial, int clickCount) {
         int before = Math.max(0, clickCount - pending[type].size());
         for (long pressed : pending[type]) {
-            if (pressed < serial) before++;
+            if (pressed != REPEAT && pressed < serial) before++;
         }
         return before;
     }

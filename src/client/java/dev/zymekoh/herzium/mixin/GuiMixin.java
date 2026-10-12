@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import dev.zymekoh.herzium.config.HerziumConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.player.LocalPlayer;
@@ -42,7 +43,9 @@ abstract class GuiMixin {
     @Unique
     private static float herzium$smoothedAttackStrength(float vanillaScale) {
         LocalPlayer player = Minecraft.getInstance().player;
-        return player == null ? vanillaScale : player.getAttackStrengthScale(herzium$safePartialTick());
+        return player == null || !HerziumConfig.get().on(HerziumConfig.Feature.SMOOTH_INDICATOR)
+                ? vanillaScale
+                : player.getAttackStrengthScale(herzium$safePartialTick());
     }
 
     /**

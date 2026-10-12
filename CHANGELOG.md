@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+## 1.12.0 - unreleased
+
+### Fixed
+- **The ghost block of 1.11.** When a Use click waited one tick for its key and
+  the button was still physically held, Vanilla's held-use path placed at once
+  with the old item: one extra use per burst. Measured with 80 ms holds on
+  "swap, key, use": 25 extra uses in 25 bursts in 1.11.0, none in 1.12.0 and
+  none in Vanilla. With the button released at once it never happened, which is
+  why the 1.11 laboratory did not see it.
+- One disagreement between the preview and the game no longer switches the
+  preview off for the rest of the world: it comes back after three seconds.
+- A hotbar key held on the keyboard no longer takes the slot back from a slot
+  tapped on a mouse button (its repeats counted as new presses).
+
+### Added
+- **Guards**: Hold guard and Ignore key repeat (on); One click per tick and
+  Mouse-like keys (off).
+- **Feel**: Offhand swap preview, Slot pop, Combat items too (off), Preview
+  recovery; and switches for Hotbar preview, No equip dip and Smooth attack
+  indicator, which were always on before.
+- **Monitor**: a response meter (milliseconds from key to screen and to tick,
+  measured) and a tick shape monitor that counts what a server can tell from
+  Vanilla in the packets this client sends.
+- A new settings screen: tabs on the left, switches in the middle, and what the
+  pointed switch does on the right. The KoHs tab is the same page as KoHs Death
+  Effects': Zymekoh's drawing, and links to Discord, the website, Modrinth and
+  Buy me a coffee.
+
+### Verified
+- Grim Anticheat 2.3.74, as shipped and with its experimental checks on, the
+  26.2 JAR as a fresh install leaves it: 77 benches, 1,785 cycles, clicks
+  released at once and held 80 ms, alone and next to KoHs Anchor's and Crystal
+  Tweaks. Every click used the right item, no extra use, no alert. The
+  laboratory's own stricter judge, which reads the client's ticks the way a
+  server does since 1.21.2, found no tick Vanilla could not send.
+- One click per tick was measured and ships off: with 100 ms of ping it drew
+  Grim's `AirLiquidPlace` 13 times in 50 bursts (Vanilla: 2). All seven JARs
+  launch with the new settings screen; 1.21.11 passes 314 order scenarios. See
+  `docs/audits/AUDIT-1.12.0-feel-and-guards.md`.
+
 ## 1.11.0 - 2026-09-30
 
 ### Added

@@ -1,6 +1,7 @@
 package dev.zymekoh.herzium.mixin;
 
 import dev.zymekoh.herzium.input.ImmediateHotbarInput;
+import dev.zymekoh.herzium.input.ShapeMonitor;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -13,5 +14,6 @@ abstract class MinecraftHotbarConfirmationMixin {
     @Inject(method = "tick", at = @At("RETURN"))
     private void herzium$confirmFinalVanillaHotbarSelection(CallbackInfo ci) {
         ImmediateHotbarInput.confirmAfterClientTick((Minecraft) (Object) this);
+        ShapeMonitor.tickEnded();
     }
 }
