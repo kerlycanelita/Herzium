@@ -3,10 +3,10 @@
 Herzium
 Your hotbar switches on the very next frame — and you choose which slot wins.
 
-Minecraft waits for its next game update to show a hotbar switch. Herzium draws it on the next frame: up to about 50 ms sooner on a high-refresh monitor. Ordinary items appear in hand right away; weapons and tools keep their normal animation.
+Minecraft waits for its next game update to show a hotbar switch. Herzium draws it on the next frame: up to about 50 ms sooner on a high-refresh monitor. Every item appears in hand right away, weapons included; one switch gives those their normal animation back.
 
 Pick how your hotbar chooses
-Press two hotbar keys at once and Minecraft has to pick one. One button in Mod Menu cycles the three options, no restart.
+Press two hotbar keys at once and Minecraft has to pick one. The Order tab of the settings has the three options, no restart.
 
 🟪 Herzium — last input  ·  this is the default
 ![boton herzium Last input](https://cdn.modrinth.com/data/cached_images/58b165c1a1985fe8ca852a076d1aaf36e1f216b3.png)
@@ -34,12 +34,25 @@ Three more switches in Mod Menu, all on by default.
 
 Every tick still switches slot at most once, before its clicks, just like Vanilla. A click can only ever wait one tick: nothing is sent earlier, nothing is repeated. Tested against Grim Anticheat, with and without its experimental checks, and with Ping Equalizer: no alerts.
 
+Built for a real hand
+New in 1.12, each one a switch in the new settings screen, with what it does written next to it.
+
+🟪 Hold guard — while a click waited one tick and you were still holding the button, Minecraft placed once more with the old item: the ghost block of 1.11. With real 80 ms clicks it happened in 25 of 25 bursts; now in none.
+
+🟪 Ignore key repeat — a hotbar key you keep held no longer takes the slot back from a slot on a mouse button.
+
+🟪 Offhand swap preview — the swap is drawn at once instead of one ping later.
+
+🟪 Preview recovery — if the preview ever stops, it is back in 3 seconds instead of staying off until the next world.
+
+🟪 Monitor — how many milliseconds your last hotbar key took to reach the screen, and a counter of what a server could tell from Vanilla in your own packets.
+
 
 ⚠️ Read this once
 Herzium (last input) is on by default. It changes the slot you really hold, not just what you see — so the item you use can change, and the server sees it. Switch to Vanilla in Mod Menu if you don't want that, and check your server's rules on client mods. Herzium also tells you this on first launch.
 
 Also included
-No equip dip on blocks, food and ordinary tools, and placing a block still plays Minecraft's quick hand dip. Swords, axes, bows, shields and other combat items keep their full animation.
+No equip dip — items appear in hand at once, and placing a block still plays Minecraft's quick hand dip. Switch "Combat items too" off to give swords, axes, bows and shields their full animation back.
 Smoother attack indicator — the cooldown bar glides instead of stepping. Your real attack timing is untouched.
 Snappier start-up — skips the title fade and the pause after world creation. Nothing real is skipped, only the waiting.
 Not a performance mod. No FPS gain, and your settings — VSync, max framerate, Raw Input, sensitivity, cursor — are never touched.
@@ -50,7 +63,7 @@ Pick the file matching your Minecraft version. Client-side only.
 Minecraft	Java
 1.21.10 · 1.21.11	21
 26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3	25
-Needs Fabric Loader 0.19.3+. Get Fabric API too, or Minecraft won't load Herzium's text and the screens show raw codes. Mod Menu is where the order button lives — without it you're stuck on the default.
+Needs Fabric Loader 0.19.3+. Get Fabric API too, or Minecraft won't load Herzium's text and the screens show raw codes. Mod Menu is where the settings button lives — without it you're stuck on the defaults.
 
 ⚠️ Exordium: Herzium skips its HUD cache to redraw the hotbar each frame, so that cache stops working. Don't run both if you'd rather keep it.
 
