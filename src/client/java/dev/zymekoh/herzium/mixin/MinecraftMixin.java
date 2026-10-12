@@ -90,6 +90,7 @@ abstract class MinecraftMixin {
     @Inject(method = "startUseItem", at = @At("HEAD"))
     private void herzium$useOnlyTheCommittedSlot(CallbackInfo ci) {
         ImmediateHotbarInput.discardDivergentPreviewBeforeAction((Minecraft) (Object) this);
+        HotbarOrderController.noteUseRun((Minecraft) (Object) this);
     }
 
     /** The same fail-closed boundary applies to attack and block breaking. */

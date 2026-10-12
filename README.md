@@ -42,45 +42,42 @@ A key tapped twice inside one tick, or held until it auto-repeats, leaves clicks
 queued; in Herzium order those older clicks can no longer undo a newer key.
 Vanilla applies every hotbar key of a tick before its Use and Attack clicks; in
 Herzium order a key pressed after a click waits for the next tick, so the click
-uses the item held when it was pressed. The mouse wheel counts as the newest
-input, so a key still queued from before a wheel turn cannot undo it.
+uses the item held when it was pressed. The one exception is a click that lands
+a moment before its own key; see the core below. The mouse wheel counts as the
+newest input, so a key still queued from before a wheel turn cannot undo it.
 A preview that Vanilla's own selection contradicts suspends previews for three
 seconds (for the rest of that world with Preview recovery off, as before 1.12);
 a slot chosen by another mod or the server only clears it.
 
-### Burst options
+### The core of the Herzium order
 
-Three switches in Mod Menu refine how a fast burst of keys and clicks is split
-across ticks. All three are **on in a fresh install**; with all three off,
-Herzium behaves exactly like 1.10.7.
+Since 1.12.1 these are not switches. They are how the Herzium order works, they
+are always on, and `config/herzium.json` no longer stores them. 1.11 and 1.12.0
+offered them as options; with any of them off a burst sent the wrong item or an
+extra click, and none of them made anything faster when off.
 
-| Option | Applies to | What it does |
-| --- | --- | --- |
-| Split bursts | Herzium order | A click whose item (the last key pressed before it) is not the one this tick holds waits for the next tick, together with everything pressed after it. "Obsidian, use, crystal, use" inside one tick places the obsidian now and the crystal on the next tick, on top of it. |
-| Strict attacks | Herzium order | An attack keeps the key pressed before it even when a use follows in the same tick: "sword, attack, crystal, use" hits with the sword and places the crystal on the next tick. Off keeps Vanilla's "attack, key, use" in one tick, where the attack takes the later key's item. |
-| Offhand sync | Herzium and Vanilla reversed | The server learns the selected slot right before an offhand swap or a drop, as Vanilla already does before a use or an attack. Vanilla sends the swap first, so "totem key, swap" inside one tick swapped the item held before the key. |
+| Rule | What it does |
+| --- | --- |
+| Split bursts | A click whose item (the last key pressed before it) is not the one this tick holds waits for the next tick, together with everything pressed after it. "Obsidian, use, crystal, use" inside one tick places the obsidian now and the crystal on the next tick, on top of it. |
+| A click goes with its key (1.12.1) | Two hands press a key and its click together, and now and then the click lands a few milliseconds first. Pressed order ran that click with the item of the step before: a second glowstone instead of the detonation, and every step after it one click late. Vanilla does not make that mistake inside a tick, because it applies a tick's keys before its clicks. The click now goes behind the key when it can only be that key's: it is the one click waiting, nothing else waits, the key came within 30 ms of it, and the item in hand has already had its click. The first click with an item is never moved, so "click, then pick the next item" stays in pressed order; hands whose click does nothing (empty, a sword, a mace, a totem) have no first click to keep, so from the sword the click is the next item's. |
+| Offhand sync | The server learns the selected slot right before an offhand swap or a drop, as Vanilla already does before a use or an attack. Vanilla sends the swap first, so "totem key, swap" inside one tick swapped the item held before the key. Also in Vanilla reversed. |
+| Hold guard | When a click waits one tick for its key, Vanilla saw the button still held and used the old item at once. That extra use with the wrong item was the ghost block of 1.11. The held button waits with its click. |
+| Key repeat is not a press | A hotbar key held on the keyboard keeps repeating. Tapping a slot bound to a mouse button does not stop it, so the held key took the slot back. Only real presses count. |
+
+Three options of 1.11 and 1.12.0 are gone, and what they did is off:
+
+- **Strict attacks** sent "attack, key, use" on two ticks where Vanilla takes
+  one. An attack now runs as Vanilla runs it.
+- **Mouse-like keys** dropped the repeats a held use key places with.
+- **One click per tick** drew Grim's `AirLiquidPlace` with 100 ms of ping.
 
 Every tick keeps Vanilla's shape: at most one slot change, sent before that
-tick's clicks. The options only ever make a click wait one tick; nothing is sent
-earlier, and no click is created or repeated. The measurements behind
-them, against Grim Anticheat with Ping Equalizer, are in the
+tick's clicks. The core only ever makes a click wait one tick, or run after the
+key pressed with it inside the same tick, as Vanilla runs it; nothing is sent
+earlier, and no click is created or repeated. The measurements are in the
+[1.12.1 audit](docs/audits/AUDIT-1.12.1-slips-and-core.md), the
+[1.12 audit](docs/audits/AUDIT-1.12.0-feel-and-guards.md) and the
 [1.11 laboratory audit](docs/audits/LAB-1.11-burst-options.md).
-
-### Guards (1.12)
-
-Switches for what a real hand does that a burst on paper does not: it holds
-the button down, and its keyboard repeats held keys. They act in every order
-but Vanilla.
-
-| Option | Default | What it does |
-| --- | --- | --- |
-| Hold guard | on | When a click waits one tick for its key, Vanilla saw the button still held and used the old item at once. That extra use with the wrong item was the ghost block of 1.11. The held button now waits with its click. |
-| Ignore key repeat | on (Herzium order) | A hotbar key held on the keyboard keeps repeating. Tapping a slot bound to a mouse button does not stop it, so the held key took the slot back. Only real presses count now. |
-| Mouse-like keys | off | Use, attack, swap and drop bound to a keyboard key act once per press, as a mouse button does, instead of repeating while held. |
-
-A fifth guard, One click per tick, is in the code but not in the settings: with
-100 ms of ping it drew Grim's `AirLiquidPlace` (see the audit). It is off, and
-only `oneClickPerTick` in `config/herzium.json` switches it on.
 
 ### Feel and Monitor (1.12)
 
@@ -96,7 +93,10 @@ many milliseconds your last hotbar key took to reach the screen and to reach
 the game tick. The **tick shape monitor** counts, in the packets this client
 really sends and whichever mod causes them, the things a server can tell from
 Vanilla: a hotbar change after a click of the same tick, the same slot twice in
-a row, and two placements in one tick. The findings and measurements are in the
+a row, and two placements in one tick. The first time a hotbar change follows
+a click in a session, the log gets the call that sent the click and the call
+that sent the change, which names the mod. The tab also counts the clicks that
+went with the key pressed with them. The findings and measurements are in the
 [1.12 audit](docs/audits/AUDIT-1.12.0-feel-and-guards.md).
 
 ## What it changes
@@ -128,12 +128,11 @@ The visual preview is not sent to the server. Selecting Vanilla order keeps the
 real selection Vanilla too. The default Herzium order and Vanilla reversed can
 change carried-slot packets and the resulting item/block actions because they
 select a different item. Herzium does not dispatch actions early, add retries,
-or modify reach, cooldowns or hitboxes. It never creates a click: the guards can
-only make one wait a tick, leave out the use Vanilla would add on its own for a
-button still held in that tick, or (Mouse-like keys, off by default) ignore the
-keyboard's repeats of a held key. The only packet it causes is Vanilla's own
-carried-slot update, sent right before an offhand swap or a drop when Offhand
-sync is on.
+or modify reach, cooldowns or hitboxes. It never creates a click: the core can
+only make one wait a tick, run one after the key pressed with it inside the
+same tick, or leave out the use Vanilla would add on its own for a button still
+held in that tick. The only packet it causes is Vanilla's own carried-slot
+update, sent right before an offhand swap or a drop.
 
 The inventory screens are not touched. Vanilla already handles their clicks,
 drags and tooltips per event and per frame; what is slow there is the server's

@@ -278,12 +278,15 @@ abstract class SmokeTickMixin {{
     config = json.loads((profile / "config/herzium.json").read_text())
     assert config["startupWarningAcknowledged"] and config["hotbarOrder"] == "HERZIUM"
     # A fresh install starts with every burst option on.
-    assert config["splitBursts"] and config["strictActionOrder"] and config["offhandSync"], config
+    # 1.12.1: the burst rules are the core, no longer switches, and are not saved.
+    for key in ("splitBursts", "strictActionOrder", "offhandSync", "holdGuard", "repeatFilter", "oneClickPerTick",
+                "mouseLikeKeys"):
+        assert key not in config, (key, config)
     # 1.12: the fastest drawing and the guards are on; one click per tick, mouse-like keys and the HUD line are off.
-    for key in ("holdGuard", "repeatFilter", "hotbarPreview", "previewRecovery", "swapPreview",
+    for key in ("hotbarPreview", "previewRecovery", "swapPreview",
                 "combatPreview", "slotPop", "noEquipDip", "smoothIndicator", "shapeMonitor"):
         assert config[key] is True, (key, config)
-    for key in ("oneClickPerTick", "mouseLikeKeys", "responseMeter"):
+    for key in ("responseMeter",):
         assert config[key] is False, (key, config)
     for target, handler in [(targets[4], "renderVanillaResolvableHotbarInput"),
                             (targets[5], "replaceVisibleItemImmediately")]:

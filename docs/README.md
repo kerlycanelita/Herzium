@@ -4,6 +4,8 @@
 
 ## Guides
 
+- [1.12.1 audit: the click that lands before its key, and what is in the core](audits/AUDIT-1.12.1-slips-and-core.md)
+- [1.12.0 audit: why 1.11 felt worse than Vanilla](audits/AUDIT-1.12.0-feel-and-guards.md)
 - [1.11.0 release audit: the burst options as a fresh install ships them](audits/AUDIT-1.11.0-release.md)
 - [1.11 laboratory: burst options against Grim and Ping Equalizer](audits/LAB-1.11-burst-options.md)
 - [1.10.6 audit: clicks keep the key pressed before them](audits/AUDIT-1.10.6-action-boundary.md)

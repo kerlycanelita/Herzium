@@ -11,7 +11,7 @@ package dev.zymekoh.herzium.gui;
  */
 public record HerziumConfigLayout(Box panel, Box rail, Box list, Box info, Box done, boolean titleVisible,
         boolean railLabels, int tabHeight, int tabGap, int rowHeight, int rowGap, int visibleRows) {
-    public static final int TABS = 6;
+    public static final int TABS = 4;
 
     public record Box(int x, int y, int width, int height) {
         public int right() { return x + width; }

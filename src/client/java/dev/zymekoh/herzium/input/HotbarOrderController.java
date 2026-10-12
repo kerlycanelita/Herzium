@@ -6,6 +6,9 @@ import dev.zymekoh.herzium.mixin.KeyMappingAccessor;
 import dev.zymekoh.herzium.mixin.MultiPlayerGameModeInvoker;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /** Adapts the optional slot-order policy to the existing Vanilla input pass. */
 public final class HotbarOrderController {
@@ -42,7 +45,25 @@ public final class HotbarOrderController {
             return;
         }
         // One press, one serial, even when the key is bound to several mappings.
-        POLICY.recordEvent(mask);
+        HerziumConfig config = HerziumConfig.get();
+        boolean pair = config.hotbarOrder() == HotbarOrder.HERZIUM && config.pairSlips();
+        POLICY.recordEvent(mask, System.nanoTime(), selectedSlot(minecraft), pair,
+                pair && idle(minecraft.player.getMainHandItem()) && idle(minecraft.player.getOffhandItem()));
+    }
+
+    /** A hand whose use does nothing: empty, a sword, a mace or a totem. */
+    private static boolean idle(ItemStack stack) {
+        return stack.isEmpty() || stack.is(ItemTags.SWORDS) || stack.is(Items.MACE) || stack.is(Items.TOTEM_OF_UNDYING);
+    }
+
+    /** Vanilla is about to use the item in hand, whoever asked for it. */
+    public static void noteUseRun(Minecraft minecraft) {
+        if (minecraft.player != null) POLICY.noteUseRun(selectedSlot(minecraft));
+    }
+
+    /** Clicks moved behind the key pressed with them, this session. */
+    public static int pairedSlips() {
+        return POLICY.pairedSlips();
     }
 
     /** Vanilla is about to mark the key down or up; "down" while it is already down is a repeat. */
@@ -69,7 +90,7 @@ public final class HotbarOrderController {
         passOptions = ordinary ? HerziumConfig.get().burstOptions() : HotbarOrderPolicy.Options.LEGACY;
         passCaptured = false;
         passHoldGuard = ordinary && passOrder != HotbarOrder.VANILLA
-                && HerziumConfig.get().on(HerziumConfig.Feature.HOLD_GUARD);
+                && HerziumConfig.get().holdGuard();
         POLICY.beginPass(passOrder, passOptions, selectedSlot(minecraft), clickCounts(minecraft));
         ImmediateHotbarInput.notePassStart();
     }

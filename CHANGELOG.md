@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+### 1.12.1 (26.2 test build)
+
+#### Fixed
+- **The click that lands before its key.** Two hands press a key and its click
+  together, and now and then the click lands a few milliseconds first. Vanilla
+  forgives that inside a tick, because it applies a tick's keys before its
+  clicks; the Herzium order ran the click with the item of the step before: a
+  second glowstone instead of the detonation, and every step after it one click
+  late. A click pressed up to 30 ms before a hotbar key now goes with that key
+  when it can only be the key's: it is the one click waiting, nothing else
+  waits, and the item in hand has already had its click or cannot be used at
+  all (an empty hand, a sword, a mace, a totem). The first click with an item
+  that can be used is never moved.
+  In the laboratory (Grim 2.3.74, the player's keys and kit), a loop of anchor, glowstone and totem in
+  which one click in five lands 8 to 18 ms before its key completed 47/120 cycles with
+  1.12.0 and KoHs Anchor's 0.6.0, 91/120 with Vanilla and 120/120 with 1.12.1 and
+  KoHs Anchor's 0.6.1 (117/120 with 100 ms of latency), with no Grim alert. Herzium alone
+  sends every slip of a tick with its key's item (37/37), as Vanilla does.
+
+#### Changed
+- **The core has no switches.** Split bursts, Offhand sync, Hold guard and
+  Ignore key repeat are the Herzium order now: always on, and no longer saved.
+  With any of them off a burst sent the wrong item or an extra click, and none
+  made anything faster when off.
+- **Strict attacks, Mouse-like keys and One click per tick are gone**, and what
+  they did is off. Strict attacks took two ticks for "attack, key, use" where
+  Vanilla takes one.
+- The settings screen has four tabs: Order, Feel, Monitor and KoHs.
+
+#### Added
+- The first time the tick shape monitor sees a hotbar change after a click of
+  the same tick, the log gets the call that sent the click and the call that
+  sent the change: that names the mod. The Monitor tab counts the clicks that
+  went with the key pressed with them.
+
+See `docs/audits/AUDIT-1.12.1-slips-and-core.md`.
+
 ## 1.12.0 - 2026-10-12
 
 ### Fixed

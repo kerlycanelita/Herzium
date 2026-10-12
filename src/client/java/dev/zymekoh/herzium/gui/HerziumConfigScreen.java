@@ -4,6 +4,7 @@ import dev.zymekoh.herzium.config.HerziumConfig;
 import dev.zymekoh.herzium.config.HerziumConfig.Feature;
 import dev.zymekoh.herzium.gui.HerziumConfigLayout.Box;
 import dev.zymekoh.herzium.input.HotbarOrder;
+import dev.zymekoh.herzium.input.HotbarOrderController;
 import dev.zymekoh.herzium.input.ResponseMeter;
 import dev.zymekoh.herzium.input.ShapeMonitor;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ import net.minecraft.util.Mth;
  */
 public final class HerziumConfigScreen extends Screen {
     private enum Tab {
-        ORDER, BURSTS, GUARDS, FEEL, MONITOR, KOHS;
+        ORDER, FEEL, MONITOR, KOHS;
 
         String key() { return "herzium.tab." + name().toLowerCase(Locale.ROOT); }
     }
@@ -40,8 +41,6 @@ public final class HerziumConfigScreen extends Screen {
 
     private static final Identifier[] CLOCK = frames("clock", 64);
     private static final Identifier[] COMPASS = frames("compass", 32);
-    private static final Identifier CRYSTAL = Identifier.withDefaultNamespace("textures/item/end_crystal.png");
-    private static final Identifier TOTEM = Identifier.withDefaultNamespace("textures/item/totem_of_undying.png");
     private static final Identifier FEATHER = Identifier.withDefaultNamespace("textures/item/feather.png");
     private static final long ENTRANCE_MILLIS = 320L;
     private static final long WIPE_MILLIS = 180L;
@@ -55,7 +54,7 @@ public final class HerziumConfigScreen extends Screen {
     private final HerziumTheme.ParticleField particles = new HerziumTheme.ParticleField();
     private final AnimatedPurpleButton[] tabButtons = new AnimatedPurpleButton[HerziumConfigLayout.TABS];
     private final List<AnimatedPurpleButton> rowButtons = new ArrayList<>();
-    private final List<String> stats = new ArrayList<>();
+    private final List<FormattedCharSequence> stats = new ArrayList<>();
     private final KohsPage kohs = new KohsPage(true, this);
     private final String version = FabricLoader.getInstance().getModContainer("herzium")
             .map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("");
@@ -86,9 +85,6 @@ public final class HerziumConfigScreen extends Screen {
     private static List<Row> rowsOf(Tab tab) {
         return switch (tab) {
             case ORDER -> List.of(Row.of(HotbarOrder.HERZIUM), Row.of(HotbarOrder.VANILLA), Row.of(HotbarOrder.VANILLA_REVERSED));
-            case BURSTS -> List.of(Row.of(Feature.SPLIT), Row.of(Feature.STRICT), Row.of(Feature.SYNC));
-            // One click per tick has no row: it drew anticheat alerts with latency and stays a config-file switch.
-            case GUARDS -> List.of(Row.of(Feature.HOLD_GUARD), Row.of(Feature.REPEAT_FILTER), Row.of(Feature.MOUSE_KEYS));
             case FEEL -> List.of(Row.of(Feature.PREVIEW), Row.of(Feature.PREVIEW_RECOVERY), Row.of(Feature.SWAP_PREVIEW),
                     Row.of(Feature.COMBAT_PREVIEW), Row.of(Feature.SLOT_POP), Row.of(Feature.NO_EQUIP_DIP),
                     Row.of(Feature.SMOOTH_INDICATOR));
@@ -100,14 +96,8 @@ public final class HerziumConfigScreen extends Screen {
 
     /** Why a switch does nothing right now, as a translation key; null when it applies. */
     private static String blockedBy(Feature feature) {
-        HerziumConfig config = HerziumConfig.get();
-        HotbarOrder order = config.hotbarOrder();
-        return switch (feature) {
-            case SPLIT, STRICT, REPEAT_FILTER -> order == HotbarOrder.HERZIUM ? null : "herzium.config.option.only_herzium";
-            case SYNC, HOLD_GUARD, ONE_CLICK, MOUSE_KEYS -> order != HotbarOrder.VANILLA ? null : "herzium.config.option.not_vanilla";
-            case PREVIEW_RECOVERY -> config.on(Feature.PREVIEW) ? null : "herzium.config.option.needs_preview";
-            default -> null;
-        };
+        return feature == Feature.PREVIEW_RECOVERY && !HerziumConfig.get().on(Feature.PREVIEW)
+                ? "herzium.config.option.needs_preview" : null;
     }
 
     @Override
@@ -212,16 +202,21 @@ public final class HerziumConfigScreen extends Screen {
         if (now - statsAt < 250L && !stats.isEmpty()) return;
         statsAt = now;
         stats.clear();
-        stats.add(Component.translatable("herzium.monitor.frame", ms(ResponseMeter.lastFrameMs()),
-                ms(ResponseMeter.averageFrameMs())).getString());
-        stats.add(Component.translatable("herzium.monitor.tick", ms(ResponseMeter.lastTickMs()),
-                ms(ResponseMeter.averageTickMs())).getString());
-        stats.add(Component.translatable("herzium.monitor.samples", ResponseMeter.samples()).getString());
-        stats.add("");
-        stats.add(Component.translatable("herzium.monitor.ticks", ShapeMonitor.ticks()).getString());
-        stats.add(Component.translatable("herzium.monitor.slot_after_click", ShapeMonitor.slotAfterClick()).getString());
-        stats.add(Component.translatable("herzium.monitor.repeated_slot", ShapeMonitor.repeatedSlot()).getString());
-        stats.add(Component.translatable("herzium.monitor.double_placement", ShapeMonitor.doublePlacement()).getString());
+        // Wrapped like the text above them: a long translation goes on the next line, never off the panel.
+        int room = Math.max(1, layout.info().width() - 16);
+        for (Component line : new Component[] {
+                Component.translatable("herzium.monitor.frame", ms(ResponseMeter.lastFrameMs()), ms(ResponseMeter.averageFrameMs())),
+                Component.translatable("herzium.monitor.tick", ms(ResponseMeter.lastTickMs()), ms(ResponseMeter.averageTickMs())),
+                Component.translatable("herzium.monitor.samples", ResponseMeter.samples()),
+                Component.translatable("herzium.monitor.paired", HotbarOrderController.pairedSlips()),
+                null,
+                Component.translatable("herzium.monitor.ticks", ShapeMonitor.ticks()),
+                Component.translatable("herzium.monitor.slot_after_click", ShapeMonitor.slotAfterClick()),
+                Component.translatable("herzium.monitor.repeated_slot", ShapeMonitor.repeatedSlot()),
+                Component.translatable("herzium.monitor.double_placement", ShapeMonitor.doublePlacement())}) {
+            if (line == null) stats.add(FormattedCharSequence.EMPTY);
+            else stats.addAll(font.split(line, room));
+        }
     }
 
     private static String ms(float value) {
@@ -322,7 +317,7 @@ public final class HerziumConfigScreen extends Screen {
         if (tab == Tab.MONITOR) {
             refreshStats(now);
             y += LINE;
-            for (String line : stats) {
+            for (FormattedCharSequence line : stats) {
                 graphics.text(font, line, x, y, HerziumTheme.TEXT_ACCENT);
                 y += LINE;
             }
@@ -340,8 +335,6 @@ public final class HerziumConfigScreen extends Screen {
         Identifier icon = switch (each) {
             case ORDER -> COMPASS[lively ? (int) (now / 45L % 32L)
                     : Math.floorMod(Math.round((float) Math.sin(now / 600.0F) * 3.0F), 32)];
-            case BURSTS -> CRYSTAL;
-            case GUARDS -> TOTEM;
             case FEEL -> FEATHER;
             case MONITOR -> CLOCK[(int) (now / (lively ? 30L : 90L) % 64L)];
             case KOHS -> ModIconLoader.iconFor("herzium");

@@ -80,45 +80,33 @@ public final class HerziumConfig {
     private volatile HotbarOrder hotbarOrder = HotbarOrder.HERZIUM;
 
     /**
-     * Herzium order: a click pressed after a key that waits for the next tick
-     * waits with it, so "obsidian, use, crystal, use" inside one tick places the
-     * obsidian now and the crystal on the next tick, each with its own item.
-     * Off is 1.10.7, where the second click took the first key's item.
-     */
-    private volatile boolean splitBursts = true;
-
-    /**
-     * Herzium order: an Attack gets the key pressed before it even when a Use
-     * follows in the same tick; the key and the Use then go on the next tick.
-     * Off keeps Vanilla's "attack, key, use" in one tick, where the attack
-     * takes the later key's item.
+     * The core of the Herzium order. None of these is a switch any more, and none is saved: with
+     * any of the first three off, a burst sent the wrong item or an extra click, and every one of
+     * them only ever makes a click wait one tick. They stay fields so the laboratory can turn one
+     * off and measure what it does.
      *
-     * <p>On in a fresh install, like the other two: every click then runs with
-     * the item of the key pressed before it.</p>
+     * <ul>
+     *   <li>split bursts: a click waits for the key pressed before it, one key per tick;</li>
+     *   <li>offhand sync: the server learns the slot before an offhand swap or a drop;</li>
+     *   <li>hold guard: a button still held does not use the old item while its click waits;</li>
+     *   <li>repeat filter: a hotbar key the keyboard repeats is not a new press;</li>
+     *   <li>pair slips: a click pressed a moment before its key goes with that key.</li>
+     * </ul>
      */
-    private volatile boolean strictActionOrder = true;
+    private transient volatile boolean splitBursts = true;
+    private transient volatile boolean offhandSync = true;
+    private transient volatile boolean holdGuard = true;
+    private transient volatile boolean repeatFilter = true;
+    private transient volatile boolean pairSlips = true;
 
     /**
-     * Offhand swaps and drops use the slot the player pressed before them: the
-     * server is told the slot first, and in the Herzium order a key pressed
-     * after them waits for the next tick. Vanilla swapped the item held before
-     * a key pressed in the same tick.
+     * Out of the core, off: each cost a tick or an alert. Strict attacks sent "attack, key, use" on
+     * two ticks where Vanilla takes one; one click per tick drew AirLiquidPlace with latency
+     * (AUDIT-1.12.0); mouse-like keys dropped the repeats a held use key spams with.
      */
-    private volatile boolean offhandSync = true;
-
-    /**
-     * 1.12 guards. They only ever make a click wait or drop a repeat the
-     * keyboard made by itself; none creates, repeats or sends anything early.
-     * Like the burst options they stand down under the Vanilla order.
-     */
-    private volatile boolean holdGuard = true;
-    /**
-     * Off, and not in the settings screen: with latency its second click lands on a block the
-     * server has not confirmed (AUDIT-1.12.0). Only this file can switch it on.
-     */
-    private volatile boolean oneClickPerTick = false;
-    private volatile boolean repeatFilter = true;
-    private volatile boolean mouseLikeKeys = false;
+    private transient volatile boolean strictActionOrder = false;
+    private transient volatile boolean oneClickPerTick = false;
+    private transient volatile boolean mouseLikeKeys = false;
 
     /** 1.12 feel: what is drawn, never what is sent. */
     private volatile boolean hotbarPreview = true;
@@ -131,13 +119,8 @@ public final class HerziumConfig {
     private volatile boolean responseMeter = false;
     private volatile boolean shapeMonitor = true;
 
-    /**
-     * Every switch of the settings screen. The burst options keep their own
-     * fields and getters too: KoHs Anchor's, Crystal Tweaks and the lab read
-     * those by name.
-     */
+    /** Every switch of the settings screen: what is drawn and what is measured. */
     public enum Feature {
-        SPLIT, STRICT, SYNC, HOLD_GUARD, ONE_CLICK, REPEAT_FILTER, MOUSE_KEYS,
         PREVIEW, PREVIEW_RECOVERY, SWAP_PREVIEW, COMBAT_PREVIEW, SLOT_POP, NO_EQUIP_DIP, SMOOTH_INDICATOR,
         RESPONSE_METER, SHAPE_MONITOR;
 
@@ -148,13 +131,6 @@ public final class HerziumConfig {
 
     public boolean on(Feature feature) {
         return switch (feature) {
-            case SPLIT -> this.splitBursts;
-            case STRICT -> this.strictActionOrder;
-            case SYNC -> this.offhandSync;
-            case HOLD_GUARD -> this.holdGuard;
-            case ONE_CLICK -> this.oneClickPerTick;
-            case REPEAT_FILTER -> this.repeatFilter;
-            case MOUSE_KEYS -> this.mouseLikeKeys;
             case PREVIEW -> this.hotbarPreview;
             case PREVIEW_RECOVERY -> this.previewRecovery;
             case SWAP_PREVIEW -> this.swapPreview;
@@ -170,13 +146,6 @@ public final class HerziumConfig {
     public void toggle(Feature feature) {
         boolean value = !on(feature);
         switch (feature) {
-            case SPLIT -> this.splitBursts = value;
-            case STRICT -> this.strictActionOrder = value;
-            case SYNC -> this.offhandSync = value;
-            case HOLD_GUARD -> this.holdGuard = value;
-            case ONE_CLICK -> this.oneClickPerTick = value;
-            case REPEAT_FILTER -> this.repeatFilter = value;
-            case MOUSE_KEYS -> this.mouseLikeKeys = value;
             case PREVIEW -> this.hotbarPreview = value;
             case PREVIEW_RECOVERY -> this.previewRecovery = value;
             case SWAP_PREVIEW -> this.swapPreview = value;
@@ -274,15 +243,13 @@ public final class HerziumConfig {
 
     public boolean splitBursts() { return this.splitBursts; }
 
+    public boolean pairSlips() { return this.pairSlips; }
+
+    public boolean holdGuard() { return this.holdGuard; }
+
     public boolean strictActionOrder() { return this.strictActionOrder; }
 
     public boolean offhandSync() { return this.offhandSync; }
-
-    public void toggleSplitBursts() { this.splitBursts = !this.splitBursts; changed(); }
-
-    public void toggleStrictActionOrder() { this.strictActionOrder = !this.strictActionOrder; changed(); }
-
-    public void toggleOffhandSync() { this.offhandSync = !this.offhandSync; changed(); }
 
     private void changed() {
         HotbarOrderController.reset();

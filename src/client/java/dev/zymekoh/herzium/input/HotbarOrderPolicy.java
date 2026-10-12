@@ -56,10 +56,21 @@ public final class HotbarOrderPolicy {
 
     /** The serial of a click the keyboard repeated by itself: it is not a press. */
     private static final long REPEAT = 0L;
+    /** A click at most this long before a key can be that key's own click, landed a moment early. */
+    private static final long SLIP_NANOS = 30_000_000L;
 
     @SuppressWarnings("unchecked")
     private final ArrayDeque<Long>[] pending = new ArrayDeque[TYPES];
     private long sequence;
+    /** When each of the last presses happened, by serial. */
+    private final long[] pressNanos = new long[64];
+    /** The last hotbar keys and wheel turns: what put the item in hand there. */
+    private final long[] selections = new long[8];
+    private int selectionCount;
+    /** The last use that really ran, as a serial among the presses, and the slot it ran with. */
+    private long lastUseRun;
+    private int lastUseSlot = -1;
+    private int pairedSlips;
 
     private HotbarOrder passOrder = HotbarOrder.VANILLA;
     /** Between {@link #beginPass} and {@link #endPass}: Vanilla is still taking this pass's clicks. */
@@ -104,11 +115,85 @@ public final class HotbarOrderPolicy {
 
     /** One press of a key that may be bound to several mappings: every type in the mask shares the serial. */
     public synchronized void recordEvent(int typeMask) {
+        recordEvent(typeMask, 0L, -1, false, false);
+    }
+
+    public synchronized void recordEvent(int typeMask, long nanos, int currentSlot, boolean pairSlips) {
+        recordEvent(typeMask, nanos, currentSlot, pairSlips, false);
+    }
+
+    /**
+     * A press with its moment and the slot held when it happened. With {@code pairSlips}, a hotbar
+     * key takes with it the click pressed a moment before it; see {@link #pairSlip}.
+     *
+     * @param idleHand whether using what the hands hold does nothing (an empty hand, a sword)
+     */
+    public synchronized void recordEvent(int typeMask, long nanos, int currentSlot, boolean pairSlips,
+            boolean idleHand) {
         if (typeMask == 0) return;
         long serial = nextSerial();
+        pressNanos[(int) (serial & 63L)] = nanos;
+        boolean key = (typeMask & 0x1FF) != 0;
+        if (key && pairSlips) pairSlip(typeMask, nanos, currentSlot, idleHand);
         for (int type = 0; type < TYPES; type++) {
             if ((typeMask & (1 << type)) != 0) track(type, serial);
         }
+        if (key) selections[selectionCount++ & 7] = serial;
+    }
+
+    /**
+     * Two hands press a key and its click together, and now and then the click lands first. Pressed
+     * order would run that click with the item before the key: a second glowstone instead of the
+     * detonation, and every step after it one click late. Vanilla never makes that mistake inside
+     * a tick, because it applies a tick's keys before its clicks.
+     *
+     * <p>So the click goes behind the key when it can only be that key's: it is the one click
+     * waiting, no other key or click waits, the key came within 30 ms of it, and the item in hand
+     * has had its click already (one ran since the key or wheel turn that selected it). A first
+     * click with an item is never moved: "click, then pick the next item" stays in pressed
+     * order. Hands whose use does nothing have no first click to keep: from a sword to the next
+     * item, the click is the next item's.</p>
+     */
+    private void pairSlip(int keyMask, long nanos, int currentSlot, boolean idleHand) {
+        if (currentSlot < 0 || (keyMask & (1 << currentSlot)) != 0) return;
+        long use = 0L;
+        int uses = 0;
+        for (long serial : pending[USE]) {
+            if (serial != REPEAT) {
+                uses++;
+                use = serial;
+            }
+        }
+        if (uses != 1 || nanos - pressNanos[(int) (use & 63L)] > SLIP_NANOS) return;
+        for (int type = 0; type < TYPES; type++) {
+            if (type == USE) continue;
+            for (long serial : pending[type]) {
+                if (serial != REPEAT) return;
+            }
+        }
+        long selected = 0L;
+        for (long serial : selections) {
+            if (serial < use) selected = Math.max(selected, serial);
+        }
+        if (!idleHand && (lastUseSlot != currentSlot || lastUseRun <= selected)) return;
+        long moved = nextSerial();
+        pressNanos[(int) (moved & 63L)] = pressNanos[(int) (use & 63L)];
+        ArrayDeque<Long> uses2 = new ArrayDeque<>(pending[USE].size());
+        for (long serial : pending[USE]) uses2.addLast(serial == use ? moved : serial);
+        pending[USE].clear();
+        pending[USE].addAll(uses2);
+        pairedSlips++;
+    }
+
+    /** A use is running now, with this slot: the item in hand has had a click. */
+    public synchronized void noteUseRun(int slot) {
+        lastUseRun = nextSerial();
+        lastUseSlot = slot;
+    }
+
+    /** Clicks moved behind the key they were pressed with, since the last reset. */
+    public synchronized int pairedSlips() {
+        return pairedSlips;
     }
 
     /**
@@ -359,6 +444,7 @@ public final class HotbarOrderPolicy {
     public synchronized void noteWheel(int slot) {
         selectionSlot = slot;
         selectionPress = nextSerial();
+        selections[selectionCount++ & 7] = selectionPress;
     }
 
     public synchronized void reset() {
@@ -367,6 +453,12 @@ public final class HotbarOrderPolicy {
         Arrays.fill(passDeferred, false);
         Arrays.fill(passAllowance, UNLIMITED);
         sequence = 0L;
+        Arrays.fill(pressNanos, 0L);
+        Arrays.fill(selections, 0L);
+        selectionCount = 0;
+        lastUseRun = 0L;
+        lastUseSlot = -1;
+        pairedSlips = 0;
         previousPassMark = 0L;
         acceptedSlot = -1;
         passOrder = HotbarOrder.VANILLA;

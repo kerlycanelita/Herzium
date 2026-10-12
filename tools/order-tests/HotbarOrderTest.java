@@ -354,6 +354,38 @@ public final class HotbarOrderTest {
         plain.beginPass(HotbarOrder.HERZIUM, STRICT, 4, plainCounts.clone());
         check(false, plain.waits(USE), "a use nothing holds back never blocks the held use");
 
+        // 1.12.1: two hands. A click that lands a moment before its key goes with that key.
+        check(List.of("use@1", "|", "use@4", "|"),
+                new Hand(3).press(1, 0).press(USE, 30).tick().press(USE, 100).press(4, 10).tick().actions,
+                "slip: the click pressed 10 ms before the totem key detonates, it does not charge twice");
+        Hand first = new Hand(3).press(1, 0).tick().press(USE, 100).press(4, 10).tick().tick();
+        check(List.of("|", "use@1", "|", "|"), first.actions, "a first click with an item is never moved: click, then pick the next");
+        check(4, first.current, "and the key pressed after it is selected on the next tick");
+        check(List.of("use@1", "|", "use@1", "|", "|"),
+                new Hand(3).press(1, 0).press(USE, 30).tick().press(USE, 100).press(4, 45).tick().tick().actions,
+                "45 ms apart is not a slip: pressed order");
+        check(List.of("use@1", "|", "use@1", "use@1", "|", "|"),
+                new Hand(3).press(1, 0).press(USE, 30).tick().press(USE, 100).press(USE, 5).press(4, 5).tick().tick().actions,
+                "two clicks waiting are a double click, not a slip");
+        check(List.of("use@1", "|", "use@2", "|", "|"),
+                new Hand(3).press(1, 0).press(USE, 30).tick().press(2, 100).press(USE, 5).press(4, 5).tick().tick().actions,
+                "a click with its own key before it stays with that key");
+        check(List.of("use@1", "|", "use@4", "use@4", "|"),
+                new Hand(3).press(1, 0).press(USE, 30).tick().press(USE, 100).press(4, 10).press(USE, 10).tick().actions,
+                "a click after the paired key runs with it too, as Vanilla runs the tick");
+        check(List.of("use@1", "|", "use@1", "|"),
+                new Hand(3).press(1, 0).press(USE, 30).tick().press(USE, 100).press(1, 10).tick().actions,
+                "pressing the key of the item in hand changes nothing");
+        Hand sword = new Hand(0);
+        sword.idle = true;
+        check(List.of("use@3", "|"), sword.press(USE, 100).press(3, 12).tick().actions,
+                "from a sword the click is the next item's: a hand that cannot be used has no first click");
+        Hand wheel = new Hand(3);
+        wheel.current = 1;
+        wheel.policy.noteWheel(1);
+        check(List.of("use@1", "|", "|"), wheel.press(USE, 100).press(4, 10).tick().tick().actions,
+                "after the wheel the item in hand is new: its first click is not moved");
+
         // The wheel is the newest input: a key queued before it cannot undo it on the next tick.
         check(5, finalSlotOf(HotbarOrder.HERZIUM, SPLIT, new int[] {2, WHEEL + 5}), "key, then wheel: the wheel stays");
         check(7, finalSlotOf(HotbarOrder.HERZIUM, SPLIT, new int[] {2, WHEEL + 5, 7}), "key, wheel, key: the last key");
@@ -507,6 +539,47 @@ public final class HotbarOrderTest {
             if (firstPassActions < 0) firstPassActions = actions.size();
         }
         return new Outcome(actions, passes, current, changedTwice, firstPassActions, mostClicks);
+    }
+
+    /** A policy driven press by press, each at its moment, one pass at a time: the slip tests. */
+    private static final class Hand {
+        final HotbarOrderPolicy policy = new HotbarOrderPolicy();
+        final int[] counts = new int[HotbarOrderPolicy.TYPES];
+        final List<String> actions = new ArrayList<>();
+        int current;
+        boolean idle;
+        long now = 1_000_000_000L;
+
+        Hand(int slot) {
+            current = slot;
+        }
+
+        Hand press(int type, long afterMillis) {
+            now += afterMillis * 1_000_000L;
+            policy.recordEvent(1 << type, now, current, true, idle);
+            counts[type]++;
+            return this;
+        }
+
+        Hand tick() {
+            policy.beginPass(HotbarOrder.HERZIUM, SPLIT, current, counts.clone());
+            for (int slot = 0; slot < 9; slot++) {
+                if (counts[slot] == 0 || policy.defers(slot)) continue;
+                counts[slot]--;
+                policy.consumed(slot, counts[slot]);
+                if (policy.acceptSelection(slot)) current = slot;
+            }
+            while (counts[USE] > 0 && policy.allowsAction(USE)) {
+                counts[USE]--;
+                if (policy.actionConsumed(USE, counts[USE])) {
+                    policy.noteUseRun(current);
+                    actions.add("use@" + current);
+                }
+            }
+            policy.endPass();
+            actions.add("|");
+            return this;
+        }
     }
 
     /** Each checked click runs with the last key pressed before it; the Herzium order changes slot once per tick. */

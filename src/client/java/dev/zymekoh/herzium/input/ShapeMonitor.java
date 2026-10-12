@@ -29,7 +29,10 @@ public final class ShapeMonitor {
     private static volatile int slotAfterClick;
     private static volatile int repeatedSlot;
     private static volatile int doublePlacement;
-    private static boolean warned;
+    private static boolean warnedOrder;
+    private static boolean warnedRepeat;
+    /** Where this tick's last click was sent from, kept until the one warning of the session is out. */
+    private static Throwable lastClick;
 
     private ShapeMonitor() {
     }
@@ -42,22 +45,38 @@ public final class ShapeMonitor {
             }
             if (acted) {
                 slotAfterClick++;
-                warn("a hotbar change after a click in the same tick");
+                if (!warnedOrder) {
+                    warnedOrder = true;
+                    // Once per session, with both calls: the click and the change. They name the mod.
+                    warn("a hotbar change after a click in the same tick", "where the hotbar change was sent");
+                    Herzium.LOGGER.warn("Tick shape monitor: the click before it.", lastClick);
+                    lastClick = null;
+                }
             }
             if (carried.getSlot() == lastSlot) {
                 repeatedSlot++;
-                warn("the same hotbar slot twice in a row");
+                if (!warnedRepeat) {
+                    warnedRepeat = true;
+                    warn("the same hotbar slot twice in a row", "where the second one was sent");
+                }
             }
             lastSlot = carried.getSlot();
         } else if (packet instanceof ServerboundUseItemOnPacket) {
-            acted = true;
+            clicked();
             if (++placementsThisTick == 2) {
                 doublePlacement++;
             }
         } else if (packet instanceof ServerboundUseItemPacket
                 || packet instanceof ServerboundInteractPacket
                 || packet instanceof ServerboundPlayerActionPacket action && digs(action)) {
-            acted = true;
+            clicked();
+        }
+    }
+
+    private static void clicked() {
+        acted = true;
+        if (!warnedOrder && HerziumConfig.get().on(HerziumConfig.Feature.SHAPE_MONITOR)) {
+            lastClick = new Throwable("where the click was sent");
         }
     }
 
@@ -81,15 +100,14 @@ public final class ShapeMonitor {
         placementsThisTick = 0;
         lastSlot = -1;
         ticks = slotAfterClick = repeatedSlot = doublePlacement = 0;
-        warned = false;
+        warnedOrder = warnedRepeat = false;
+        lastClick = null;
     }
 
-    private static void warn(String what) {
-        if (!warned) {
-            warned = true;
-            Herzium.LOGGER.warn("Tick shape monitor: this client sent {}. Vanilla never does; a mod in this "
-                    + "instance is changing the order of your packets. The counters are in Herzium's settings.", what);
-        }
+    private static void warn(String what, String where) {
+        Herzium.LOGGER.warn("Tick shape monitor: this client sent {}. Vanilla never does; a mod in this "
+                + "instance is changing the order of your packets. The counters are in Herzium's settings.", what,
+                new Throwable(where));
     }
 
     public static int ticks() { return ticks; }
