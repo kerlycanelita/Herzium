@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## 1.12.0 - unreleased
+## 1.12.0 - 2026-10-12
 
 ### Fixed
 - **The ghost block of 1.11.** When a Use click waited one tick for its key and

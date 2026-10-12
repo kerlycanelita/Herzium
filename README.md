@@ -155,13 +155,13 @@ CPU-limited frame rate and will not make loading work finish faster.
 
 | Minecraft | Jar | Java |
 | --- | --- | --- |
-| 1.21.10 | `herzium-1.21.10-1.11.0.jar` | 21 |
-| 1.21.11 | `herzium-1.21.11-1.11.0.jar` | 21 |
-| 26.1 | `herzium-26.1-1.11.0.jar` | 25 |
-| 26.1.1 | `herzium-26.1.1-1.11.0.jar` | 25 |
-| 26.1.2 | `herzium-26.1.2-1.11.0.jar` or `herzium-1.11.0.jar` | 25 |
-| 26.2 | `herzium-26.2-1.11.0.jar` | 25 |
-| 26.3 | `herzium-26.3-1.11.0.jar` | 25 |
+| 1.21.10 | `herzium-1.21.10-1.12.0.jar` | 21 |
+| 1.21.11 | `herzium-1.21.11-1.12.0.jar` | 21 |
+| 26.1 | `herzium-26.1-1.12.0.jar` | 25 |
+| 26.1.1 | `herzium-26.1.1-1.12.0.jar` | 25 |
+| 26.1.2 | `herzium-26.1.2-1.12.0.jar` or `herzium-1.12.0.jar` | 25 |
+| 26.2 | `herzium-26.2-1.12.0.jar` | 25 |
+| 26.3 | `herzium-26.3-1.12.0.jar` | 25 |
 
 The root build's `herzium-1.11.0.jar` accepts `>=26.1.2 <26.2`, so it also loads
 on a later 26.1.x patch; the per-version jars pin their exact version.
